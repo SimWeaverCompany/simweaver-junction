@@ -1,0 +1,15 @@
+# Endpoint kit HLA3-RPR2-own-RTI: an HLA Evolved federation on an RTI library of its own, loaded
+# in isolation from Rift's class path - so that one gateway can join federations of two different
+# RTIs (or RTI versions), e.g. pRTI 5 on the class path and pRTI 6 from this jar.
+endpoint.name=HLA3-RPR2-own-RTI
+endpoint.standard=ieee1516-2010
+endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
+endpoint.hla.federation=Red
+# the RTI jar(s), relative to the runtime folder; several separated by ';'. The jar's manifest
+# Class-Path is followed. The HLA API classes may be inside or next to it.
+endpoint.hla.rtijar=lib/rti/prti6/prti1516e.jar
+# the RTIambassador factory name, when the library has several (empty: the default)
+# endpoint.hla.rtifactory=
+# connect settings for the library (replace the LSD): address, or vendor settings
+endpoint.hla.rtiaddress=
+endpoint.hla.rtisettings=crcAddress=localhost:8989

@@ -1,0 +1,11 @@
+# Gateway HLA3<->HLA3 - RPR3<->RPR2: RPR FOM v2.0 <-> v3.0 (classes, attributes, record fields
+# and enumerators converted with mappings/rpr2-rpr3.mapping).
+junction.name=HLA3<->HLA3 - RPR3<->RPR2
+junction.description=An RPR v2 federation and an RPR v3 federation, converted both ways
+junction.endpoints=rpr2;rpr3
+junction.endpoint.rpr2=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.rpr3=endpoints/hla3-rpr3.endpoint.settings
+junction.router=routers/hla3-all.router.settings
+# the conversion table (relative to this folder)
+junction.router.rpr.mapping=mappings/rpr2-rpr3.mapping
+junction.autostart=false

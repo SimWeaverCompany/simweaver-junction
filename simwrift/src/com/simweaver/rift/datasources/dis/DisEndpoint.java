@@ -1,0 +1,194 @@
+package com.simweaver.rift.datasources.dis;
+
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
+
+/**
+ * Where a DIS datasource listens, from the configuration's {@code disinterface} and {@code disport}.
+ *
+ * <pre>
+ * disinterface              meaning
+ * (empty), *, any, 0.0.0.0  broadcast and unicast on every interface
+ * 192.168.10.5 | eth0       broadcast and unicast on that interface (address or interface name)
+ * 239.1.2.3                 multicast group 239.1.2.3, joined on the default interface
+ * 239.1.2.3@eth0            multicast group, joined on that interface (address or name)
+ * </pre>
+ *
+ * The socket allows address reuse, so several DIS datasources (and other DIS tools) can listen
+ * on the same port for broadcast and multicast traffic.
+ *
+ * <p>Limiting broadcast reception to one interface needs the socket bound to that interface's
+ * address. Windows delivers broadcasts to such a socket; Linux and macOS do not, so there the
+ * socket is bound to all interfaces and {@link #note()} says so. Multicast is always received
+ * on the interface the group is joined on.
+ */
+public final class DisEndpoint {
+
+    public static final int DEFAULT_PORT = 3000;
+
+    private static final Pattern IPV4 = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3}");
+
+    private final int port;
+    private final InetAddress group;            // multicast group, or null
+    private final NetworkInterface networkInterface;
+    private final InetAddress bindAddress;      // null = all interfaces
+    private final String description;
+    private final String note;
+
+    private DisEndpoint(int port, InetAddress group, NetworkInterface nif, InetAddress bindAddress, String description, String note) {
+        this.port = port;
+        this.group = group;
+        this.networkInterface = nif;
+        this.bindAddress = bindAddress;
+        this.description = description;
+        this.note = note;
+    }
+
+    /**
+     * @param disInterface the configuration value (see the class comment), may be null
+     * @param port         UDP port, 1-65535 (0 = {@link #DEFAULT_PORT})
+     * @throws IllegalArgumentException with a message for the user when the value cannot be used
+     */
+    public static DisEndpoint parse(String disInterface, int port) {
+        int p = port == 0 ? DEFAULT_PORT : port;
+        if (p < 1 || p > 65535) throw new IllegalArgumentException("DIS port must be 1-65535, got " + port);
+        String v = disInterface == null ? "" : disInterface.trim();
+        String lower = v.toLowerCase(Locale.ROOT);
+        if (v.isEmpty() || "*".equals(v) || "any".equals(lower) || "0.0.0.0".equals(v)) {
+            return new DisEndpoint(p, null, null, null, "UDP port " + p + " on all interfaces", null);
+        }
+        int at = v.indexOf('@');
+        if (at >= 0) {
+            InetAddress g = address(v.substring(0, at).trim());
+            if (!g.isMulticastAddress()) throw new IllegalArgumentException("'" + v.substring(0, at).trim() + "' is not a multicast group address");
+            NetworkInterface nif = networkInterface(v.substring(at + 1).trim());
+            return new DisEndpoint(p, g, nif, null, "multicast " + g.getHostAddress() + " on " + nif.getName() + ", UDP port " + p, null);
+        }
+        NetworkInterface named = interfaceByName(v);
+        if (named == null) {
+            InetAddress a = address(v);
+            if (a.isMulticastAddress()) {
+                return new DisEndpoint(p, a, null, null, "multicast " + a.getHostAddress() + " on the default interface, UDP port " + p, null);
+            }
+            named = networkInterface(v);
+        }
+        InetAddress local = firstIpv4(named);
+        if (isWindows() && local != null) {
+            return new DisEndpoint(p, null, named, local, "UDP port " + p + " on " + named.getName() + " (" + local.getHostAddress() + ")", null);
+        }
+        return new DisEndpoint(p, null, named, null, "UDP port " + p + " on all interfaces",
+                "disinterface " + v + ": this operating system delivers broadcasts only to sockets bound to all interfaces, so DIS is received on every interface");
+    }
+
+    /** Opens the socket (address reuse, 4 MB receive buffer, the given read timeout) and joins the group if any. */
+    public MulticastSocket open(int readTimeoutMillis) throws IOException {
+        MulticastSocket s = new MulticastSocket(null);
+        try {
+            s.setReuseAddress(true);
+            s.bind(bindAddress == null ? new InetSocketAddress(port) : new InetSocketAddress(bindAddress, port));
+            s.setReceiveBufferSize(4 << 20);
+            s.setSoTimeout(readTimeoutMillis);
+            if (group != null) s.joinGroup(new InetSocketAddress(group, port), networkInterface);
+            return s;
+        } catch (IOException | RuntimeException e) {
+            s.close();
+            throw e;
+        }
+    }
+
+    public int port() {
+        return port;
+    }
+
+    /** The multicast group, or null for broadcast / unicast. */
+    public InetAddress group() {
+        return group;
+    }
+
+    /** For log and status messages, e.g. "UDP port 3000 on all interfaces". */
+    public String description() {
+        return description;
+    }
+
+    /** A remark worth logging once (e.g. the interface could not be enforced), or null. */
+    public String note() {
+        return note;
+    }
+
+    @Override
+    public String toString() {
+        return description;
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    /** An IP literal; never a DNS lookup (the DIS network may have no name service). */
+    private static InetAddress address(String text) {
+        if (!IPV4.matcher(text).matches() && text.indexOf(':') < 0) {
+            throw new IllegalArgumentException("'" + text + "' is neither an IP address nor a network interface of this computer"
+                    + interfaceList());
+        }
+        try {
+            return InetAddress.getByName(text);           // a literal: parsed, not resolved
+        } catch (IOException e) {
+            throw new IllegalArgumentException("'" + text + "' is not a valid IP address");
+        }
+    }
+
+    /** A network interface by name or by one of its addresses. */
+    private static NetworkInterface networkInterface(String text) {
+        NetworkInterface n = interfaceByName(text);
+        if (n != null) return n;
+        InetAddress a = address(text);
+        try {
+            n = NetworkInterface.getByInetAddress(a);
+        } catch (SocketException e) {
+            n = null;
+        }
+        if (n == null) throw new IllegalArgumentException(text + " is not an address of this computer" + interfaceList());
+        return n;
+    }
+
+    private static NetworkInterface interfaceByName(String name) {
+        try {
+            return NetworkInterface.getByName(name);
+        } catch (SocketException e) {
+            return null;
+        }
+    }
+
+    private static InetAddress firstIpv4(NetworkInterface n) {
+        for (InetAddress a : Collections.list(n.getInetAddresses())) {
+            if (a instanceof Inet4Address) return a;
+        }
+        return null;
+    }
+
+    private static String interfaceList() {
+        List<String> names = new ArrayList<>();
+        try {
+            for (NetworkInterface n : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!n.isUp()) continue;
+                InetAddress a = firstIpv4(n);
+                names.add(n.getName() + (a == null ? "" : " (" + a.getHostAddress() + ")"));
+            }
+        } catch (SocketException e) {
+            return "";
+        }
+        return names.isEmpty() ? "" : ". Interfaces: " + String.join(", ", names);
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("windows");
+    }
+}

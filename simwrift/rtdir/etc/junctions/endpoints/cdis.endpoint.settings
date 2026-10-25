@@ -1,0 +1,33 @@
+# Endpoint kit CDIS: a C-DIS network (Compressed DIS, SISO-STD-023-2024), seen as an RPR FOM v2.0
+# federation. Inside it is a DIS 7 endpoint; PDUs are encoded to C-DIS when sent and decoded
+# when heard (all 22 PDU types C-DIS has; others are not sent).
+endpoint.name=CDIS
+endpoint.standard=cdis
+# receive: interface (empty / * = all; an address or name; a multicast group, e.g. 239.1.2.3@eth0) and port
+endpoint.dis.interface=
+endpoint.dis.port=3100
+# the default exercise (0 = receive every exercise; PDUs are then sent as exercise 1)
+endpoint.dis.exid=1
+# send: unicast, broadcast or multicast address (empty: the group, else the broadcast address of the interface)
+# endpoint.dis.sendaddress=192.168.1.255
+# endpoint.dis.ttl=8
+# the gateway's own DIS ids: siteid-appid-n for HLA entities without a free EntityIdentifier
+endpoint.dis.siteid=900
+endpoint.dis.appid=2
+# keep: an HLA entity keeps its EntityIdentifier as DIS id when free; assign: always siteid-appid-n
+endpoint.dis.entityids=keep
+endpoint.dis.heartbeatsecs=5
+endpoint.dis.entitytimeoutsecs=12
+# C-DIS: full (every PDU complete) or partial (Entity State, EE, Designator, Transmitter and IFF
+# PDUs carry only what changed, with a full update at least every fullupdatemultiplier x heartbeat).
+# Decoding takes both. Partial updates are a federation agreement.
+endpoint.cdis.updatemode=full
+endpoint.cdis.fullupdatemultiplier=2.4
+# the decoder forgets an object after timeoutmultiplier x heartbeat without updates
+endpoint.cdis.timeoutmultiplier=2.4
+# the DIS heartbeats agreed in the federation, seconds
+endpoint.cdis.heartbeat.entitystate=5
+endpoint.cdis.heartbeat.emission=10
+endpoint.cdis.heartbeat.designator=5
+endpoint.cdis.heartbeat.transmitter=2
+endpoint.cdis.heartbeat.iff=10

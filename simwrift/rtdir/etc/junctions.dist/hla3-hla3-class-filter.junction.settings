@@ -1,0 +1,13 @@
+# Gateway HLA3<->HLA3 - class filter: two RPR v2 federations, only entities, weapon fire and
+# detonations pass (router kit HLA3-class-filter).
+junction.name=HLA3<->HLA3 - class filter
+junction.description=Entities, fire and detonations only
+junction.endpoints=blue;red
+junction.endpoint.blue=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.blue.hla.federation=Blue
+junction.endpoint.red=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.red.hla.federation=Red
+junction.router=routers/hla3-class-filter.router.settings
+# more per endpoint: what Red contributes (in) and receives (out)
+# junction.endpoint.red.filter.out.objects.block=BaseEntity.PhysicalEntity.Platform.SpaceVehicle
+junction.autostart=false

@@ -1,0 +1,16 @@
+# Endpoint kit: an HLA Evolved (IEEE 1516-2010) federation with the RPR FOM v2.0,
+# on the RTI found on Rift's class path (e.g. Pitch pRTI 5 in lib/).
+endpoint.name=ASIM-INT
+endpoint.standard=ieee1516-2010
+# FOM modules: relative names are looked up in etc/fom/ieee1516-2010 (endpoint.hla.fomrootdir)
+endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
+# local settings designator, as for Rift datasources ("default" or vendor text, e.g. crcAddress=host:8989)
+endpoint.hla.lsd=default
+# the default target; the Start dialog lists the federations the RTI knows
+endpoint.hla.federation=GROUPVAR1
+endpoint.hla.createfederation=true
+# endpoint.hla.federatename=          (empty: the RTI chooses)
+# endpoint.hla.federatetype=SimwJunction
+# endpoint.hla.reconnect=true
+# endpoint.hla.reconnectintervalseconds=5
+# endpoint.hla.referencetypes=RTIobjectId

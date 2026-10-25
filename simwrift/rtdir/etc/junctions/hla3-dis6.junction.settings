@@ -1,0 +1,8 @@
+# Gateway HLA3<->DIS6: an HLA Evolved RPR v2 federation and a DIS 6 network.
+junction.name=HLA3<->DIS6
+junction.description=RPR v2 federation (Link 16 included) bridged to DIS 6 on port 3000
+junction.endpoints=hla;dis
+junction.endpoint.hla=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.dis=endpoints/dis6.endpoint.settings
+junction.router=routers/hla3-all.router.settings
+junction.autostart=false

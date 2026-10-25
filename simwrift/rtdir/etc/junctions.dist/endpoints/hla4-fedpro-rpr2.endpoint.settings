@@ -1,0 +1,10 @@
+# Endpoint kit HLA4-FedPro-RPR2: an HLA 4 federation reached over the Federate Protocol, with the
+# vendor's Federate Protocol client library behind the standard hla.rti1516_2025 API.
+endpoint.name=HLA4-FedPro-RPR2
+endpoint.standard=ieee1516-2025-fedpro
+endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2025.xml
+endpoint.hla.federation=Remote
+endpoint.hla.rtijar=lib/rti/fedpro/fedpro-client.jar
+# the Federate Protocol server (RtiConfiguration rtiAddress), and further settings for the client
+endpoint.hla.rtiaddress=fedpro.example.org:15164
+endpoint.hla.rtisettings=

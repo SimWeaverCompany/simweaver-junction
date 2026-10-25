@@ -1,0 +1,10 @@
+# Gateway Talk<->Talk lobby only: two Pitch Talk federations, only the lobby's voice, text and
+# images pass (router kit Talk-Lobby-Only).
+junction.name=Talk<->Talk lobby only
+junction.endpoints=site1;site2
+junction.endpoint.site1=endpoints/talk.endpoint.settings
+junction.endpoint.site1.hla.federation=TalkSite1
+junction.endpoint.site2=endpoints/talk.endpoint.settings
+junction.endpoint.site2.hla.federation=TalkSite2
+junction.router=routers/talk-lobby-only.router.settings
+junction.autostart=false

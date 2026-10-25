@@ -1,0 +1,21 @@
+# Endpoint kit HLA3-dynamic-FOM: an HLA Evolved (IEEE 1516-2010) federation whose FOM is taken
+# from the federation itself, on the RTI found on Rift's class path (e.g. Pitch pRTI 5 in lib/).
+endpoint.name=HLA3-dynamic-FOM
+endpoint.standard=ieee1516-2010
+# no FOM files: join the running federation without modules, read its current FDD
+# (MOM HLAmanager.HLAfederation, attribute HLAcurrentFDD) and use that as the FOM.
+# The federation must exist: without a FOM the endpoint cannot create it.
+endpoint.hla.foms=dynamic
+# how long to wait for the FDD after joining
+# endpoint.hla.fddtimeoutseconds=15
+# local settings designator; several choices separated by ';' (the first is the default,
+# the others are offered when the gateway is started; any other value can be typed there)
+endpoint.hla.lsd=default
+# the default target; the Start dialog lists the federations the RTI knows
+endpoint.hla.federation=Blue
+# endpoint.hla.federatename=          (empty: the RTI chooses)
+# endpoint.hla.federatetype=SimwJunction
+# endpoint.hla.reconnect=true
+# endpoint.hla.reconnectintervalseconds=5
+# instance names in custom datatypes: add them here to have references rewritten
+# endpoint.hla.referencetypes=RTIobjectId

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SimWeaver Rift</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<script src="js/theme.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+	<a class="brand" href="index.html" title="SimWeaver Rift - overview">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="36" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Rift</b></span>
+			<span class="sub">Datasource Control</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<span class="app-nav-link current" aria-current="page">Rift datasources</span>
+		<a class="app-nav-link" href="junction.html" title="SimWeaver Junction - gateways">Junction gateways</a>
+		<a class="app-nav-link" href="config-assistant.html" title="SimWeaver Config Assistant - write configuration files">Config assistant</a>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page">
+
+	<section class="panel" aria-labelledby="cfg-title">
+		<div class="panel-head">
+			<span class="idx">01</span>
+			<h2 id="cfg-title" class="title">Available Datasource Configurations</h2>
+			<span class="meta">
+				<span id="config-meta"></span>
+				<button id="btn-reload-configs" type="button" class="btn">&#10227; Reload</button>
+			</span>
+		</div>
+		<div class="panel-body">
+			<p class="hint">Configurations available on the server. Pick one to create a new datasource.</p>
+			<div id="config-list" aria-live="polite"></div>
+		</div>
+	</section>
+
+	<section class="panel" aria-labelledby="run-title">
+		<div class="panel-head">
+			<span class="idx">02</span>
+			<h2 id="run-title" class="title">Running Datasources</h2>
+			<span class="meta">
+				<span id="running-meta"></span>
+				<button id="btn-reload-running" type="button" class="btn">&#10227; Reload</button>
+			</span>
+		</div>
+		<div class="panel-body">
+			<div id="running-list" aria-live="polite"></div>
+		</div>
+	</section>
+
+</main>
+
+<!-- Create datasource dialog (filled by js/create-datasource.js) -->
+<dialog id="create-dialog" class="dialog" aria-labelledby="cd-title">
+	<form id="cd-form" novalidate>
+		<div class="panel-head">
+			<span class="idx">NEW</span>
+			<h2 id="cd-title" class="title">Create Datasource</h2>
+			<span class="meta">
+				<button id="cd-close" type="button" class="btn" aria-label="Close">&#10005;</button>
+			</span>
+		</div>
+
+		<div class="dialog-body">
+			<div id="cd-summary" class="cd-summary"></div>
+
+			<div id="cd-lsd-section" class="cd-fed cd-lsd" hidden>
+				<label for="cd-lsd" class="field-label"><span id="cd-lsd-label">LSD</span></label>
+				<div class="field-row">
+					<input id="cd-lsd" type="text" autocomplete="off" spellcheck="false" maxlength="512"
+					       aria-describedby="cd-lsd-hint" placeholder="(RTI default)">
+					<button id="cd-lsd-reset" type="button" class="btn" title="Use the configured default">&#8634; Default</button>
+				</div>
+				<ul id="cd-lsd-choices" class="cd-lsd-choices"></ul>
+				<div id="cd-lsd-hint" class="field-msg"></div>
+			</div>
+
+			<div id="cd-fed-section" class="cd-fed">
+				<label for="cd-federation" class="field-label"><span id="cd-fed-label">Federation</span> <span class="req">required</span></label>
+				<div class="field-row">
+					<input id="cd-federation" type="text" autocomplete="off" spellcheck="false"
+					       required aria-describedby="cd-fed-msg" placeholder="federation name">
+					<button id="cd-reset" type="button" class="btn" title="Use the federation from the configuration">&#8634; Config value</button>
+				</div>
+				<div id="cd-fed-msg" class="field-msg" aria-live="polite"></div>
+
+				<div id="cd-disc">
+					<div class="subhead">
+						<span class="subhead-title">Discovered federations</span>
+						<span id="cd-disc-meta" class="dim"></span>
+						<button id="cd-rescan" type="button" class="btn">&#10227; Rescan</button>
+					</div>
+					<div id="cd-fed-list" class="cd-fed-list" aria-live="polite"></div>
+				</div>
+			</div>
+
+			<div id="cd-result"></div>
+		</div>
+
+		<div class="dialog-foot">
+			<button id="cd-cancel" type="button" class="btn">Cancel</button>
+			<button id="cd-submit" type="submit" class="primary">&#9654; Create datasource</button>
+		</div>
+	</form>
+</dialog>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // RIFT</span>
+	<span class="license">By SimWeaver - released under Apache 2.0 license</span>
+	<span class="dim">HLA &middot; DIS datasource gateway</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/browser-data.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/config-card.js"></script>
+<script src="js/confirm.js"></script>
+<script src="js/remove-datasource.js"></script>
+<script src="js/create-datasource.js"></script>
+<script src="js/index.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Datasource HLA3-RPR2: an HLA Evolved (IEEE 1516-2010) federation with the RPR FOM v2.0,
+# Link 16 included (one file).
+datasource.name=HLA3-RPR2
+datasource.standard=ieee1516-2010
+# HLA related - effective when using HLA
+# semicolon separated list of files or directories.
+# relative to the comdir of the standard specified.
+datasource.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
+#
+datasource.hla.lsd=default
+datasource.hla.federation=test1
+# datasource.hla.customfederatetype=SimwRift
+# datasource.hla.reconnectondisconnect=true
+# datasource.hla.reconnectintervalseconds=5
+# datasource.hla.customfomrootdir=./etc/fom/ieee1516-2010
