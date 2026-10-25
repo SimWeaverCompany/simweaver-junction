@@ -1,0 +1,9 @@
+# Gateway HLA3<->HLA3 two RTIs: two RTIs in one process - the class path RTI and an RTI library of
+# its own (e.g. pRTI 5 and pRTI 6).
+junction.name=HLA3<->HLA3 two RTIs
+junction.description=Bridges federations of two RTI versions; the second endpoint loads its RTI jar in isolation
+junction.endpoints=blue;red
+junction.endpoint.blue=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.red=endpoints/hla3-rpr2-own-rti.endpoint.settings
+junction.router=routers/hla3-all.router.settings
+junction.autostart=false

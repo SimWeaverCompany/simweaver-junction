@@ -1,0 +1,8 @@
+# Gateway HLA4<->DIS7: an HLA 4 RPR v2 federation and a DIS 7 network.
+junction.name=HLA4<->DIS7
+junction.description=RPR v2 federation (Link 16 included) bridged to DIS 7 on port 3000
+junction.endpoints=hla;dis
+junction.endpoint.hla=endpoints/hla4-rpr2.endpoint.settings
+junction.endpoint.dis=endpoints/dis7.endpoint.settings
+junction.router=routers/hla4-all.router.settings
+junction.autostart=false

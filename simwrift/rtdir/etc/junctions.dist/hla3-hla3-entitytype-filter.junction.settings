@@ -1,0 +1,13 @@
+# Gateway HLA3<->HLA3 - EntityType filter: two RPR v2 federations, entity types rewritten in
+# passing by the value rules of the router kit (and any added here as junction.router.valuemap...).
+junction.name=HLA3<->HLA3 - EntityType filter
+junction.description=Everything passes; entity types known under other numbers are rewritten
+junction.endpoints=blue;red
+junction.endpoint.blue=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.blue.hla.federation=Blue
+junction.endpoint.red=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.red.hla.federation=Red
+junction.router=routers/hla3-entitytype-filter.router.settings
+# a rule of this gateway only, on top of the kit's (the same key here would replace the kit's)
+# junction.router.valuemap.EntityType.extra = 1.1.225.1.1.1.0 -> 1.1.225.1.1.2.0
+junction.autostart=false

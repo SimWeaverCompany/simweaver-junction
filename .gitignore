@@ -1,0 +1,30 @@
+# IntelliJ IDEA interna filer (ska ALDRIG till GitHub)
+.idea/
+*.iml
+*.iws
+*.ipr
+*.tif
+out/
+fakerti/
+gen/
+dist/
+prompts/
+simwrift/rtdir/maps/cache/
+
+# Byggfiler och kompilerad kod
+target/
+build/
+.gradle/
+
+# Dropbox-specifika filer
+.dropbox
+.dropbox.attr
+desktop.ini
+Thumbs.db
+
+# Loggfiler
+*.log
+
+# annat
+prompts/
+dist.rift.bat

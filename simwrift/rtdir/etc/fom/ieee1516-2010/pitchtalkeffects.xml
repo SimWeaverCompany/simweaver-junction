@@ -1,0 +1,841 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<objectModel xsi:schemaLocation="http://standards.ieee.org/IEEE1516-2010 http://standards.ieee.org/downloads/1516/1516.2-2010/IEEE1516-DIF-2010.xsd" xmlns="http://standards.ieee.org/IEEE1516-2010" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelIdentification>
+        <name>PitchTalk Effects</name>
+        <type>FOM</type>
+        <version>3.5</version>
+        <modificationDate>2021-07-01</modificationDate>
+        <securityClassification>unclassified</securityClassification>
+        <purpose>Provide interoperability in the Audio and Chat domain</purpose>
+        <applicationDomain>Training</applicationDomain>
+        <description>The Pitch Talk Effects FOM provides a way to model effects for the Pitch Talk framework</description>
+        <useLimitation></useLimitation>
+        <poc>
+            <pocType>Primary author</pocType>
+            <pocName>Glenn Wissing</pocName>
+            <pocOrg>Pitch Technologies</pocOrg>
+        </poc>
+        <poc>
+            <pocType>Primary author</pocType>
+            <pocName>Åsa Falkenjack</pocName>
+            <pocOrg>Pitch Technologies</pocOrg>
+        </poc>
+        <poc>
+            <pocType>Sponsor</pocType>
+            <pocName>Björn Möller</pocName>
+            <pocOrg>Pitch Technologies</pocOrg>
+        </poc>
+        <reference>
+            <type>Dependency</type>
+            <identification>PitchTalk FOM</identification>
+        </reference>
+        <other></other>
+        <glyph type="png" height="64" width="64" alt="">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</glyph>
+    </modelIdentification>
+    <objects>
+        <objectClass>
+            <name>HLAobjectRoot</name>
+            <objectClass>
+                <name>PitchTalk</name>
+                <objectClass>
+                    <name>ChannelEffectState</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>Describes the state of the enabled Effect Plugin for a channel as a set of parameters of different data types. Each client should respond by configuring the channel's Effect Plugin accordingly. 
+ 
+If there are no parameters of a given data type, the corresponding attribute should not have a value. 
+ 
+Several objects of this class may exist for the same channel at once, but if so, they may not set the same parameter.</semantics>
+                    <attribute>
+                        <name>ChannelUUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>UserNameDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The UUID of the affected channel.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>LongParameters</name>
+                        <dataType>LongParameterArray</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>On change</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>UserNameDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Parameters with integer values.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>DoubleParameters</name>
+                        <dataType>DoubleParameterArray</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>On change</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>UserNameDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Parameters with double values.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>StringParameters</name>
+                        <dataType>StringParameterArray</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>On change</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>UserNameDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Parameters with string values.</semantics>
+                    </attribute>
+                    <objectClass>
+                        <name>UserEffectState</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Describes the state of the enabled Effect Plugin on a channel for the communication between two specific users. Each client representing the receiving user should respond by configuring the channel's Effect Plugin accordingly. 
+ 
+Several objects of this class may exist at once for the same channel but different user pairs. 
+ 
+Several objects of this class may exist at once for the same channel and same user pair, but if so, they may not set the same parameter. 
+ 
+See also the semantics for ChannelEffectState.</semantics>
+                        <attribute>
+                            <name>ReceivingUser</name>
+                            <dataType>HLAunicodeString</dataType>
+                            <updateType>Static</updateType>
+                            <updateCondition>NA</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserNameDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Name of the receiving user. 
+ 
+Note that this is not the same as the Client ID. The user name is set in the project configuration. 
+ 
+It is possible for multiple clients to represent the same user, in which case they will all respond to the same effect state.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>SendingUser</name>
+                            <dataType>HLAunicodeString</dataType>
+                            <updateType>Static</updateType>
+                            <updateCondition>NA</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserNameDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Name of the sending user. 
+ 
+Note that this is not the same as the Client ID. The user name is set in the project configuration.</semantics>
+                        </attribute>
+                    </objectClass>
+                </objectClass>
+                <objectClass>
+                    <name>EffectPluginDefinition</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>Instructs Pitch Talk clients which Effect Plugin to use for a channel. 
+ 
+Clients can only enable one plugin at a time, so only one distinct object of this class may exists for each channel at any one time.</semantics>
+                    <attribute>
+                        <name>ChannelUUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The UUID of the channel</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>EffectPluginIdentifier</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>On change</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The Java class name of the requested Effect Plugin.</semantics>
+                    </attribute>
+                </objectClass>
+                <objectClass>
+                    <name>EffectModelDefinition</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>This object will be registered by the Admin Server according to the project configuration. 
+ 
+An Effect Modelling Federate recognizing the named Effect Model should respond by activating the Effect Model for the specified channel.</semantics>
+                    <attribute>
+                        <name>ChannelUUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The UUID of the affected channel.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>EffectModelIdentifier</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>On change</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>An identifying string for the requested Effect Model.</semantics>
+                    </attribute>
+                </objectClass>
+                <objectClass>
+                    <name>EffectState</name>
+                    <sharing>Neither</sharing>
+                    <semantics>Base class for Effect States.</semantics>
+                    <attribute>
+                        <name>ChannelUUIDs</name>
+                        <dataType>ArrayOfUuid</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>On change</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>EquipmentDimension</dimension>
+                            <dimension>UserDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The list of UUIDs of the affected channels.</semantics>
+                    </attribute>
+                    <objectClass>
+                        <name>ChannelEffectState</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Describes the state of the enabled Effect Plugin on specified channel(s), as a set of parameters of different datatypes, for the communication between all clients. 
+ 
+Several objects of this class may exist for the same channel at once, but if so, they may not set the same parameter.</semantics>
+                        <attribute>
+                            <name>LongParameters</name>
+                            <dataType>LongParameterArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Parameters with integer values.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>DoubleParameters</name>
+                            <dataType>DoubleParameterArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Parameters with double values.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>StringParameters</name>
+                            <dataType>StringParameterArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Parameters with string values.</semantics>
+                        </attribute>
+                    </objectClass>
+                    <objectClass>
+                        <name>EquipmentEffectState</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Describes the states of the enabled Effect Plugin on specified channel(s) for the communication between one receiving and multiple sending equipment. 
+ 
+Several objects of this class may exist at once, for the same channel(s) and receiving equipment and sending equipment, but if so, they may not set the same parameter. 
+ 
+The SendParametersBase and SendParametersDelta attributes work together to represent the full sending equipment parameters. 
+The SendParametersBase attribute will initialize the base data and update all parameters while the SendParametersDelta will override the base data with updated values only so we avoid sending all the base data when only few parameters need to be added/updated/removed. 
+When applying the SendParametersDelta changes to the SendParametersBase data, the SendParametersDelta will need to be wiped away waiting for new parameter(s) updates.</semantics>
+                        <attribute>
+                            <name>ReceivingEquipmentUUID</name>
+                            <dataType>UuidArrayOfHLAbyte16</dataType>
+                            <updateType>Static</updateType>
+                            <updateCondition>NA</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>EquipmentDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Reference to receiving equipment.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>SendParametersBase</name>
+                            <dataType>SendingEqParamsArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>EquipmentDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Base data containing all parameters for multiple sending equipment. 
+ 
+These parameters are aggregated into this big array for performance reasons, because sending each parameter set in its own attribute ends up creating too many attributes to effectively handle. 
+ 
+Parameters may be overridden by the SendParametersDelta attribute.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>SendParametersDelta</name>
+                            <dataType>SendingEqParamsDeltaArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>EquipmentDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Delta data containing added/updated/removed parameters relative to the SendParametersBase attribute. These parameters will in other words override parameters set in the SendParametersBase attribute. 
+ 
+The objective of this delta attribute is to improve performance when changing a few parameters. Since the base data is potentially very large, we want to avoid sending all of it when for example just updating one parameter. 
+This means that the delta will keep growing if we keep changing different parameters. Eventually it might become too large and contain many parameters that have not changed for many updates of this attribute. At this point we can reset the data which means that we update the base data to the latest parameters and clear the delta data.</semantics>
+                        </attribute>
+                    </objectClass>
+                    <objectClass>
+                        <name>UserEffectState</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Describes the states of the enabled Effect Plugin on specified channel(s) for the communication between one receiving and multiple sending users. 
+ 
+Several objects of this class may exist at once, for the same channel(s) and receiving user and sending users, but if so, they may not set the same parameter. 
+ 
+The SendParametersBase and SendParametersDelta attributes work together to represent the full sending equipment parameters. 
+The SendParametersBase attribute will initialize the base data and update all parameters while the SendParametersDelta will override the base data with updated values only so we avoid sending all the base data when only few parameters need to be added/updated/removed. 
+When applying the SendParametersDelta changes to the SendParametersBase data, the SendParametersDelta will need to be wiped away waiting for new parameter(s) updates.</semantics>
+                        <attribute>
+                            <name>ReceivingUserUUID</name>
+                            <dataType>UuidArrayOfHLAbyte16</dataType>
+                            <updateType>Static</updateType>
+                            <updateCondition>NA</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Reference to receiving user.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>SendParametersBase</name>
+                            <dataType>SendingUserParamsArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Base data containing all parameters for multiple sending users. 
+ 
+These parameters are aggregated into this big array for performance reasons, because sending each parameter set in its own attribute ends up creating too many attributes to effectively handle. 
+ 
+Parameters may be overridden by the SendParametersDelta attribute.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>SendParametersDelta</name>
+                            <dataType>SendingUserParamsDeltaArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Delta data containing added/updated/removed parameters relative to the SendParametersBase attribute. These parameters will in other words override parameters set in the SendParametersBase attribute. 
+ 
+The objective of this delta attribute is to improve performance when changing a few parameters. Since the base data is potentially very large, we want to avoid sending all of it when for example just updating one parameter. 
+This means that the delta will keep growing if we keep changing different parameters. Eventually it might become too large and contain many parameters that have not changed for many updates of this attribute. At this point we can reset the data which means that we update the base data to the latest parameters and clear the delta data.</semantics>
+                        </attribute>
+                    </objectClass>
+                    <objectClass>
+                        <name>UserEquipmentEffectState</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Describes the states of the enabled Effect Plugin on specified channel(s) for the communication between one receiving user+equipment and multiple sending user+equipment pairs. 
+ 
+Several objects of this class may exist at once, for the same channel(s) and receiving user+equipment and sending user+equipment pairs, but if so, they may not set the same parameter. 
+ 
+The SendParametersBase and SendParametersDelta attributes work together to represent the full sending equipment parameters. 
+The SendParametersBase attribute will initialize the base data and update all parameters while the SendParametersDelta will override the base data with updated values only so we avoid sending all the base data when only few parameters need to be added/updated/removed. 
+When applying the SendParametersDelta changes to the SendParametersBase data, the SendParametersDelta will need to be wiped away waiting for new parameter(s) updates.</semantics>
+                        <attribute>
+                            <name>ReceivingUserUUID</name>
+                            <dataType>UuidArrayOfHLAbyte16</dataType>
+                            <updateType>Static</updateType>
+                            <updateCondition>NA</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserDimension</dimension>
+                                <dimension>EquipmentDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Reference to receiving user.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>ReceivingEquipmentUUID</name>
+                            <dataType>UuidArrayOfHLAbyte16</dataType>
+                            <updateType>Static</updateType>
+                            <updateCondition>NA</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserDimension</dimension>
+                                <dimension>EquipmentDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Reference to receiving equipment.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>SendParametersBase</name>
+                            <dataType>SendingUserEqParamsArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserDimension</dimension>
+                                <dimension>EquipmentDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Base data containing all parameters for multiple sending userse and equipment. 
+ 
+These parameters are aggregated into this big array for performance reasons, because sending each parameter set in its own attribute ends up creating too many attributes to effectively handle. 
+ 
+Parameters may be overridden by the SendParametersDelta attribute.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>SendParametersDelta</name>
+                            <dataType>SendingUserEqParamsDeltaArray</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>On change</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>UserDimension</dimension>
+                                <dimension>EquipmentDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Delta data containing added/updated/removed parameters relative to the SendParametersBase attribute. These parameters will in other words override parameters set in the SendParametersBase attribute. 
+ 
+The objective of this delta attribute is to improve performance when changing a few parameters. Since the base data is potentially very large, we want to avoid sending all of it when for example just updating one parameter. 
+This means that the delta will keep growing if we keep changing different parameters. Eventually it might become too large and contain many parameters that have not changed for many updates of this attribute. At this point we can reset the data which means that we update the base data to the latest parameters and clear the delta data.</semantics>
+                        </attribute>
+                    </objectClass>
+                </objectClass>
+            </objectClass>
+        </objectClass>
+    </objects>
+    <dimensions>
+        <dimension>
+            <name>UserNameDimension</name>
+            <dataType>HLAunicodeString</dataType>
+            <upperBound>2147483647</upperBound>
+            <normalization>Hash the user name like follows, where s represents the user name:
+
+int hashCode = s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1];
+int dimensionValue = hashCode &amp; 0x7fffffff;</normalization>
+            <value>Excluded</value>
+        </dimension>
+        <dimension>
+            <name>EquipmentDimension</name>
+            <dataType>UuidArrayOfHLAbyte16</dataType>
+            <upperBound>2147483647</upperBound>
+            <normalization>Divide the UuidArrayOfHLAbyte16 into two int64, mostSigBits and leastSigBits
+
+int64 hilo = mostSigBits ^ leastSigBits;
+int hashCode = ((int)(hilo &gt;&gt; 32)) ^ (int) hilo;
+int dimensionValue = hashCode &amp; 0x7fffffff;</normalization>
+            <value>Excluded</value>
+        </dimension>
+        <dimension>
+            <name>UserDimension</name>
+            <dataType>UuidArrayOfHLAbyte16</dataType>
+            <upperBound>2147483647</upperBound>
+            <normalization>Divide the UuidArrayOfHLAbyte16 into two int64, mostSigBits and leastSigBits
+
+int64 hilo = mostSigBits ^ leastSigBits;
+int hashCode = ((int)(hilo &gt;&gt; 32)) ^ (int) hilo;
+int dimensionValue = hashCode &amp; 0x7fffffff;</normalization>
+            <value>Excluded</value>
+        </dimension>
+    </dimensions>
+    <dataTypes>
+        <simpleDataTypes>
+            <simpleData>
+                <name>LongParameterValue</name>
+                <representation>HLAinteger64BE</representation>
+                <units>NA</units>
+                <resolution>NA</resolution>
+                <accuracy>NA</accuracy>
+                <semantics>An integer value.</semantics>
+            </simpleData>
+            <simpleData>
+                <name>DoubleParameterValue</name>
+                <representation>HLAfloat64BE</representation>
+                <units>NA</units>
+                <resolution>NA</resolution>
+                <accuracy>NA</accuracy>
+                <semantics>Double value</semantics>
+            </simpleData>
+        </simpleDataTypes>
+        <arrayDataTypes>
+            <arrayData>
+                <name>LongParameterArray</name>
+                <dataType>LongParameter</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>An array of parameters with integer values.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>DoubleParameterArray</name>
+                <dataType>DoubleParameter</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>An array of parameters with double values.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>StringParameterArray</name>
+                <dataType>StringParameter</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>An array of parameters with string values.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>SendingEqParamsArray</name>
+                <dataType>SendingEqParams</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>Multiple parameters sets which apply between the sending equipment specified in this array and a receiving equipment specified by the effect state containing this array.
+
+Elements referencing a specific sender shall only appear once in the array.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>SendingUserParamsArray</name>
+                <dataType>SendingUserParams</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>Multiple parameters sets which apply between the sending users specified in this array and a receiving user specified by the effect state containing this array.
+
+Elements referencing a specific sender shall only appear once in the array.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>SendingUserEqParamsArray</name>
+                <dataType>SendingUserEqParams</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>Multiple parameters sets which apply between the sending users and equipment pairs specified in this array and a receiving user and equipment pair specified by the effect state containing this array.
+
+Elements referencing a specific sender (user and equipment combination) shall only appear once in the array.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>SendingUserEqParamsDeltaArray</name>
+                <dataType>SendingUserEqParamsDelta</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>Multiple parameters delta sets which apply between the sending users and equipment pairs specified in this array and a receiving user and equipment pair specified by the effect state containing this array.
+
+Elements referencing a specific sender (user and equipment combination) shall only appear once in the array.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>SendingUserParamsDeltaArray</name>
+                <dataType>SendingUserParamsDelta</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>Multiple parameters delta sets which apply between the sending users specified in this array and a receiving user specified by the effect state containing this array.
+
+Elements referencing a specific sender shall only appear once in the array.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>SendingEqParamsDeltaArray</name>
+                <dataType>SendingEqParamsDelta</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>Multiple parameters delta sets which apply between the sending equipment specified in this array and a receiving equipment specified by the effect state containing this array.
+
+Elements referencing a specific sender shall only appear once in the array.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>ParamKeyArray</name>
+                <dataType>HLAunicodeString</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>An array of parameters key.</semantics>
+            </arrayData>
+        </arrayDataTypes>
+        <fixedRecordDataTypes>
+            <fixedRecordData>
+                <name>LongParameter</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>An integer parameter of an Effect Plugin state.</semantics>
+                <field>
+                    <name>Key</name>
+                    <dataType>HLAunicodeString</dataType>
+                    <semantics>Formal parameter name.</semantics>
+                </field>
+                <field>
+                    <name>Value</name>
+                    <dataType>LongParameterValue</dataType>
+                    <semantics>The integer value of the parameter.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>DoubleParameter</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>A double parameter of an Effect Plugin state.</semantics>
+                <field>
+                    <name>Key</name>
+                    <dataType>HLAunicodeString</dataType>
+                    <semantics>Formal parameter name.</semantics>
+                </field>
+                <field>
+                    <name>Value</name>
+                    <dataType>DoubleParameterValue</dataType>
+                    <semantics>The double value of the parameter.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>StringParameter</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>A string parameter of an Effect Plugin state.</semantics>
+                <field>
+                    <name>Key</name>
+                    <dataType>HLAunicodeString</dataType>
+                    <semantics>Formal parameter name.</semantics>
+                </field>
+                <field>
+                    <name>Value</name>
+                    <dataType>HLAunicodeString</dataType>
+                    <semantics>The string value of the parameter.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>SendingEqParams</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Parameters which apply between the sending equipment specified by this fixed record and a receiving equipment specified by the effect state containing these parameters. 
+ 
+Several double, long or string parameters may exist for the same channel at once, but if so, they may not set the same parameter key or not the same sending equipment.</semantics>
+                <field>
+                    <name>SendingEquipmentUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending equipment.</semantics>
+                </field>
+                <field>
+                    <name>DoubleParameters</name>
+                    <dataType>DoubleParameterArray</dataType>
+                    <semantics>Parameters with double values.</semantics>
+                </field>
+                <field>
+                    <name>LongParameters</name>
+                    <dataType>LongParameterArray</dataType>
+                    <semantics>Parameters with integer values.</semantics>
+                </field>
+                <field>
+                    <name>StringParameters</name>
+                    <dataType>StringParameterArray</dataType>
+                    <semantics>Parameters with string values.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>SendingUserParams</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Parameters which apply between the sending user specified by this fixed record and a receiving user specified by the effect state containing these parameters. 
+ 
+Several double, long or string parameters may exist for the same channel at once, but if so, they may not set the same parameter key or not the same sending user.</semantics>
+                <field>
+                    <name>SendingUserUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending user.</semantics>
+                </field>
+                <field>
+                    <name>DoubleParameters</name>
+                    <dataType>DoubleParameterArray</dataType>
+                    <semantics>Parameters with double values.</semantics>
+                </field>
+                <field>
+                    <name>LongParameters</name>
+                    <dataType>LongParameterArray</dataType>
+                    <semantics>Parameters with integer values.</semantics>
+                </field>
+                <field>
+                    <name>StringParameters</name>
+                    <dataType>StringParameterArray</dataType>
+                    <semantics>Parameters with string values.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>SendingUserEqParams</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Parameters which apply between the sending user and equipment pair specified by this fixed record and a receiving user and equipment pair specified by the effect state containing these parameters. 
+ 
+Several double, long or string parameters may exist for the same channel at once, but if so, they may not set the same parameter key or not the same sending user and equipment pair.</semantics>
+                <field>
+                    <name>SendingUserUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending user.</semantics>
+                </field>
+                <field>
+                    <name>SendingEquipmentUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending equipment.</semantics>
+                </field>
+                <field>
+                    <name>DoubleParameters</name>
+                    <dataType>DoubleParameterArray</dataType>
+                    <semantics>Parameters with double values.</semantics>
+                </field>
+                <field>
+                    <name>LongParameters</name>
+                    <dataType>LongParameterArray</dataType>
+                    <semantics>Parameters with integer values.</semantics>
+                </field>
+                <field>
+                    <name>StringParameters</name>
+                    <dataType>StringParameterArray</dataType>
+                    <semantics>Parameters with string values.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>SendingUserEqParamsDelta</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Changed parameters which apply between the sending user and equipment pair specified by this fixed record and a receiving user and equipment pair specified by the effect state containing these parameters. 
+ 
+Several double, long or string parameters may exist for the same channel at once, but if so, they may not set the same parameter key or not the same sending user and equipment pair.</semantics>
+                <field>
+                    <name>SendingUserUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending user.</semantics>
+                </field>
+                <field>
+                    <name>SendingEquipmentUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending equipment.</semantics>
+                </field>
+                <field>
+                    <name>DoubleParameters</name>
+                    <dataType>DoubleParameterArray</dataType>
+                    <semantics>List of added and updated double parameters.</semantics>
+                </field>
+                <field>
+                    <name>LongParameters</name>
+                    <dataType>LongParameterArray</dataType>
+                    <semantics>List of added and updated long parameters.</semantics>
+                </field>
+                <field>
+                    <name>StringParameters</name>
+                    <dataType>StringParameterArray</dataType>
+                    <semantics>List of added and updated string parameters.</semantics>
+                </field>
+                <field>
+                    <name>RemovedParameters</name>
+                    <dataType>ParamKeyArray</dataType>
+                    <semantics>List of removed parameters.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>SendingUserParamsDelta</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Changed parameters which apply between the sending user specified by this fixed record and a receiving user specified by the effect state containing these parameters. 
+ 
+Several double, long or string parameters may exist for the same channel at once, but if so, they may not set the same parameter key or not the same sending user.</semantics>
+                <field>
+                    <name>SendingUserUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending user.</semantics>
+                </field>
+                <field>
+                    <name>DoubleParameters</name>
+                    <dataType>DoubleParameterArray</dataType>
+                    <semantics>List of added and updated double parameters.</semantics>
+                </field>
+                <field>
+                    <name>LongParameters</name>
+                    <dataType>LongParameterArray</dataType>
+                    <semantics>List of added and updated long parameters.</semantics>
+                </field>
+                <field>
+                    <name>StringParameters</name>
+                    <dataType>StringParameterArray</dataType>
+                    <semantics>List of added and updated string parameters.</semantics>
+                </field>
+                <field>
+                    <name>RemovedParameters</name>
+                    <dataType>ParamKeyArray</dataType>
+                    <semantics>List of removed parameters.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>SendingEqParamsDelta</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Changed parameters which apply between the sending equipment specified by this fixed record and a receiving equipment specified by the effect state containing these parameters. 
+ 
+Several double, long or string parameters may exist for the same channel at once, but if so, they may not set the same parameter key or not the same sending equipment.</semantics>
+                <field>
+                    <name>SendingEquipmentUUID</name>
+                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                    <semantics>Reference to sending equipment.</semantics>
+                </field>
+                <field>
+                    <name>DoubleParameters</name>
+                    <dataType>DoubleParameterArray</dataType>
+                    <semantics>List of added and updated double parameters.</semantics>
+                </field>
+                <field>
+                    <name>LongParameters</name>
+                    <dataType>LongParameterArray</dataType>
+                    <semantics>List of added and updated long parameters.</semantics>
+                </field>
+                <field>
+                    <name>StringParameters</name>
+                    <dataType>StringParameterArray</dataType>
+                    <semantics>List of added and updated string parameters.</semantics>
+                </field>
+                <field>
+                    <name>RemovedParameters</name>
+                    <dataType>ParamKeyArray</dataType>
+                    <semantics>List of removed parameters.</semantics>
+                </field>
+            </fixedRecordData>
+        </fixedRecordDataTypes>
+    </dataTypes>
+</objectModel>

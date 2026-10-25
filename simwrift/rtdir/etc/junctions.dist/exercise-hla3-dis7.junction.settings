@@ -1,0 +1,16 @@
+# Group sample (1 of 2): gateways with junction.group=Exercise start and stop together. Every
+# GROUPVARn in this file, its endpoint kits and its router kit is replaced by the value given
+# when the group (or this gateway) is started; junction.groupvar.GROUPVARn gives a default.
+junction.name=Exercise: HLA3<->DIS7
+junction.description=GROUPVAR1 federation and DIS exercise GROUPVAR2
+junction.group=Exercise
+junction.endpoints=hla;dis
+junction.endpoint.hla=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.hla.hla.federation=GROUPVAR1
+junction.endpoint.dis=endpoints/dis7.endpoint.settings
+junction.endpoint.dis.dis.exid=GROUPVAR2
+junction.groupvar.GROUPVAR2=1
+# what the variables mean: the start dialogs and the page show these instead of GROUPVARn
+junction.groupvar.GROUPVAR1.desc=Exercise federation
+junction.groupvar.GROUPVAR2.desc=DIS exercise id
+junction.router=routers/hla3-all.router.settings

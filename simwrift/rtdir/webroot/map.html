@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Map · SimWeaver Rift</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/map.css">
+	<script src="js/theme.js"></script>
+</head>
+<body class="mp-body">
+
+<header class="topbar">
+	<a class="brand" href="index.html" title="SimWeaver Rift - overview">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="36" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Rift</b></span>
+			<span class="sub">Map</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<a class="app-nav-link" href="index.html" title="SimWeaver Rift - datasources">Rift datasources</a>
+		<a class="app-nav-link" href="junction.html" title="SimWeaver Junction - gateways">Junction gateways</a>
+		<a class="app-nav-link" href="config-assistant.html" title="SimWeaver Config Assistant - write configuration files">Config assistant</a>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="mp-page">
+	<aside class="mp-side" aria-label="Entities on the map">
+		<div class="mp-side-head">
+			<div id="mp-ds" class="mp-ds">&hellip;</div>
+			<div id="mp-filter" class="mp-filter"></div>
+			<input id="mp-search" type="search" placeholder="Filter this list" aria-label="Filter the entity list" autocomplete="off" spellcheck="false">
+		</div>
+		<ul id="mp-list" class="mp-list" aria-live="off"></ul>
+		<div id="mp-foot" class="mp-side-foot">Loading&hellip;</div>
+		<div class="mp-side-foot mp-side-tools" data-browser-data></div>
+	</aside>
+	<div id="mp-map" class="mp-main"></div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/browser-data.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/map-view.js"></script>
+<script src="js/map-page.js"></script>
+</body>
+</html>

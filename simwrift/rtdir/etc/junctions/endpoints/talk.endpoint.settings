@@ -1,0 +1,8 @@
+# Endpoint kit Talk: a Pitch Talk federation (pitchtalk.xml and pitchtalkeffects.xml from
+# etc/fom/ieee1516-2010 are the default FOM modules).
+endpoint.name=Talk
+endpoint.standard=talk
+endpoint.hla.lsd=default
+endpoint.hla.federation=PitchTalk
+# endpoint.talk.hlastandard=ieee1516-2010
+# endpoint.hla.rtijar=

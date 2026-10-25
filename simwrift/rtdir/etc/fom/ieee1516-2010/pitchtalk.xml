@@ -1,0 +1,1086 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<objectModel xsi:schemaLocation="http://standards.ieee.org/IEEE1516-2010 http://standards.ieee.org/downloads/1516/1516.2-2010/IEEE1516-DIF-2010.xsd" xmlns="http://standards.ieee.org/IEEE1516-2010" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelIdentification>
+        <name>Pitch Talk</name>
+        <type>FOM</type>
+        <version>3.6</version>
+        <modificationDate>2022-06-03</modificationDate>
+        <securityClassification>unclassified</securityClassification>
+        <purpose>Provide interoperability in the Audio and Chat domain</purpose>
+        <applicationDomain>Training</applicationDomain>
+        <description>The Pitch Talk FOM provides interoperability for the Pitch Talk applications and frameworks. It describes an easy way to do voice and chat communication in a structured way where an 'Admin'-federate can control the information flow</description>
+        <useLimitation></useLimitation>
+        <poc>
+            <pocType>Primary author</pocType>
+            <pocName>Glenn Wissing</pocName>
+            <pocOrg>Pitch Technologies</pocOrg>
+        </poc>
+        <poc>
+            <pocType>Primary author</pocType>
+            <pocName>Åsa Falkenjack</pocName>
+            <pocOrg>Pitch technologies</pocOrg>
+        </poc>
+        <poc>
+            <pocType>Sponsor</pocType>
+            <pocName>Björn Möller</pocName>
+            <pocOrg>Pitch technologies</pocOrg>
+        </poc>
+        <other></other>
+        <glyph type="png" height="64" width="64" alt="">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</glyph>
+    </modelIdentification>
+    <objects>
+        <objectClass>
+            <name>HLAobjectRoot</name>
+            <objectClass>
+                <name>PitchTalk</name>
+                <sharing>Neither</sharing>
+                <semantics>Pitch Talk "namespace".</semantics>
+                <objectClass>
+                    <name>MasterConfiguration</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>Global configuration object. 
+Should be created by master applications. 
+May only exist one instance of this object in a federation.</semantics>
+                    <attribute>
+                        <name>LobbyPermitted</name>
+                        <dataType>HLAboolean</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Are clients permitted to use the lobby channel.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>PlannedClientList</name>
+                        <dataType>StringList</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>On change</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>A list of the names of all planned clients. 
+These planned client names corresponds to the Client objects MasterConfiguredName attribute.</semantics>
+                    </attribute>
+                </objectClass>
+                <objectClass>
+                    <name>Client</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>Represents a client. 
+A client must create one of this object.</semantics>
+                    <attribute>
+                        <name>UUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Unique identifier for this client.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Id</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Id of the client. 
+Used as part of the user identification performed by a master application, not case sensitive. 
+Should not be used to map client to permissions, instead use the MasterConfiguredName.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Hostname</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>IP address or hostname of the computer running the client. 
+Used as part of the user identification performed by a master application, not case sensitive.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>LoginAccountName</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Account name on the computer that is running the application for this user. 
+Used as part of the user identification performed by a master application, not case sensitive.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>MasterConfiguredName</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>DivestAcquire</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Set by masters applications. Should not be set by the creating client (unless the client application is also considered to be a master application).</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Status</name>
+                        <dataType>StatusEnum</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The clients current status.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>CanListPeerClients</name>
+                        <dataType>HLAboolean</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>DivestAcquire</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>If the client is allowed to list peer clients. 
+If this attribute is not set this permission should be seen as allowed.</semantics>
+                    </attribute>
+                    <objectClass>
+                        <name>Client_v2</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Represents a client. 
+A client must create one of this object. 
+This version 2 object exists so that new versions of Admin Server instances can detect whether a client is of a new version or not, for backward compatible reasons.</semantics>
+                    </objectClass>
+                </objectClass>
+                <objectClass>
+                    <name>Channel</name>
+                    <sharing>Neither</sharing>
+                    <semantics>Could be created by anyone. But a master could be able to delete others object by taking ownership of PriviliegeToDelete.</semantics>
+                    <attribute>
+                        <name>UUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Unique identifier for the channel. 
+Mainly used for DDM purposes. 
+Must be set by the creater of the channel and may not be changed.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Name</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Channel name. 
+Should not be used as a reference for a channel, use UUID instead.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Description</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>A description of the channel. For example its purpose.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>DefaultUnplannedChannelPermissions</name>
+                        <dataType>ChannelPermissionRecord</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Permissions for the current channel. 
+Can be overriden by ChannelPermission objects.</semantics>
+                    </attribute>
+                    <objectClass>
+                        <name>AudioChannel</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Audio channel.Audio messages should be sent on audio channels.</semantics>
+                        <attribute>
+                            <name>DefaultUnplannedAudioChannelPermissions</name>
+                            <dataType>AudioChannelPermissionRecord</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>When changed</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Audio specific channel permissions. 
+Can be overriden by AudioChannelPermission objects.</semantics>
+                        </attribute>
+                        <objectClass>
+                            <name>RadioChannel</name>
+                            <sharing>PublishSubscribe</sharing>
+                            <semantics>A channel used for radio communication.</semantics>
+                            <attribute>
+                                <name>DefaultUnplannedRadioChannelPermissions</name>
+                                <dataType>RadioChannelPermissionRecord</dataType>
+                                <updateType>Conditional</updateType>
+                                <updateCondition>When changed</updateCondition>
+                                <ownership>NoTransfer</ownership>
+                                <sharing>PublishSubscribe</sharing>
+                                <transportation>HLAreliable</transportation>
+                                <order>Receive</order>
+                                <semantics>Radio permissions for the current channel. 
+Can be overriden by RadioChannelPermission objects.</semantics>
+                            </attribute>
+                        </objectClass>
+                        <objectClass>
+                            <name>VoiceChannel</name>
+                            <sharing>PublishSubscribe</sharing>
+                            <semantics>Voice channel. Voice messages should be sent on Voice channels.</semantics>
+                            <attribute>
+                                <name>ChannelFrequency</name>
+                                <dataType>OptionalFrequency</dataType>
+                                <updateType>Conditional</updateType>
+                                <updateCondition>When changed</updateCondition>
+                                <ownership>NoTransfer</ownership>
+                                <sharing>PublishSubscribe</sharing>
+                                <transportation>HLAreliable</transportation>
+                                <order>Receive</order>
+                                <semantics>Optional frequency value. If valid, represents the Voice channel's frequency. The frequency can be used by Effects.</semantics>
+                            </attribute>
+                        </objectClass>
+                    </objectClass>
+                    <objectClass>
+                        <name>ChatChannel</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Chat channel. Text and Image messages should be sent on chat channels.</semantics>
+                    </objectClass>
+                </objectClass>
+                <objectClass>
+                    <name>ChannelPermission</name>
+                    <sharing>Neither</sharing>
+                    <semantics>Channel permissions for a referenced client or clients.</semantics>
+                    <attribute>
+                        <name>ChannelReference</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Specifies which channel this permission object is referring to. 
+References the Channel-&gt;UUID.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>ClientReference</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Specifies which client or clients this permission object is referring to. 
+References the Client-&gt;MasterConfiguredName.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>ChannelPermissions</name>
+                        <dataType>ChannelPermissionRecord</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Permissions for the current channel.</semantics>
+                    </attribute>
+                    <objectClass>
+                        <name>AudioChannelPermission</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Permissions for audio channels. 
+Should only be created by master applications.</semantics>
+                        <attribute>
+                            <name>AudioChannelPermissions</name>
+                            <dataType>AudioChannelPermissionRecord</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>When changed</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Audio specific channel permissions</semantics>
+                        </attribute>
+                        <objectClass>
+                            <name>RadioChannelPermission</name>
+                            <sharing>PublishSubscribe</sharing>
+                            <semantics>Permissions for radio channels. 
+Should only be created by master applications.</semantics>
+                            <attribute>
+                                <name>RadioChannelPermissions</name>
+                                <dataType>RadioChannelPermissionRecord</dataType>
+                                <updateType>Conditional</updateType>
+                                <updateCondition>When changed</updateCondition>
+                                <ownership>NoTransfer</ownership>
+                                <sharing>PublishSubscribe</sharing>
+                                <transportation>HLAreliable</transportation>
+                                <order>Receive</order>
+                                <semantics>Radio permissions for the current channel.</semantics>
+                            </attribute>
+                            <objectClass>
+                                <name>RadioChannelPermission_v2</name>
+                                <sharing>PublishSubscribe</sharing>
+                                <semantics>Permissions for radio channels. 
+Should only be created by master applications.</semantics>
+                                <attribute>
+                                    <name>AvailableEquipmentUUIDs</name>
+                                    <dataType>ArrayOfUuid</dataType>
+                                    <updateType>Conditional</updateType>
+                                    <updateCondition>When changed</updateCondition>
+                                    <ownership>NoTransfer</ownership>
+                                    <sharing>PublishSubscribe</sharing>
+                                    <transportation>HLAreliable</transportation>
+                                    <order>Receive</order>
+                                    <semantics>The equipment that is available for this permission (channel and user).</semantics>
+                                </attribute>
+                            </objectClass>
+                        </objectClass>
+                        <objectClass>
+                            <name>AudioChannelPermission_v2</name>
+                            <sharing>PublishSubscribe</sharing>
+                            <semantics>Permissions for audio channels. 
+Should only be created by master applications.</semantics>
+                            <attribute>
+                                <name>AvailableEquipmentUUIDs</name>
+                                <dataType>ArrayOfUuid</dataType>
+                                <updateType>Conditional</updateType>
+                                <updateCondition>When changed</updateCondition>
+                                <ownership>NoTransfer</ownership>
+                                <sharing>PublishSubscribe</sharing>
+                                <transportation>HLAreliable</transportation>
+                                <order>Receive</order>
+                                <semantics>The equipment that is available for this permission (channel and user).</semantics>
+                            </attribute>
+                        </objectClass>
+                    </objectClass>
+                    <objectClass>
+                        <name>ChatChannelPermission</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>Permissions for chat channels. 
+Should only be created by master applications.</semantics>
+                    </objectClass>
+                </objectClass>
+                <objectClass>
+                    <name>RadioChannelPreset</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>Specifies a specific setting on a RadioChannel, i.e. a specific frequency. Can be used as a catalogue of frequencies to make it easier to specify which frequencies can be used for different purposes.</semantics>
+                    <attribute>
+                        <name>UUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Unique identifier for this preset.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>RadioChannelReference</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Reference to the RadioChannel this preset specifies.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Name</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Preset name. 
+Should not be used as a reference for a preset, use UUID instead.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Description</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>A description of the preset. For example its purpose.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Frequency</name>
+                        <dataType>Frequency</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The frequency value this preset represents.</semantics>
+                    </attribute>
+                </objectClass>
+                <objectClass>
+                    <name>User</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>User object defines a  user. A user is given access to permissions etc. 
+ 
+Not to be confused with the Client object class. A client can act as a user, but it isn't one.</semantics>
+                    <attribute>
+                        <name>UUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Unique identifier for this user.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Name</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>User name.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>ExternalRepresentation</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Optional generic string that describes if this user is being represented by an entity external to Pitch Talk. This mapping is used when setting user positions from external external sources. 
+ 
+Empty string is equivalent to no value.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Position</name>
+                        <dataType>OptionalPosition</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>DivestAcquire</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Optional user position. 
+ 
+User object is created by Admin Server. But this position can be updated by other components using ownership.</semantics>
+                    </attribute>
+                    <objectClass>
+                        <name>User_v2</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <semantics>User object defines a  user. A user contains permissions and is linked to channel permissions. 
+ 
+Not to be confused with the Client object class. A client can act as a user, but it isn't one.</semantics>
+                        <attribute>
+                            <name>CanListPeerClientsPermission</name>
+                            <dataType>HLAboolean</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>When changed</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>If the user is allowed to list peer clients. 
+If this attribute is not set this permission should be seen as allowed.</semantics>
+                        </attribute>
+                        <attribute>
+                            <name>Identification</name>
+                            <dataType>UserIdentification</dataType>
+                            <updateType>Conditional</updateType>
+                            <updateCondition>When changed</updateCondition>
+                            <ownership>NoTransfer</ownership>
+                            <sharing>PublishSubscribe</sharing>
+                            <transportation>HLAreliable</transportation>
+                            <order>Receive</order>
+                            <semantics>Identification information used to determine if a client should be identified by this User.</semantics>
+                        </attribute>
+                    </objectClass>
+                </objectClass>
+                <objectClass>
+                    <name>Equipment</name>
+                    <sharing>PublishSubscribe</sharing>
+                    <semantics>Representation of a equpment definition. Equipment are devices that can optionally be used when transmitting or receiving audio. They are most often used for effects.</semantics>
+                    <attribute>
+                        <name>UUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <updateType>Static</updateType>
+                        <updateCondition>NA</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Unique identifier for this equipment.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Name</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Equipment name.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>Description</name>
+                        <dataType>HLAunicodeString</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>A description of the equipment. For example its purpose.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>TransmitterPower</name>
+                        <dataType>SignalStrengthFloat32</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The strength of the signal that the equipment transmits.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>ReceiverSensitivity</name>
+                        <dataType>SignalStrengthFloat32</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>The threshold of the weakest signal that this equipment can receive. I.e. if the signal strength is degraded below this threshold you won't detect it.</semantics>
+                    </attribute>
+                    <attribute>
+                        <name>HeightOffset</name>
+                        <dataType>LengthFloat32</dataType>
+                        <updateType>Conditional</updateType>
+                        <updateCondition>When changed</updateCondition>
+                        <ownership>NoTransfer</ownership>
+                        <sharing>PublishSubscribe</sharing>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>Height offset from User objects Position attribute. This is used to determine from which height the equipment signal is transmitted from, e.g. antenna mount offset from the ground plus the antenna length.</semantics>
+                    </attribute>
+                </objectClass>
+            </objectClass>
+        </objectClass>
+    </objects>
+    <interactions>
+        <interactionClass>
+            <name>HLAinteractionRoot</name>
+            <interactionClass>
+                <name>PitchTalk</name>
+                <sharing>Neither</sharing>
+                <transportation>HLAreliable</transportation>
+                <order>Receive</order>
+                <semantics>Pitch Talk "namespace".</semantics>
+                <interactionClass>
+                    <name>Message</name>
+                    <sharing>Neither</sharing>
+                    <dimensions>
+                        <dimension>ChannelDimension</dimension>
+                    </dimensions>
+                    <transportation>HLAreliable</transportation>
+                    <order>Receive</order>
+                    <semantics>Base class for sent messages. Specifies the source and destination.</semantics>
+                    <parameter>
+                        <name>SenderUUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <semantics>Shall reference the sending client objects UUID.</semantics>
+                    </parameter>
+                    <parameter>
+                        <name>ChannelUUID</name>
+                        <dataType>UuidArrayOfHLAbyte16</dataType>
+                        <semantics>Shall reference the channel this message is sent to, a channel objects UUID or the lobby UUID (zero value).</semantics>
+                    </parameter>
+                    <interactionClass>
+                        <name>Audio</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>ChannelDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAbestEffort</transportation>
+                        <order>Receive</order>
+                        <semantics>A message containing audio data</semantics>
+                        <parameter>
+                            <name>AudioContent</name>
+                            <dataType>AudioContent</dataType>
+                            <semantics>The audio content of this transmission</semantics>
+                        </parameter>
+                        <interactionClass>
+                            <name>Radio</name>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>ChannelDimension</dimension>
+                                <dimension>FrequencyDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAbestEffort</transportation>
+                            <order>Receive</order>
+                            <semantics>A message containing radio data</semantics>
+                            <parameter>
+                                <name>Frequency</name>
+                                <dataType>Frequency</dataType>
+                                <semantics>The frequency this data was sent on.</semantics>
+                            </parameter>
+                            <parameter>
+                                <name>RadioModuleIndex</name>
+                                <dataType>RadioModuleIndex</dataType>
+                                <semantics>An index of the radio module that sent this message.</semantics>
+                            </parameter>
+                            <interactionClass>
+                                <name>Radio_v2</name>
+                                <sharing>PublishSubscribe</sharing>
+                                <dimensions>
+                                    <dimension>ChannelDimension</dimension>
+                                    <dimension>FrequencyDimension</dimension>
+                                </dimensions>
+                                <transportation>HLAbestEffort</transportation>
+                                <order>Receive</order>
+                                <semantics>A message containing radio data</semantics>
+                                <parameter>
+                                    <name>EquipmentUUID</name>
+                                    <dataType>UuidArrayOfHLAbyte16</dataType>
+                                    <semantics>Reference to equipment used by the client to send this audio stream. 
+ 
+Optional parameter, only set when an equipment is used.</semantics>
+                                </parameter>
+                            </interactionClass>
+                        </interactionClass>
+                        <interactionClass>
+                            <name>Audio_v2</name>
+                            <sharing>PublishSubscribe</sharing>
+                            <dimensions>
+                                <dimension>ChannelDimension</dimension>
+                            </dimensions>
+                            <transportation>HLAbestEffort</transportation>
+                            <order>Receive</order>
+                            <semantics>A message containing audio data</semantics>
+                            <parameter>
+                                <name>EquipmentUUID</name>
+                                <dataType>UuidArrayOfHLAbyte16</dataType>
+                                <semantics>Reference to equipment used by the client to send this audio stream. 
+ 
+Optional parameter, only set when an equipment is used.</semantics>
+                            </parameter>
+                        </interactionClass>
+                    </interactionClass>
+                    <interactionClass>
+                        <name>Text</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>ChannelDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>A message containing text data</semantics>
+                        <parameter>
+                            <name>Text</name>
+                            <dataType>TextContent</dataType>
+                            <semantics>A text</semantics>
+                        </parameter>
+                    </interactionClass>
+                    <interactionClass>
+                        <name>Image</name>
+                        <sharing>PublishSubscribe</sharing>
+                        <dimensions>
+                            <dimension>ChannelDimension</dimension>
+                        </dimensions>
+                        <transportation>HLAreliable</transportation>
+                        <order>Receive</order>
+                        <semantics>A message containing an image</semantics>
+                        <parameter>
+                            <name>Image</name>
+                            <dataType>ImageContent</dataType>
+                            <semantics>The image</semantics>
+                        </parameter>
+                        <parameter>
+                            <name>Description</name>
+                            <dataType>TextContent</dataType>
+                            <semantics>A description of the image content</semantics>
+                        </parameter>
+                    </interactionClass>
+                </interactionClass>
+            </interactionClass>
+        </interactionClass>
+    </interactions>
+    <dimensions>
+        <dimension>
+            <name>ChannelDimension</name>
+            <dataType>UuidArrayOfHLAbyte16</dataType>
+            <upperBound>2147483647</upperBound>
+            <normalization>Divide the UuidArrayOfHLAbyte16 into two int64, mostSigBits and leastSigBits
+
+int64 hilo = mostSigBits ^ leastSigBits;
+int hashCode = ((int)(hilo &gt;&gt; 32)) ^ (int) hilo;
+int dimensionValue = hashCode &amp; 0x7fffffff;</normalization>
+            <value>Excluded</value>
+        </dimension>
+        <dimension>
+            <name>FrequencyDimension</name>
+            <dataType>Frequency</dataType>
+            <upperBound>2147483647</upperBound>
+            <normalization>Frequency value / 100. Truncate decimals.</normalization>
+            <value>Excluded</value>
+        </dimension>
+    </dimensions>
+    <switches>
+        <autoProvide isEnabled="false"/>
+        <conveyRegionDesignatorSets isEnabled="false"/>
+        <conveyProducingFederate isEnabled="false"/>
+        <attributeScopeAdvisory isEnabled="false"/>
+        <attributeRelevanceAdvisory isEnabled="false"/>
+        <objectClassRelevanceAdvisory isEnabled="false"/>
+        <interactionRelevanceAdvisory isEnabled="false"/>
+        <serviceReporting isEnabled="false"/>
+        <exceptionReporting isEnabled="false"/>
+        <delaySubscriptionEvaluation isEnabled="false"/>
+        <automaticResignAction resignAction="CancelThenDeleteThenDivest"/>
+    </switches>
+    <dataTypes>
+        <simpleDataTypes>
+            <simpleData>
+                <name>Frequency</name>
+                <representation>HLAinteger64BE</representation>
+                <units>hertz (Hz)</units>
+                <resolution>NA</resolution>
+                <accuracy>NA</accuracy>
+                <semantics>Frequency of a radio transmission, in hertz. 
+May not contain negative values.</semantics>
+            </simpleData>
+            <simpleData>
+                <name>RadioModuleIndex</name>
+                <representation>HLAinteger32BE</representation>
+                <units>NA</units>
+                <resolution></resolution>
+                <accuracy></accuracy>
+                <semantics>Index to a radio module. Must be a positive number.</semantics>
+            </simpleData>
+            <simpleData>
+                <name>SignalStrengthFloat32</name>
+                <representation>HLAfloat32BE</representation>
+                <units>decibel-milliwatts (dBm)</units>
+                <resolution>NA</resolution>
+                <accuracy>NA</accuracy>
+                <semantics>Strength ratio of a radio signal in relation to 1 milliwatt.</semantics>
+            </simpleData>
+            <simpleData>
+                <name>LengthFloat32</name>
+                <representation>HLAfloat32BE</representation>
+                <units>meter (m)</units>
+                <resolution>NA</resolution>
+                <accuracy>NA</accuracy>
+                <semantics>NA</semantics>
+            </simpleData>
+            <simpleData>
+                <name>AngleDegreeFloat64</name>
+                <representation>HLAfloat64BE</representation>
+                <units>degree (deg)</units>
+                <resolution>NA</resolution>
+                <accuracy>NA</accuracy>
+                <semantics>NA</semantics>
+            </simpleData>
+        </simpleDataTypes>
+        <enumeratedDataTypes>
+            <enumeratedData>
+                <name>StatusEnum</name>
+                <representation>HLAinteger32BE</representation>
+                <semantics>The status of a client</semantics>
+                <enumerator>
+                    <name>Offline</name>
+                    <value>0</value>
+                </enumerator>
+                <enumerator>
+                    <name>Online</name>
+                    <value>1</value>
+                </enumerator>
+                <enumerator>
+                    <name>Away</name>
+                    <value>2</value>
+                </enumerator>
+            </enumeratedData>
+            <enumeratedData>
+                <name>AudioCodecEnum</name>
+                <representation>HLAinteger32BE</representation>
+                <semantics>Specifies the audio codec used for this transmission</semantics>
+                <enumerator>
+                    <name>Opus</name>
+                    <value>1</value>
+                </enumerator>
+                <enumerator>
+                    <name>PCM16</name>
+                    <value>2</value>
+                </enumerator>
+            </enumeratedData>
+            <enumeratedData>
+                <name>ImageCodecEnum</name>
+                <representation>HLAinteger32BE</representation>
+                <semantics>Images formats available</semantics>
+                <enumerator>
+                    <name>PNG</name>
+                    <value>1</value>
+                </enumerator>
+                <enumerator>
+                    <name>JPEG</name>
+                    <value>2</value>
+                </enumerator>
+            </enumeratedData>
+            <enumeratedData>
+                <name>ReceiveRuleEnum</name>
+                <representation>HLAinteger16BE</representation>
+                <semantics>Permissions or requirements to receive.</semantics>
+                <enumerator>
+                    <name>NotAllowed</name>
+                    <value>1</value>
+                </enumerator>
+                <enumerator>
+                    <name>Optional</name>
+                    <value>2</value>
+                </enumerator>
+                <enumerator>
+                    <name>Required</name>
+                    <value>3</value>
+                </enumerator>
+            </enumeratedData>
+            <enumeratedData>
+                <name>IdentificationMethodEnum</name>
+                <representation>HLAinteger32BE</representation>
+                <semantics>Types of identification method. Used to determine how an identification string should be interpreted.</semantics>
+                <enumerator>
+                    <name>ClientId</name>
+                    <value>1</value>
+                </enumerator>
+                <enumerator>
+                    <name>Hostname</name>
+                    <value>2</value>
+                </enumerator>
+                <enumerator>
+                    <name>LoginAccount</name>
+                    <value>3</value>
+                </enumerator>
+            </enumeratedData>
+        </enumeratedDataTypes>
+        <arrayDataTypes>
+            <arrayData>
+                <name>ByteArray</name>
+                <dataType>HLAbyte</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>An array of bytes</semantics>
+            </arrayData>
+            <arrayData>
+                <name>UuidArrayOfHLAbyte16</name>
+                <dataType>HLAbyte</dataType>
+                <cardinality>16</cardinality>
+                <encoding>HLAfixedArray</encoding>
+                <semantics>16 bytes in the UUID. 
+ 
+A universally unique identifier (UUID), standardized by the Open Software Foundation (OSF) as part of the Distributed Computing Environment (DCE). 
+ 
+A UUID is a 16-byte (128-bit) number. In its canonical form, a UUID is represented by 32 hexadecimal digits, displayed in five groups separated by hyphens, in the form 8-4-4-4-12 for a total of 36 characters (32 digits and four hyphens). For example: 
+550e8400-e29b-41d4-a716-446655440000</semantics>
+            </arrayData>
+            <arrayData>
+                <name>RadioChannelPresetList</name>
+                <dataType>UuidArrayOfHLAbyte16</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>List of RadioChannelPreset UUIDs.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>StringList</name>
+                <dataType>HLAunicodeString</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>A list of strings.</semantics>
+            </arrayData>
+            <arrayData>
+                <name>ArrayOfUuid</name>
+                <dataType>UuidArrayOfHLAbyte16</dataType>
+                <cardinality>Dynamic</cardinality>
+                <encoding>HLAvariableArray</encoding>
+                <semantics>List of UUIDs.</semantics>
+            </arrayData>
+        </arrayDataTypes>
+        <fixedRecordDataTypes>
+            <fixedRecordData>
+                <name>AudioContent</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>A piece of audio</semantics>
+                <field>
+                    <name>Audio</name>
+                    <dataType>ByteArray</dataType>
+                    <semantics>The audio data</semantics>
+                </field>
+                <field>
+                    <name>Codec</name>
+                    <dataType>AudioCodecEnum</dataType>
+                    <semantics>The codec used for the audio data</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>TextContent</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Text conent</semantics>
+                <field>
+                    <name>Text</name>
+                    <dataType>HLAunicodeString</dataType>
+                    <semantics>The text</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>ImageContent</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>An image</semantics>
+                <field>
+                    <name>Image</name>
+                    <dataType>ByteArray</dataType>
+                    <semantics>Image in byte[] format</semantics>
+                </field>
+                <field>
+                    <name>Codec</name>
+                    <dataType>ImageCodecEnum</dataType>
+                    <semantics>The codec of the image</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>ChannelPermissionRecord</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Permissions for a channel</semantics>
+                <field>
+                    <name>ReceivePermission</name>
+                    <dataType>ReceiveRuleEnum</dataType>
+                    <semantics>Specifies whether receiving is required, optional or not allowed on a channel.</semantics>
+                </field>
+                <field>
+                    <name>SendPermission</name>
+                    <dataType>HLAboolean</dataType>
+                    <semantics>Specifies whether the client is permitted or not to send on a channel.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>AudioChannelPermissionRecord</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Audio channel specific permissions.</semantics>
+                <field>
+                    <name>EffectsOptional</name>
+                    <dataType>HLAboolean</dataType>
+                    <semantics>Specifies whether the client is allowed to disable effects or not.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>RadioChannelPermissionRecord</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Permissions for a radio channel.</semantics>
+                <field>
+                    <name>AvailablePresets</name>
+                    <dataType>RadioChannelPresetList</dataType>
+                    <semantics>A list of RadioChannelPresets that should be made available to the client.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>Position</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Lat/Long/Alt position.</semantics>
+                <field>
+                    <name>Latitude</name>
+                    <dataType>AngleDegreeFloat64</dataType>
+                    <semantics>[-90,90]</semantics>
+                </field>
+                <field>
+                    <name>Longitude</name>
+                    <dataType>AngleDegreeFloat64</dataType>
+                    <semantics>[-180,180]</semantics>
+                </field>
+                <field>
+                    <name>Altitude</name>
+                    <dataType>LengthFloat32</dataType>
+                    <semantics>Meters above sea level.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>OptionalPosition</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Optional Lat/Long/Alt position. Use if you need to be able to undefine/remove a position attribute.</semantics>
+                <field>
+                    <name>Position</name>
+                    <dataType>Position</dataType>
+                    <semantics>The position value if defined.</semantics>
+                </field>
+                <field>
+                    <name>Defined</name>
+                    <dataType>HLAboolean</dataType>
+                    <semantics>True if the position is defined. If you want to undefine a position, set this to false.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>OptionalFrequency</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>Optional frequency. Use if you need to be able to undefine/remove a frequency attribute.</semantics>
+                <field>
+                    <name>Frequency</name>
+                    <dataType>Frequency</dataType>
+                    <semantics>The frequency value.</semantics>
+                </field>
+                <field>
+                    <name>Defined</name>
+                    <dataType>HLAboolean</dataType>
+                    <semantics>True if the frequency is defined. If you want to remove a frequency, set this to false.</semantics>
+                </field>
+            </fixedRecordData>
+            <fixedRecordData>
+                <name>UserIdentification</name>
+                <encoding>HLAfixedRecord</encoding>
+                <semantics>User identification is made up of an identification string and a method that tells you how the identification string shall be interpreted.</semantics>
+                <field>
+                    <name>Method</name>
+                    <dataType>IdentificationMethodEnum</dataType>
+                    <semantics>Identification method.</semantics>
+                </field>
+                <field>
+                    <name>Id</name>
+                    <dataType>HLAunicodeString</dataType>
+                    <semantics>Identification string.</semantics>
+                </field>
+            </fixedRecordData>
+        </fixedRecordDataTypes>
+        <variantRecordDataTypes/>
+    </dataTypes>
+    <notes/>
+</objectModel>

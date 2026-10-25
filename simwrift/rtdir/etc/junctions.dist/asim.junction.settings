@@ -1,0 +1,12 @@
+# Gateway: an HLA Evolved to HLA Evolved federation.
+junction.group=ASIM-Trainer
+junction.name=ASIM
+junction.description=HLA Evolved to HLA Evolved bridge
+junction.endpoints=ASIM-INT;ASIM-EXT
+junction.endpoint.ASIM-INT=endpoints/ASIM-INT.endpoint.settings
+junction.endpoint.ASIM-EXT=endpoints/ASIM-EXT.endpoint.settings
+junction.router=routers/ASIM.router.settings
+junction.autostart=false
+# what the group variables mean: the start dialogs and the page show these instead of GROUPVARn
+junction.groupvar.GROUPVAR1.desc=Training Session
+junction.groupvar.GROUPVAR2.desc=Shared Session

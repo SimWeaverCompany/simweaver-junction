@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SimWeaver Junction</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/junction.css">
+	<script src="js/theme.js"></script>
+</head>
+<body class="jx-page">
+
+<header class="topbar">
+	<a class="brand" href="junction.html" title="SimWeaver Junction - gateways">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="36" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Junction</b></span>
+			<span class="sub">Gateway Control</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<a class="app-nav-link" href="index.html" title="SimWeaver Rift - datasources">Rift datasources</a>
+		<span class="app-nav-link current" aria-current="page">Junction gateways</span>
+		<a class="app-nav-link" href="config-assistant.html" title="SimWeaver Config Assistant - write configuration files">Config assistant</a>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page">
+
+	<section class="panel" aria-labelledby="run-title">
+		<div class="panel-head">
+			<span class="idx">01</span>
+			<h2 id="run-title" class="title">Running Gateways</h2>
+			<span class="meta">
+				<span id="jx-stream" class="jx-stream" title="Live updates">LIVE &mdash;</span>
+				<span id="running-meta"></span>
+				<button id="btn-reload-running" type="button" class="btn">&#10227; Reload</button>
+			</span>
+		</div>
+		<div class="panel-body">
+			<div id="running-list" aria-live="polite"></div>
+		</div>
+	</section>
+
+	<section class="panel" aria-labelledby="cfg-title">
+		<div class="panel-head">
+			<span class="idx">02</span>
+			<h2 id="cfg-title" class="title">Gateway Configurations</h2>
+			<span class="meta">
+				<span id="config-meta"></span>
+				<button id="btn-reload-configs" type="button" class="btn">&#10227; Reload</button>
+			</span>
+		</div>
+		<div class="panel-body">
+			<p class="hint">Gateways prepared on the server (<code id="cfg-dir">etc/junctions</code>). Start one to bridge its endpoints.</p>
+			<div id="config-list" aria-live="polite"></div>
+		</div>
+	</section>
+
+	<section class="panel" aria-labelledby="kit-title">
+		<div class="panel-head">
+			<span class="idx">03</span>
+			<h2 id="kit-title" class="title">Kits</h2>
+			<span class="meta"><span id="kit-meta"></span></span>
+		</div>
+		<div class="panel-body">
+			<p class="hint">Endpoint and router kits that gateway configurations are built from (endpoints/ and routers/).</p>
+			<div id="kit-list"></div>
+		</div>
+	</section>
+
+</main>
+
+<!-- Start gateway dialog (filled by js/junction-start.js) -->
+<dialog id="start-dialog" class="dialog jx-dialog" aria-labelledby="sd-title">
+	<form id="sd-form" novalidate>
+		<div class="panel-head">
+			<span class="idx">GW</span>
+			<h2 id="sd-title" class="title">Start Gateway</h2>
+			<span class="meta">
+				<button id="sd-close" type="button" class="btn" aria-label="Close">&#10005;</button>
+			</span>
+		</div>
+		<div class="dialog-body">
+			<div id="sd-summary" class="cd-summary"></div>
+			<div id="sd-instance" class="jx-instance"></div>
+			<div id="sd-vars" class="jx-vars" hidden></div>
+			<div id="sd-endpoints" class="jx-targets"></div>
+			<div id="sd-result"></div>
+		</div>
+		<div class="dialog-foot">
+			<button id="sd-cancel" type="button" class="btn">Cancel</button>
+			<button id="sd-submit" type="submit" class="primary">&#9654; Start gateway</button>
+		</div>
+	</form>
+</dialog>
+
+<!-- Start group dialog (js/junction-group.js) -->
+<dialog id="group-dialog" class="dialog jx-dialog" aria-labelledby="gd-title">
+	<form id="gd-form" novalidate>
+		<div class="panel-head">
+			<span class="idx">GRP</span>
+			<h2 id="gd-title" class="title">Start Group</h2>
+			<span class="meta">
+				<button id="gd-close" type="button" class="btn" aria-label="Close">&#10005;</button>
+			</span>
+		</div>
+		<div class="dialog-body">
+			<div id="gd-summary" class="cd-summary"></div>
+			<div id="gd-instance" class="jx-instance"></div>
+			<div id="gd-vars" class="jx-vars"></div>
+			<div id="gd-result"></div>
+		</div>
+		<div class="dialog-foot">
+			<button id="gd-cancel" type="button" class="btn">Cancel</button>
+			<button id="gd-submit" type="submit" class="primary">&#9654; Start group</button>
+		</div>
+	</form>
+</dialog>
+
+<!-- Compatibility report (js/junction-compat.js) -->
+<dialog id="compat-dialog" class="dialog jx-dialog jx-wide" aria-labelledby="cp-title">
+	<form method="dialog">
+		<div class="panel-head">
+			<span class="idx">MAP</span>
+			<h2 id="cp-title" class="title">Compatibility</h2>
+			<span class="meta">
+				<button id="cp-close" type="button" class="btn" aria-label="Close">&#10005;</button>
+			</span>
+		</div>
+		<div class="dialog-body">
+			<div id="cp-body"></div>
+		</div>
+		<div class="dialog-foot">
+			<button id="cp-ok" type="button" class="btn">Close</button>
+		</div>
+	</form>
+</dialog>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // JUNCTION</span>
+	<span class="license">By SimWeaver - released under Apache 2.0 license</span>
+	<span class="dim">HLA &middot; DIS &middot; Pitch Talk gateways</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/browser-data.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/confirm.js"></script>
+<script src="js/junction-api.js"></script>
+<script src="js/junction-compat.js"></script>
+<script src="js/junction-start.js"></script>
+<script src="js/junction-group.js"></script>
+<script src="js/junction.js"></script>
+</body>
+</html>

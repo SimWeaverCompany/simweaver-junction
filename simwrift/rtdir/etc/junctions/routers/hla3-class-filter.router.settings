@@ -1,0 +1,10 @@
+# Router kit HLA3-class-filter: entities, weapon fire and detonations only (no aggregates, no
+# radios, no simulation management).
+# Patterns: X (that class), X.* (X and its subclasses), * and ** (any depth), segment globs.
+# The most specific rule wins; on a tie, block wins. The same keys work per endpoint
+# (endpoint.filter.in.* / endpoint.filter.out.*).
+router.kind=iem
+router.objects.allow=BaseEntity.*
+router.objects.block=BaseEntity.AggregateEntity.*
+router.interactions.allow=WeaponFire;MunitionDetonation;Fire.*;Detonation.*
+router.interactions.block=*

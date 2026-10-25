@@ -1,0 +1,13 @@
+# Endpoint kit HLA4-RPR2: an HLA 4 (IEEE 1516-2025) federation with the full RPR FOM v2.0,
+# including the Link 16 module, in one file in the HLA 4 format (etc/fom/ieee1516-2025). The file
+# is the 1516-2010 RPR_FOM_v2.0_Link16 converted to 1516-2025: the RPR v2 modules of the HLA 4
+# format and this file are the same for everything they have in common.
+endpoint.name=HLA4-RPR2
+endpoint.standard=ieee1516-2025
+endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2025.xml
+# the RTI configuration name (1516-2025); several choices separated by ';', the first is the default
+# endpoint.hla.lsd=
+endpoint.hla.federation=Green
+endpoint.hla.createfederation=true
+# an HLA 4 RTI jar when it is not on the class path
+# endpoint.hla.rtijar=lib/rti/hla4/rti1516-2025.jar

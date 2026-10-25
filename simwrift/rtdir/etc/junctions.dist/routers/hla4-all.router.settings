@@ -1,0 +1,13 @@
+# Router kit HLA4-all: every object and interaction class both sides have (DIS <-> RPR converted
+# where needed). The same as HLA3-all; kept apart so a gateway's kit says what it is used with.
+router.kind=iem
+router.objects.allow=*
+router.interactions.allow=*
+# names of the copies: same-or-suffix (default: the same name, else name@endpoint), prefix:<text>, same-only, rti
+# router.names.policy=same-or-suffix
+# or from a template, for every destination or one endpoint: tokens {name} {hexguid} {HEXGUID} {guid} {origin}
+# router.names.template.<endpoint>=RED-{name}-{hexguid}
+# router.names.maxlength.<endpoint>=32
+# a class the other side lacks goes as its nearest superclass there
+# router.promote=true
+# router.deleteobjectsonstop=true

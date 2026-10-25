@@ -1,0 +1,8 @@
+# Gateway DIS7<->CDIS: a DIS 7 network and a C-DIS network, PDU by PDU (not through the RPR model).
+junction.name=DIS7<->CDIS
+junction.description=DIS 7 on port 3000 relayed to C-DIS (SISO-STD-023-2024) on port 3100, all 22 C-DIS PDU types
+junction.endpoints=dis;cdis
+junction.endpoint.dis=endpoints/dis7.endpoint.settings
+junction.endpoint.cdis=endpoints/cdis.endpoint.settings
+junction.router=routers/pdu-relay.router.settings
+junction.autostart=false

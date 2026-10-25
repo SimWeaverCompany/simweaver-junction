@@ -1,0 +1,21 @@
+# SimWeaver Rift - systemd service. Install (as root), with Rift in /opt/simweaver-rift:
+#   useradd --system --home-dir /opt/simweaver-rift simweaver && chown -R simweaver /opt/simweaver-rift
+#   cp /opt/simweaver-rift/etc/systemd/simweaver-rift.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now simweaver-rift
+
+[Unit]
+Description=SimWeaver Rift - HLA/DIS datasource gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=simweaver
+WorkingDirectory=/opt/simweaver-rift
+Environment=RTI_JAR=/opt/prti1516e/lib/prti1516e.jar
+ExecStart=/opt/simweaver-rift/run.sh
+Restart=on-failure
+# 143 = stopped by systemd (SIGTERM): a normal stop
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+# Gateway HLA4<->DIS6: an HLA 4 RPR v2 federation and a DIS 6 network.
+junction.name=HLA4<->DIS6
+junction.description=RPR v2 federation (Link 16 included) bridged to DIS 6 on port 3000
+junction.endpoints=hla;dis
+junction.endpoint.hla=endpoints/hla4-rpr2.endpoint.settings
+junction.endpoint.dis=endpoints/dis6.endpoint.settings
+junction.router=routers/hla4-all.router.settings
+junction.autostart=false

@@ -1,0 +1,11 @@
+# Router kit: everything both sides have (RPR v2 <-> v3 converted where needed).
+router.kind=iem
+router.objects.allow=*
+router.interactions.allow=*
+# names of the copies: same-or-suffix (default: the same name, else name@endpoint), prefix:<text>, same-only, rti
+# router.names.policy=same-or-suffix
+# a class the other side lacks goes as its nearest superclass there
+# router.promote=true
+# router.deleteobjectsonstop=true
+# value rules: replace a value wherever it occurs, in every direction (A -> B; B is left alone)
+# router.valuemap.EntityType.1=1.2.225.1.3.0.0 -> 1.2.222.1.3.0.0

@@ -1,0 +1,13 @@
+# Endpoint kit HLA4-dynamic-FOM: an HLA 4 (IEEE 1516-2025) federation whose FOM is taken from the
+# federation itself.
+endpoint.name=HLA4-dynamic-FOM
+endpoint.standard=ieee1516-2025
+# no FOM files: join the running federation, read its current FDD (MOM HLAcurrentFDD) and use that.
+# The FDD is read in the format the RTI writes it in.
+endpoint.hla.foms=dynamic
+# endpoint.hla.fddtimeoutseconds=15
+# the RTI configuration name (1516-2025); several choices separated by ';', the first is the default
+# endpoint.hla.lsd=
+endpoint.hla.federation=Green
+# an HLA 4 RTI jar when it is not on the class path
+# endpoint.hla.rtijar=lib/rti/hla4/rti1516-2025.jar
