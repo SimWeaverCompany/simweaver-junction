@@ -1107,4 +1107,4 @@ Body `{"federate": "<handle hex>"}`. Sends `HLArequestPublications` and `HLArequ
 
 ---
 
-By SimWeaver - released under Apache 2.0 license.
+By SimWeaver - released under the BSD 3-Clause License.

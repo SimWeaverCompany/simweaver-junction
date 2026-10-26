@@ -3,8 +3,8 @@
 SimWeaver Rift is an HLA/DIS datasource gateway with a REST API and a browser-based Web UI.
 This guide covers installing the server, starting it, and the configuration files it reads.
 
-- **Using the Web UI:** see `README.md` in the Web UI folder.
-- **Integrating over the REST API:** see `docs/rest-api.md`.
+- **Using the Web UI:** see [web-ui.md](web-ui.md).
+- **Integrating over the REST API:** see [rest-api.md](rest-api.md) and, for Junction, [junction-rest-api.md](junction-rest-api.md).
 
 ---
 
@@ -473,4 +473,4 @@ with a firewall or network segmentation.
 
 ---
 
-By SimWeaver - released under Apache 2.0 license.
+By SimWeaver - released under the BSD 3-Clause License.

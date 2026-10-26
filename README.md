@@ -38,7 +38,7 @@ Version 0.9.21 · BSD 3-Clause License · © 2026 Simweaver AB
   - HLA 4 (IEEE 1516-2025), also over the Federate Protocol
   - DIS 6 and DIS 7
   - C-DIS (Compressed DIS, SISO-STD-023-2024), full and partial updates
-  - Talk (the Talk FOM is taken from the running federation, see below)
+  - Talk (the FOM is taken from the running federation while tapping into communications federations, see below)
 - **RPR FOM v2.0 ⇄ v3.0**, converted by a rules table plus code for the structural
   differences: IFF modes, articulated parts and jamming.
 - **DIS ⇄ RPR**, including:
@@ -96,7 +96,6 @@ simwrift/          the Rift server, datasources, decoders, map, and the main cla
     doc/           user documentation
     maps/          background rasters, shapefile overlays, tile cache
     lib/           the application jar goes here
-fakerti/           in-memory test RTIs (1516-2010 and 1516-2025) for the self tests
 build.sh           command-line build
 ```
 
@@ -105,8 +104,6 @@ Each module has `src/`. The self tests are in `test/` next to it.
 ---
 
 ## Build
-
-**In IntelliJ IDEA:** build the artifact `simweaverrift.jar`. It holds the three modules.
 
 **From the command line** (Linux, macOS, or Git Bash on Windows):
 
@@ -127,7 +124,20 @@ The RTI is loaded by reflection at run time, so the jar itself contains no RTI.
 
 ---
 
-## Install and run
+## Install and run a release build
+
+1. Download the release build zip-file and unzip to a writable installation folder of own choice.
+2. Set `RTI_JAR` in `run.bat` (Windows) or `run.sh` (Linux) to your RTI's Java library. Leave it
+   empty for DIS only.
+3. Configure your data sources and gateways as described by documents in `doc` folder of the installation.
+3. Start it with `run.bat` or `run.sh`, and open `https://<server>:8843` in a browser.
+
+The installation guide (`doc/simweaver-rift-install-and-config.md`) covers more: services,
+Docker, maps and every setting.
+
+---
+
+## Install and run the checked out project
 
 1. Copy `simwrift/rtdir` to the installation folder.
 2. Put `simweaverrift.jar` in its `lib/`.
@@ -135,12 +145,14 @@ The RTI is loaded by reflection at run time, so the jar itself contains no RTI.
    password, and set it in `etc/server.root.settings`.
 4. Set `RTI_JAR` in `run.bat` (Windows) or `run.sh` (Linux) to your RTI's Java library. Leave it
    empty for DIS only.
-5. Start it with `run.bat` or `run.sh`, and open `https://<server>:8843` in a browser.
+5. Download a release build and fetch the raster map directories for it, and place under `maps/raster`
+6. Start it with `run.bat` or `run.sh`, and open `https://<server>:8843` in a browser.
 
 The installation guide (`doc/simweaver-rift-install-and-config.md`) covers more: services,
 Docker, maps and every setting.
 
 ---
+
 
 ## Documentation
 
@@ -149,25 +161,10 @@ All in `simwrift/rtdir/doc/`:
 | File | Contents |
 |---|---|
 | `simweaver-rift-install-and-config.md` | Installation, server settings, datasources, maps and overlays |
-| `README.md` | The web UI: datasources, objects, interactions, the map view |
+| `web-ui.md` | The web UI: datasources, objects, interactions, the map view, Infra |
 | `rest-api.md` | Rift's REST API and SSE events |
 | `junction.md` | Junction: gateways, endpoints, routers, value rules, Talk, groups, RPR v2 ⇄ v3, DIS |
 | `junction-rest-api.md` | Junction's REST API |
-
----
-
-## Self tests
-
-The self tests need no RTI. Build first, then run each test from the top folder. Each prints
-`N checks, M failures`.
-
-```sh
-sh fakerti/build-fake.sh          # the test RTIs, once
-java -cp out/classes:out/test:<HLA API jars> com.simweaver.junction.BridgeSelfTest
-```
-
-`simwjunction/CLAUDE.md` lists every test and what it covers. It is also where the developer
-notes on the design and its invariants are kept.
 
 ---
 

@@ -49,7 +49,7 @@ public class Server {
         //
         System.out.println(Version.PRODUCT_NAME + " v " + Version.getVersion());
         System.out.println();
-        System.out.println("Released under Apache 2.0 license.");
+        System.out.println("Released under the BSD 3-Clause License.");
         System.out.println();
         System.out.println("Log directory: "+mainLogDir);
         System.out.println("Web port:      "+webPort);

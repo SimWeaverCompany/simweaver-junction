@@ -1,119 +1,37 @@
 # SimWeaver Rift — Web UI
 
-The Web UI is the browser front end of **SimWeaver Rift**, the HLA/DIS datasource gateway.
-From a browser you can:
+The Web UI is the browser front end of the SimWeaver server: Rift's datasources, Junction's
+gateways, the Infra page and the Config assistant. From a browser you can:
 
-- start a datasource (join an HLA federation) from one of the server's configurations
-- browse the object instances it discovers, by class, with decoded attribute values
-- follow the interactions live, with rates per class
-- stop and remove the datasource again
+- start a datasource (join an HLA federation or listen to a DIS network) from one of the
+  server's configurations, and stop it again;
+- browse the object instances it discovers, by class, with decoded attribute values, and see
+  them on a map;
+- follow the interactions live, with rates per class;
+- see every exercise and federation the server has contact with (**Infra**);
+- start and watch Junction gateways, and write configuration files with the Config assistant.
 
-The SimWeaver Rift server serves the Web UI itself. Clients need only a browser: there is
-nothing to install, and no internet access is needed.
-
----
-
-## What you need
-
-| | |
-|---|---|
-| **Server** | SimWeaver Rift (Java 11), with an RTI installed for the HLA standards you use |
-| **Browser** | A current Microsoft Edge or Google Chrome |
-| **Network** | Access from the browser to the server's HTTPS port |
+The server serves the Web UI itself. Clients need only a current Microsoft Edge or Google Chrome
+and access to the server's HTTPS port: nothing to install, and no internet access is needed.
+Installing and configuring the server: [simweaver-rift-install-and-config.md](simweaver-rift-install-and-config.md).
 
 ---
 
-## 1. Put the web files in place
+## Open the Web UI
 
-The server serves the Web UI from its **web folder**. This is the folder set when the server
-starts; the default of the REST library is `webroot`, relative to the server's working
-directory.
-
-Unzip `simweaver-rift-web.zip` so that `index.html` sits directly in that folder:
-
-```
-webroot/
-├── index.html
-├── datasource.html
-├── junction.html
-├── config-assistant.html
-├── favicon.ico
-├── css/
-├── js/
-└── img/
-```
-
-The `docs/` and `tools/` folders in the zip are not needed at runtime. You can leave them
-out.
-
-> **After updating the web files**, reload the page once with **Ctrl+F5**, so that the
-> browser does not keep using its cached scripts.
-
----
-
-## 2. Add datasource configurations
-
-Each file in `etc/datasources/` (relative to the server's working directory) is one
-**datasource configuration**, which you can start from the Web UI. A file is listed only
-when it contains both of these settings:
-
-```properties
-datasource.name     = HLA3-RPR2
-datasource.standard = IEEE1516-2010
-```
-
-- `datasource.standard` must be `IEEE1516-2010` (HLA Evolved) or `IEEE1516-2025` (HLA 4).
-  Files without these two settings are skipped silently.
-- The folder is read again each time the overview page loads or you press **Reload**.
-  A new or changed file shows up without restarting the server.
-
-### Optional: which attributes the object list shows
-
-The object list shows a few key attributes per object, for example `EntityIdentifier`,
-`EntityType` and `ForceIdentifier` for RPR entities. To change them, create
-`etc/listprofiles.properties`. Each line names a class and the attributes to show, in order:
-
-```properties
-rift.listprofile.HLAobjectRoot.BaseEntity = EntityIdentifier, EntityType, ForceIdentifier
-rift.listprofile.EmbeddedSystem.RadioTransmitter = HostObjectIdentifier, Frequency, TransmitterOperationalStatus
-```
-
-- A setting also applies to the subclasses of that class.
-- You may leave out the `HLAobjectRoot.` prefix.
-- Classes without a setting show their first three attributes.
-- The file is read when the server starts, so restart the server after you change it.
-
----
-
-## 3. Start the server
-
-Start SimWeaver Rift the way your installation does it, for example with its start
-script or as a Windows service. When it is ready, the console shows:
-
-```
-HTTPS-server started at 8843
-```
-
-The number is the port to use in the next step.
-
-The server uses **HTTPS** only. It needs a key store with its certificate; the REST library's
-default is `keystore.jks` in the working directory.
-
----
-
-## 4. Open the Web UI
-
-Browse to the server's address and port:
+Browse to the server's address and port (`webserver.port`, default 8843):
 
 ```
 https://<server>:<port>/          for example  https://localhost:8843/
 ```
 
-If the server uses a self-signed certificate, the browser warns about it on the first visit.
-Accept the warning, or have the certificate installed as trusted on the client machines.
+The server is ready when its console shows *We are good to go!*. It uses HTTPS only; with a
+self-signed certificate the browser warns on the first visit. Accept the warning, or have the
+certificate installed as trusted on the client machines.
 
 > Links to a datasource page (`datasource.html?id=…`) can be bookmarked and shared. They work
-> for as long as that datasource is running.
+> for as long as that datasource is running. Links to an Infra breakout tab keep working across
+> restarts.
 
 ---
 
@@ -122,7 +40,7 @@ Accept the warning, or have the certificate installed as trusted on the client m
 ### Top bar (all pages)
 
 - **SimWeaver logo** and the page's name; the buttons next to it switch between **Rift datasources**,
-  **Junction gateways** and the **Config assistant**.
+  **Junction gateways**, **Infra** and the **Config assistant**.
 - **Zulu clock:** the time in UTC, with the date-time group.
 - **LINK lamp:** *LINK UP* while the server answers, *LINK LOST* when it cannot be reached.
   The page keeps retrying by itself.
@@ -132,11 +50,14 @@ Accept the warning, or have the certificate installed as trusted on the client m
 - **Day / Night:** switches between the dark and the light theme. The browser remembers the
   choice.
 
+> **After updating the web files** on the server, reload the page once with **Ctrl+F5**, so that
+> the browser does not keep using its cached scripts.
+
 ### Saved in this browser (page footer)
 
 The pages remember a few choices in your browser: the theme, the background map you picked,
 where each map was looking, the map layers, list or map, whether the gateway configurations are
-shown, and everything filled in on the Config assistant. **Saved in this browser…** at the bottom
+shown, the rows marked on the Infra page, and everything filled in on the Config assistant. **Saved in this browser…** at the bottom
 of every page (in the map tab: under the entity list) lists them with **Clear** for each, and
 **Clear all**. This affects only your browser, never the server or other users.
 
@@ -286,6 +207,34 @@ history.
 - The maps and their settings: see *2.4 Maps* in the installation guide. The server
   setting `map.enabled=false` removes the map.
 
+### Infra page
+
+The top bar's **Infra** opens `infra.html`. It lists what the server has contact with, from
+everything that is running: Rift's datasources and Junction's gateways. There is nothing to
+configure.
+
+- **Five lists:** DIS 6, DIS 7 and C-DIS exercises, HLA 1516-2010 and HLA 1516-2025 federations.
+  A DIS socket reports every exercise it hears, also the ones its datasource or endpoint filters
+  out, so a DIS 7 datasource on exercise 1 also shows a DIS 6 exercise on its port.
+- **One row per contact.** The same exercise heard by two sockets is two rows. Each row says who
+  has the contact and links to that datasource's page or to the Junction page. The lamp is green
+  while traffic comes in, amber after a few quiet seconds, grey after a minute.
+- **Click a row** for its live detail:
+  - *Exercise:* the PDU types, and each sender with its address and port (*THIS COMPUTER* when it
+    is the server itself), the site and application numbers in its PDUs, its entities, PDU types,
+    PDUs per second, traffic and the last minute. A Junction endpoint does not list its own PDUs.
+  - *Federation:* the RTI, the time implementation and the federates from the MOM: name, type,
+    host, state and time, what each sends and receives per second, and what this datasource or
+    gateway receives from it. **⟳ Ask the MOM now** gets fresh values. Click a federate for all its
+    MOM values, and **Ask the MOM for publications & subscriptions** to see what it publishes and
+    subscribes (the RTI answers with reports; nothing in the federation changes).
+- **Breakout tab.** Tick the rows to keep an eye on and press **⧉ Open breakout tab** at the bottom.
+  The new tab shows those items, live, while you work elsewhere. It finds them again after a
+  restart of the server or of their datasource or gateway; until then it says *Not connected
+  now*. **✕** stops watching one. The marks are kept in this browser.
+- The MOM is asked every few seconds while a federation is open, and about once a minute
+  otherwise (installation guide, 2.6).
+
 ---
 
 ## Troubleshooting
@@ -295,25 +244,14 @@ history.
 | The browser warns that the connection is not private | The server uses a self-signed certificate. Accept it, or install the certificate as trusted |
 | The page looks broken, or something is missing after an update | The browser uses old cached files. Reload with **Ctrl+F5** |
 | **LINK LOST** | The server cannot be reached: it is stopped, or the network is down. The page reconnects by itself when the server is back |
-| No configurations are listed | `etc/datasources/` is missing or empty, or the files lack `datasource.name` / `datasource.standard`, or the standard is not `IEEE1516-2010` / `IEEE1516-2025` |
+| No configurations are listed | `etc/datasources/` is missing or empty, or the files lack `datasource.name` / `datasource.standard`, or the standard is none of `ieee1516-2010`, `ieee1516-2025`, `dis6`, `dis7`, `cdis` (see the installation guide, 2.2) |
 | *Federation discovery not available* in the create dialog | The server cannot list federations for this configuration. Type the federation name yourself |
 | Create fails with a message such as `ConnectionFailed: …` | The RTI or its LSD/CRC cannot be reached, or the federation cannot be joined. The message comes from the RTI |
 | *Datasource not found* on the datasource page | The datasource was removed, or the server was restarted (running datasources are not kept over a restart). Create it again from the overview |
 | An object shows *No attribute values received yet* | The federate that owns it has not sent any attribute updates yet |
 | The server readout is missing from the top bar | The window is narrower than 640 px, or the server is older and has no `/api/serverinfo` |
-
----
-
-## Trying the Web UI without a federation
-
-The `tools/` folder has a mock server that behaves like SimWeaver Rift with a simulated RPR
-scenario. It needs only Python 3, and no RTI. From the folder where you unzipped the Web UI:
-
-```
-python tools/mock-server.py --port 8080 --objects 300
-```
-
-Then open `http://127.0.0.1:8080/` (plain HTTP). Use `--objects 10000` for a large scenario.
+| The Infra page lists nothing | Nothing is running: Infra shows only what the running datasources and gateways have contact with. Or the server has `infra.enabled=false` |
+| An HLA federation on the Infra page says *no MOM* | The RTI did not let the federate subscribe its MOM classes. The federates are then known only by the traffic they send |
 
 ---
 
@@ -353,17 +291,17 @@ What you filled in is remembered in this browser; **Start over** clears a sectio
 ## Junction gateways
 
 The top bar's **Junction gateways** opens `junction.html`: gateways that bridge HLA federations,
-DIS networks and Talk federations, configured in `etc/junctions`. Their endpoints also show up in the
-datasource list here, marked "Junction". See [junction.md](junction.md) and
-[junction-rest-api.md](junction-rest-api.md).
+DIS and C-DIS networks and Talk federations, configured in `etc/junctions`. Their endpoints also
+show up in the datasource list, marked *JUNCTION*. See [junction.md](junction.md).
 
 ---
 
 ## For integrators
 
-Everything the Web UI shows comes from the server's REST API and its live event stream.
-The same API is open to other tools. See [docs/rest-api.md](docs/rest-api.md).
+Everything the Web UI shows comes from the server's REST API and its live event stream, open to
+other tools as well: [rest-api.md](rest-api.md) (Rift and Infra) and
+[junction-rest-api.md](junction-rest-api.md) (Junction).
 
 ---
 
-By SimWeaver - released under Apache 2.0 license.
+By SimWeaver - released under the BSD 3-Clause License.
