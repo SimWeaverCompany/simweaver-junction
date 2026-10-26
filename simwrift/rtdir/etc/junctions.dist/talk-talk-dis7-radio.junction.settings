@@ -1,4 +1,4 @@
-# Gateway Talk<->Talk + DIS7 radio: two Pitch Talk federations, and two of their voice channels on
+# Gateway Talk<->Talk + DIS7 radio: two Talk federations, and two of their voice channels on
 # DIS radio.
 junction.name=Talk<->Talk + DIS7 radio
 junction.endpoints=site1;site2;radio

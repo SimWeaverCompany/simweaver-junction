@@ -36,7 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * An HLA endpoint (1516-2010, 1516-2025, 1516-2025 over the Federate Protocol, Pitch Talk),
+ * An HLA endpoint (1516-2010, 1516-2025, 1516-2025 over the Federate Protocol, Talk),
  * on an {@link RtiSession} from the endpoint's {@link RtiLibrary} (the class path RTI, or
  * {@code endpoint.hla.rtijar} in isolation).
  *
@@ -233,7 +233,7 @@ public final class HlaEndpoint implements Endpoint {
             String code = "RtiNotAvailable".equals(e.getRtiExceptionName()) ? EndpointException.RTI_NOT_AVAILABLE
                     : EndpointException.CONNECT_FAILED;
             String hint = cfg.isDynamicFom() && String.valueOf(e.getRtiExceptionName()).contains("DoesNotExist")
-                    ? " (an endpoint with endpoint.hla.foms=dynamic joins a running federation only: it has no FOM to create one)" : "";
+                    ? missingFederationHint() : "";
             fail(new EndpointException(code, "endpoint " + id() + " (" + federation + "): " + e.getMessage() + hint, e));
         }
         if (cfg.isDynamicFom()) {
@@ -384,9 +384,7 @@ public final class HlaEndpoint implements Endpoint {
             synchronized (library.connectLock()) {
                 s.connect(settings, new SessionCallbacks(s));
                 try {
-                    federateName = s.join(federation, cfg.getFederateType(),
-                            cfg.getFederateName().isEmpty() ? null : cfg.getFederateName(),
-                            cfg.isDynamicFom() ? java.util.Collections.<String>emptyList() : cfg.getFomPaths(), cfg.isCreateFederation());
+                    federateName = join(s);
                 } catch (RtiSessionException e) {
                     s.disconnect();
                     throw e;
@@ -396,6 +394,42 @@ public final class HlaEndpoint implements Endpoint {
         } finally {
             rtiLock.unlock();
         }
+    }
+
+    /**
+     * Joins; a dynamic endpoint joins without modules and, when the federation is not running and
+     * {@code endpoint.hla.createfoms} names modules (0.9.21), creates it with them.
+     */
+    private String join(RtiSession s) throws RtiSessionException {
+        String name = cfg.getFederateName().isEmpty() ? null : cfg.getFederateName();
+        if (!cfg.isDynamicFom()) {
+            return s.join(federation, cfg.getFederateType(), name, cfg.getFomPaths(), cfg.isCreateFederation());
+        }
+        try {
+            return s.join(federation, cfg.getFederateType(), name, java.util.Collections.<String>emptyList(), false);
+        } catch (RtiSessionException e) {
+            boolean missing = String.valueOf(e.getRtiExceptionName()).contains("DoesNotExist");
+            if (!missing || !cfg.isCreateFederation() || cfg.getCreateFomPaths().isEmpty()) {
+                throw e;
+            }
+            LOG.info("Junction " + gatewayId + "/" + id() + ": federation " + federation + " is not running; creating it with "
+                    + String.join(", ", cfg.getCreateFomNames()) + " (endpoint.hla.createfoms)");
+            return s.join(federation, cfg.getFederateType(), name, cfg.getCreateFomPaths(), true);
+        }
+    }
+
+    /** Why a dynamic endpoint could not join a federation that is not running, and what to do. */
+    private String missingFederationHint() {
+        if (!cfg.getCreateFomPaths().isEmpty() && !cfg.isCreateFederation()) {
+            return " (endpoint.hla.createfederation=false: the endpoint does not create it)";
+        }
+        if (cfg.getType() == com.simweaver.junction.config.EndpointType.TALK) {
+            return " (a Talk endpoint takes the Talk FOM from the running federation: start the Talk federation first, or put"
+                    + " your Talk FOM modules in " + cfg.getFomRootDir() + " and name them in endpoint.hla.createfoms so that"
+                    + " the endpoint can create the federation)";
+        }
+        return " (an endpoint with endpoint.hla.foms=dynamic takes its FOM from the running federation: start the federation"
+                + " first, or name FOM modules in endpoint.hla.createfoms so that the endpoint can create it)";
     }
 
     @Override

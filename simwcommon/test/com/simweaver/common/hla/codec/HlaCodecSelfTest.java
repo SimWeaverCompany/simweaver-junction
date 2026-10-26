@@ -28,8 +28,8 @@ import java.util.Random;
  * <pre>java -cp ... com.simweaver.common.hla.codec.HlaCodecSelfTest &lt;fom root&gt;</pre>
  *
  * The FOM root holds {@code ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml},
- * {@code ieee1516-2010/pitchtalk.xml}, {@code ieee1516-2010/netn4-hla3/*.xml},
- * {@code ieee1516-2025/RPR-*_v2.0.xml} and {@code rpr3/RPR-*_v3.0.xml}.
+ * {@code ieee1516-2010/netn4-hla3/*.xml}, {@code ieee1516-2025/RPR-*_v2.0.xml} and
+ * {@code rpr3/RPR-*_v3.0.xml}. A Talk FOM is used when the tester gives one (see {@code TestTalkFom}).
  *
  * <ol>
  *   <li>For every datatype of every model: random values are encoded, decoded and encoded
@@ -55,9 +55,11 @@ public final class HlaCodecSelfTest {
         File root = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom");
         InformationExchangeModel rpr2e = InformationExchangeModel.fromHlaEvolved(Arrays.asList(
                 new File(root, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath()));
-        InformationExchangeModel talk = InformationExchangeModel.fromHlaEvolved(Arrays.asList(
-                new File(root, "ieee1516-2010/pitchtalk.xml").getPath(),
-                new File(root, "ieee1516-2010/pitchtalkeffects.xml").getPath()));
+        List<String> talkFoms = com.simweaver.common.TestTalkFom.find(root);
+        InformationExchangeModel talk = talkFoms.isEmpty() ? null : InformationExchangeModel.fromHlaEvolved(talkFoms);
+        if (talk == null) {
+            System.out.println(com.simweaver.common.TestTalkFom.skipped("Talk FOM round trips"));
+        }
         List<String> netn = new ArrayList<String>();
         netn.add(new File(root, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath());
         for (String n : new String[] {"NETN-BASE", "NETN-ENTITY", "NETN-ORG", "NETN-LOG", "NETN-SMC", "NETN-TMR",
@@ -71,9 +73,11 @@ public final class HlaCodecSelfTest {
         InformationExchangeModel rpr2h4 = InformationExchangeModel.fromHla4(files(new File(root, "ieee1516-2025"), "_v2.0.xml"));
         InformationExchangeModel rpr3 = InformationExchangeModel.fromHlaEvolved(files(new File(root, "ieee1516-2010/rpr3"), "_v3.0.xml"));
 
-        for (Object[] m : new Object[][] {{"RPR v2 (1516-2010)", rpr2e}, {"Pitch Talk", talk}, {"NETN + RPR v2", netn3},
+        for (Object[] m : new Object[][] {{"RPR v2 (1516-2010)", rpr2e}, {"Talk", talk}, {"NETN + RPR v2", netn3},
                 {"RPR v2 (1516-2025)", rpr2h4}, {"RPR v3 (1516-2010)", rpr3}}) {
-            roundTrips((String) m[0], (InformationExchangeModel) m[1]);
+            if (m[1] != null) {
+                roundTrips((String) m[0], (InformationExchangeModel) m[1]);
+            }
         }
         handChecked(rpr2e, rpr3);
         signatures(rpr2e, rpr2h4, rpr3);

@@ -35,7 +35,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * End-to-end test of the Talk router: two Pitch Talk federations on the test RTI (channel UUIDs
+ * End-to-end test of the Talk router: two Talk federations on the test RTI (channel UUIDs
  * differ, names match), and a DIS 7 radio endpoint on the loopback interface for the radio
  * bridge (channel "Net1" = 251 MHz).
  *
@@ -58,11 +58,18 @@ public final class TalkBridgeSelfTest {
     public static void main(String[] args) throws Exception {
         File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
         File rtiDir = new File(args.length > 1 ? args[1] : "fakerti/build").getAbsoluteFile();
-        String talkFom = new File(fomRoot, "ieee1516-2010/pitchtalk.xml").getPath();
+        // 0.9.21: no Talk FOM is part of the source; the tester gives one (TestTalkFom), else the test skips
+        List<String> talkFoms = com.simweaver.common.TestTalkFom.find(fomRoot);
+        if (talkFoms.isEmpty()) {
+            System.out.println(com.simweaver.common.TestTalkFom.skipped("TalkBridgeSelfTest"));
+            System.out.println("0 checks, 0 failures (skipped: no Talk FOM)");
+            System.exit(0);
+        }
+        String talkFom = String.join(";", talkFoms);
         String rpr2 = new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath();
         File jar3 = new File(rtiDir, "fakerti-1516e.jar");
         RtiLibrary lib = RtiLibrary.isolated(Collections.singletonList(jar3));
-        InformationExchangeModel tm = InformationExchangeModel.fromHlaEvolved(Collections.singletonList(talkFom));
+        InformationExchangeModel tm = InformationExchangeModel.fromHlaEvolved(talkFoms);
         HlaCodec tc = new HlaCodec(tm);
 
         int gatewayPort = freePort();
@@ -237,6 +244,7 @@ public final class TalkBridgeSelfTest {
         createMapped(lib, tm, tc, talkFom, jar3, false);
         createMapped(lib, tm, tc, talkFom, jar3, true);
         lobbyOnly(lib, tm, tc, talkFom, jar3);
+        dynamicTalk(lib, tm, tc, talkFom, jar3);
         System.out.println(checks + " checks, " + failures + " failures");
         System.exit(failures == 0 ? 0 : 1);
     }
@@ -652,6 +660,98 @@ public final class TalkBridgeSelfTest {
         return m;
     }
 
+    /**
+     * 0.9.21: Talk endpoints without FOM files take the Talk FOM from the federation; with
+     * endpoint.hla.createfoms they create a federation that is not running; without, the error says
+     * what to do.
+     */
+    private static void dynamicTalk(RtiLibrary lib, InformationExchangeModel tm, HlaCodec tc, String talkFom, File jar3) throws Exception {
+        File dir = Files.createTempDirectory("junction-talkd-test").toFile();
+        File junctions = new File(dir, "etc/junctions");
+        junctions.mkdirs();
+        // the settings
+        SimwProperties p = new SimwProperties();
+        p.set("junction.name", "Talk dynamic");
+        p.set("junction.endpoints", "d1;d2");
+        p.set("junction.endpoint.d1.standard", "talk");
+        p.set("junction.endpoint.d1.hla.federation", "TalkD1");
+        p.set("junction.endpoint.d1.hla.rtijar", jar3.getPath());
+        p.set("junction.endpoint.d2.standard", "talk");
+        p.set("junction.endpoint.d2.hla.federation", "TalkD2");
+        p.set("junction.endpoint.d2.hla.createfoms", talkFom);
+        p.set("junction.endpoint.d2.hla.rtijar", jar3.getPath());
+        p.set("junction.router.kind", "talk");
+        p.set("junction.talk.mode", "messages");
+        p.set("junction.talk.messages", "text");
+        GatewayConfig gc = new ConfigLoader(junctions, dir).gateway(new File(junctions, "talkd.junction.settings"), p);
+        check("dynamic Talk: config valid " + gc.getErrors(), gc.isValid());
+        com.simweaver.junction.config.EndpointConfig d1 = gc.getEndpoints().get("d1");
+        com.simweaver.junction.config.EndpointConfig d2 = gc.getEndpoints().get("d2");
+        check("dynamic Talk: no FOM files = from the federation, does not create it", d1.isDynamicFom() && !d1.isCreateFederation()
+                && d1.getFomPaths().isEmpty());
+        check("dynamic Talk: createfoms = creates a missing federation", d2.isDynamicFom() && d2.isCreateFederation()
+                && d2.getCreateFomPaths().size() == talkFom.split(";").length
+                && com.simweaver.common.json.Json.toJson(d2).contains("\"createfoms\""));
+        SimwProperties bad = new SimwProperties();
+        bad.set("junction.name", "Talk createfoms without dynamic");
+        bad.set("junction.endpoints", "x;y");
+        bad.set("junction.endpoint.x.standard", "talk");
+        bad.set("junction.endpoint.x.hla.foms", talkFom);
+        bad.set("junction.endpoint.x.hla.createfoms", talkFom);
+        bad.set("junction.endpoint.y.standard", "talk");
+        bad.set("junction.router.kind", "talk");
+        GatewayConfig bc = new ConfigLoader(junctions, dir).gateway(new File(junctions, "bad.junction.settings"), bad);
+        check("dynamic Talk: createfoms with FOM files is an error", !bc.isValid()
+                && String.valueOf(bc.getErrors()).contains("createfoms"));
+
+        // a running Talk federation (TalkD1) and one the gateway creates (TalkD2)
+        Fed a = new Fed(lib, "TalkD1", "D1", talkFom);
+        a.subscribeMessages(tm);
+        a.s.publishInteractionClass(a.s.interactionClass(MSG_TEXT));
+        a.publishObject(VOICE, "Alpha-D1", tc, tm, map("UUID", HValue.ofBytes(uuid(0x5A)), "Name", HValue.ofText("Alpha")));
+        // the Start dialog's channel list reads the Talk FOM from the federation too
+        String probe = com.simweaver.common.json.Json.toJson(TargetProbe.probe(d1, dir, "TalkD1"));
+        check("dynamic Talk: Discover lists the channels, FOM from the federation: " + probe, probe.contains("\"kind\":\"channel\"")
+                && probe.contains("\"Alpha\"") && !probe.contains("\"error\""));
+        String none = com.simweaver.common.json.Json.toJson(TargetProbe.probe(d1, dir, "TalkNoSuch"));
+        check("dynamic Talk: Discover on a federation that is not running says so: " + none, none.contains("not running"));
+        Gateway gw = new Gateway(gc, Collections.<String, String>emptyMap(), dir, null);
+        gw.start();
+        check("dynamic Talk: running (FOM from TalkD1, TalkD2 created) " + gw.getMessage(), gw.getState() == Gateway.State.RUNNING);
+        Fed b = new Fed(lib, "TalkD2", "D2", talkFom);
+        b.subscribeMessages(tm);
+        b.s.publishInteractionClass(b.s.interactionClass(MSG_TEXT));
+        Thread.sleep(300);
+        a.sendText(tm, tc, uuid(0x41), new byte[16], "from D1");
+        Map<String, byte[]> m = b.takeInteraction(MSG_TEXT, 3000);
+        check("dynamic Talk: a text passes from the running federation to the created one", m != null);
+        gw.stop();
+        a.s.close();
+        b.s.close();
+
+        // a Talk federation that is not running, no createfoms: the error says what to do
+        SimwProperties q = new SimwProperties();
+        q.set("junction.name", "Talk missing");
+        q.set("junction.endpoints", "m1;m2");
+        for (String e : new String[] {"m1", "m2"}) {
+            q.set("junction.endpoint." + e + ".standard", "talk");
+            q.set("junction.endpoint." + e + ".hla.federation", "TalkNotRunning-" + e);
+            q.set("junction.endpoint." + e + ".hla.rtijar", jar3.getPath());
+        }
+        q.set("junction.router.kind", "talk");
+        GatewayConfig mc = new ConfigLoader(junctions, dir).gateway(new File(junctions, "missing.junction.settings"), q);
+        Gateway mg = new Gateway(mc, Collections.<String, String>emptyMap(), dir, null);
+        try {
+            mg.start();
+        } catch (Exception expected) {
+            // reported in the state below
+        }
+        String msg = String.valueOf(mg.getMessage());
+        check("dynamic Talk: a missing federation fails, naming createfoms: " + msg, mg.getState() != Gateway.State.RUNNING
+                && msg.contains("endpoint.hla.createfoms") && msg.contains("Talk"));
+        mg.stop();
+    }
+
     private static byte[] uuid(int fill) {
         byte[] b = new byte[16];
         Arrays.fill(b, (byte) fill);
@@ -721,7 +821,7 @@ public final class TalkBridgeSelfTest {
             this.name = name;
             s = lib.createSession(RtiSession.Version.HLA_1516E);
             s.connect(ConnectSettings.defaults(), this);
-            s.join(federation, "Tester", name, Collections.singletonList(fom), true);
+            s.join(federation, "Tester", name, Arrays.asList(fom.split(";")), true);
         }
 
         long publishObject(String cls, String instance, HlaCodec c, InformationExchangeModel m, Map<String, HValue> attrs) throws Exception {

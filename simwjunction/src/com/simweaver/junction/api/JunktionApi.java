@@ -328,14 +328,16 @@ public final class JunktionApi implements ApiCallHandlerWithBody {
         Map<String, ModelTools> tools = new LinkedHashMap<String, ModelTools>();
         Json.JsonObject errors = Json.object();
         for (EndpointConfig e : cfg.getEndpoints().values()) {
-            if (e.isDynamicFom()) {
+            if (e.isDynamicFom() && e.getCreateFomPaths().isEmpty()) {
                 errors.put(e.getId(), "takes its FOM from the federation when the gateway starts (endpoint.hla.foms=dynamic):"
                         + " open Compatibility on the running gateway");
                 continue;
             }
+            // a dynamic endpoint with endpoint.hla.createfoms (0.9.21): those modules stand for the federation's FOM
+            List<String> foms = e.isDynamicFom() ? e.getCreateFomPaths() : e.getFomPaths();
             try {
-                InformationExchangeModel m = e.isHla4() ? InformationExchangeModel.fromHla4(e.getFomPaths())
-                        : InformationExchangeModel.fromHlaEvolved(e.getFomPaths());
+                InformationExchangeModel m = e.isHla4() ? InformationExchangeModel.fromHla4(foms)
+                        : InformationExchangeModel.fromHlaEvolved(foms);
                 tools.put(e.getId(), new ModelTools(m, e.getReferenceTypes()));
             } catch (Exception ex) {
                 errors.put(e.getId(), ex.getMessage());

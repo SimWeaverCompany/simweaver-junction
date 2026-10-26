@@ -282,7 +282,25 @@ public final class DynamicFomSelfTest {
         } catch (GatewayException e) {
             why = e.getMessage();
         }
-        check(tag + "a missing federation: the start fails and says why: " + why, why != null && why.contains("joins a running federation only"));
+        check(tag + "a missing federation: the start fails and says what to do: " + why, why != null
+                && why.contains("endpoint.hla.createfoms"));
+
+        // 0.9.21: with endpoint.hla.createfoms the endpoint creates the missing federation and still reads its FDD
+        q.set("junction.endpoint.a.hla.federation", pre + "-Created");
+        q.set("junction.endpoint.a.hla.createfoms", String.join(";", foms));
+        GatewayConfig gc2 = new ConfigLoader(junctions, dir).gateway(new File(junctions, "create.junction.settings"), q);
+        check(tag + "createfoms: valid, creates", gc2.isValid() && gc2.getEndpoints().get("a").isCreateFederation());
+        Gateway created = new Gateway(gc2, Collections.<String, String>emptyMap(), dir, null);
+        String why2 = null;
+        try {
+            created.start();
+        } catch (GatewayException e) {
+            why2 = e.getMessage();
+        }
+        check(tag + "createfoms: the missing federation is created and joined " + why2, created.getState() == Gateway.State.RUNNING);
+        check(tag + "createfoms: the FOM still comes from the federation", com.simweaver.common.json.Json.toJson(created)
+                .contains("from the federation: FDD"));
+        created.stop();
         simA.s.close();
         simB.s.close();
         System.clearProperty("fakerti.fddformat");

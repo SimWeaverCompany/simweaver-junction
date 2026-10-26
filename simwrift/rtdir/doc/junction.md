@@ -1,12 +1,12 @@
 # SimWeaver Junction — gateways in Rift
 
 Junction bridges federations and networks: HLA Evolved (IEEE 1516-2010), HLA 4 (IEEE 1516-2025,
-also over the Federate Protocol), DIS 6 and DIS 7, C-DIS (Compressed DIS, SISO-STD-023-2024) and Pitch Talk. It runs inside the Rift server,
+also over the Federate Protocol), DIS 6 and DIS 7, C-DIS (Compressed DIS, SISO-STD-023-2024) and Talk. It runs inside the Rift server,
 has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/api/junction`, see
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.9.20. Java 11, no libraries apart from the HLA RTIs.
+Version 0.9.21. Java 11, no libraries apart from the HLA RTIs.
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -26,7 +26,7 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
 3. [Gateway files](#3-gateway-files)
 4. [Endpoint settings](#4-endpoint-settings)
 5. [Router settings (IEM)](#5-router-settings-iem)
-6. [Pitch Talk router](#6-pitch-talk-router)
+6. [Talk router](#6-talk-router)
 7. [Groups and group variables](#7-groups-and-group-variables)
 8. [RPR FOM v2.0 ⇄ v3.0](#8-rpr-fom-v20--v30)
 9. [DIS endpoints](#9-dis-endpoints)
@@ -44,8 +44,8 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
 | Term | Meaning |
 |---|---|
 | **Gateway** (junction) | Two or more **endpoints** and one **router**, from one `*.junction.settings` file. Started from the page or the REST API; several can run at once. |
-| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), or a Pitch Talk federation. Has a **target** chosen at start: federation name or DIS exercise id. |
-| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `talk`: Pitch Talk channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7 and C-DIS endpoints (section 9). |
+| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), or a Talk federation. Has a **target** chosen at start: federation name or DIS exercise id. |
+| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `talk`: Talk channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7 and C-DIS endpoints (section 9). |
 | **Kit** | A reusable endpoint (`endpoints/*.endpoint.settings`) or router (`routers/*.router.settings`) that gateway files refer to and override. |
 | **Group** | Gateways with the same `junction.group`, started and stopped together, with **group variables** (`GROUPVAR1` …) filled in at the start. |
 
@@ -87,7 +87,7 @@ The folder is read again whenever the page or the API lists it; edits need no re
 | HLA3<->CDIS | `hla3-cdis.junction.settings` | HLA3-RPR2 + CDIS · HLA3-all |
 | HLA4<->CDIS | `hla4-cdis.junction.settings` | HLA4-RPR2 + CDIS · HLA4-all |
 | DIS7<->CDIS | `dis7-cdis.junction.settings` | DIS7 + CDIS · PDU-relay: PDU by PDU, all 22 C-DIS PDU types |
-| ASIM, ASIM-COMMS | `asim.junction.settings`, `asim-comms.junction.settings` | A group (`ASIM-Trainer`): an HLA Evolved ⇄ HLA Evolved bridge and its Pitch Talk comms, with group variables |
+| ASIM, ASIM-COMMS | `asim.junction.settings`, `asim-comms.junction.settings` | A group (`ASIM-Trainer`): an HLA Evolved ⇄ HLA Evolved bridge and its Talk comms, with group variables |
 
 Only in `etc/junctions.dist`. Copy one (and any kit it needs) to `etc/junctions` to use it:
 
@@ -109,10 +109,10 @@ The kits, in both folders (the last three in `junctions.dist` only):
 | `hla4-rpr2` | HLA 4, the same RPR v2 with Link 16 in the HLA 4 format (`RPR_FOM_v2.0_Link16_1516-2025.xml`) | `hla4-all` | The same as `hla3-all` |
 | `hla3-rpr3` | HLA Evolved, RPR v3 (folder `rpr3`) | `hla3-class-filter` | Entities, fire and detonations only |
 | `hla3-dynamic-fom`, `hla4-dynamic-fom` | The FOM taken from the federation | `hla3-entitytype-filter` | Everything, entity types rewritten by value rules |
-| `dis6`, `dis7` | DIS 6 / DIS 7 on UDP port 3000 | `talk-messages` | Pitch Talk messages only, channels by name |
+| `dis6`, `dis7` | DIS 6 / DIS 7 on UDP port 3000 | `talk-messages` | Talk messages only, channels by name |
 | `cdis` | C-DIS on UDP port 3100, full updates | `pdu-relay` | DIS PDUs as they are, between DIS 6, DIS 7 and C-DIS |
-| `talk` | A Pitch Talk federation | `talk-lobby-only` | Pitch Talk messages in the lobby only |
-| `hla3-rpr2-own-rti` | HLA Evolved on its own RTI jar (pRTI 6) | `talk-full` | Pitch Talk full mode: clients mirrored |
+| `talk` | A Talk federation, its FOM from the running federation (section 6) | `talk-lobby-only` | Talk messages in the lobby only |
+| `hla3-rpr2-own-rti` | HLA Evolved on its own RTI jar (pRTI 6) | `talk-full` | Talk full mode: clients mirrored |
 | `hla4-fedpro-rpr2` | HLA 4 over the Federate Protocol | | |
 
 **`RPR_FOM_v2.0_Link16_1516-2025.xml`** (in `etc/fom/ieee1516-2025`) is the 1516-2010 RPR FOM v2.0 with Link 16, converted to the 1516-2025 format: the namespace, `copyright` in the identification, `valueRequired` on every attribute, `noteReferences` for `notes`, and without the `conveyProducingFederate` switch and the empty `dimensions`, `transportations` and `updateRates` sections. Compared with the HLA 4 RPR v2 modules, every attribute, parameter, datatype, class and note they have in common is the same; the Link 16 classes and datatypes come on top.
@@ -154,7 +154,8 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | `endpoint.name` | the id | Shown on the page |
 | `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `talk` |
 | **HLA** | | |
-| `endpoint.hla.foms` | DIS: RPR v2; Talk: pitchtalk.xml + pitchtalkeffects.xml | `;`-separated files or folders; relative names are looked up in `endpoint.hla.fomrootdir`. `dynamic`: the FOM is taken from the federation (see below) |
+| `endpoint.hla.foms` | DIS: RPR v2; Talk: `dynamic` | `;`-separated files or folders; relative names are looked up in `endpoint.hla.fomrootdir`. `dynamic`: the FOM is taken from the federation (see below) |
+| `endpoint.hla.createfoms` | | `dynamic` only: FOM files to create the federation with when it is not running (see below). Empty: the federation must be running |
 | `endpoint.hla.fddtimeoutseconds` | `15` | `dynamic`: how long to wait for the federation's FDD after the join |
 | `endpoint.hla.fddclass` / `fddattribute` | `HLAobjectRoot.HLAmanager.HLAfederation` / `HLAcurrentFDD` | `dynamic`: where the FDD is read, for an RTI that names them differently |
 | `endpoint.hla.fomrootdir` | `etc/fom/<standard>` | |
@@ -202,12 +203,13 @@ An HLA endpoint (`ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`) with 
 
 - **The FDD's format** is read from the document itself, not from the endpoint's API. An HLA 4 RTI that also serves 1516-2010 federates (pRTI 6) reports the FDD in the 1516-2025 format to HLA Evolved federates too. The names and encodings are the same, so the HLA Evolved endpoint works with it, and its FOM source says *written in the IEEE 1516-2025 format*.
 
-- **The federation must exist.** The endpoint never creates it (`createfederation` is ignored): it has no FOM to create it with. When it is missing the start fails with a message saying so. Start the gateway after the federation's first federate.
+- **The federation must exist, unless `endpoint.hla.createfoms` names FOM files** (0.9.21). Without them the endpoint has no FOM to create a federation with (`createfederation` is ignored), and the start fails with a message saying what to do: start the gateway after the federation's first federate, or name the files. With them, the endpoint joins a running federation as before; only when it is missing does it create it with those files (and `endpoint.hla.createfederation=false` still forbids that). Either way the model is then built from the federation's FDD.
+- **Compatibility with `createfoms`.** The configuration's **Compatibility** compiles a dynamic endpoint's routes from its `createfoms` files, when it has them.
 - **The FDD is read once, at the start.** When a federate later joins with more modules, the federation's FDD grows. The endpoint notices it and the page shows *The federation's FDD has changed …* on the endpoint, but it keeps routing with the model it started with. Restart the gateway to take in the new classes.
 - **RPR v2 or v3** is recognised from the classes in the FDD (as it is for FOM files whose names do not tell), so RPR conversion (section 8) works for dynamic endpoints too. The page and the API show where the FOM came from: *from the federation: FDD 7a6e65c9531f, RPR v2 recognised from its classes*.
 - On a reconnect (`endpoint.hla.reconnect`) the FDD is watched again; the model stays the one from the start.
 - **Compatibility** (section 11) cannot compile routes for a dynamic endpoint before it has joined: it says so instead. Start the gateway and use **Inspect** to see the federation's classes. Inspect of a dynamic endpoint opens a Rift datasource that takes the FOM from the federation in the same way.
-- DIS and Talk endpoints cannot be `dynamic`.
+- DIS endpoints cannot be `dynamic`. Talk endpoints are `dynamic` unless they name FOM files (section 6).
 
 Samples: the kits `endpoints/hla3-dynamic-fom.endpoint.settings` (federation `Blue`) and `endpoints/hla4-dynamic-fom.endpoint.settings` (federation `Green`), and the gateway `hla3-hla3-dynamic-fom.junction.settings`.
 
@@ -313,14 +315,25 @@ A federate that asks for attribute values of a copy (`requestAttributeValueUpdat
 
 ---
 
-## 6. Pitch Talk router
+## 6. Talk router
 
-`router.kind=talk` bridges Pitch Talk federations. The `PitchTalk.Client`, `User` and `Equipment` objects are mirrored (UUIDs unchanged, `talk.mirrorclients`), and the `PitchTalk.Message` interactions (audio, radio, text, image) are routed. Channels are **not** mirrored: each federation keeps its own, and `ChannelUUID` in every message is rewritten to the receiving federation's channel of the same name.
+**The Talk FOM is not delivered with SimWeaver** (0.9.21). A Talk endpoint (`endpoint.standard=talk`) without FOM files takes the Talk FOM from the running Talk federation, exactly like a `dynamic` HLA endpoint (section 4): it joins without modules and reads the federation's FDD. Nothing needs to be installed when the Talk federation is already running when the gateway starts. When Junction itself has to create the Talk federation (it is not running yet), give it your own copy of the Talk FOM modules from your Talk installation:
+
+```properties
+# the files in etc/fom/ieee1516-2010; used only when the federation is not running
+endpoint.hla.createfoms=<your Talk FOM module>.xml;<another module>.xml
+# or: always use your files instead of the federation's FDD (then the endpoint creates as before)
+endpoint.hla.foms=<your Talk FOM module>.xml;<another module>.xml
+```
+
+A Talk federation that is not running, with neither set, fails the start with a message saying so. The Start dialog's channel list (**Discover**) reads the Talk FOM from the federation too.
+
+`router.kind=talk` bridges Talk federations. The Talk FOM's client, user and equipment objects are mirrored (UUIDs unchanged, `talk.mirrorclients`), and its message interactions (audio, radio, text, image) are routed. Channels are **not** mirrored: each federation keeps its own, and `ChannelUUID` in every message is rewritten to the receiving federation's channel of the same name.
 
 | Key | Default | Meaning |
 |---|---|---|
 | `talk.mode` | `full` | `full`: channel tables, client mirroring (below); `messages`: messages only, channels watched (see *Messages-only mode*) |
-| `talk.messages` | full: `audio;radio;text;image`, messages: `audio;radio;text` | The `PitchTalk.Message` kinds bridged |
+| `talk.messages` | full: `audio;radio;text;image`, messages: `audio;radio;text` | The Talk message kinds bridged |
 | `talk.match` | `name` | Match channels by `name` or `description` (case is ignored) |
 | `talk.channels` | `*` | Channels bridged (names; `*`, `?`). `none`: the lobby only (see *The lobby only* below) |
 | `talk.channelmap` | | `A>B; C>D`: channel A on one side is channel B on the other (both ways) |
@@ -363,7 +376,7 @@ Rules for messages:
 
 The page shows each Talk federation's channels: which are matched (and under which name), which have no counterpart, and their radio frequency.
 
-**The lobby only** (`talk.channels=none`, kit `routers/talk-lobby-only.router.settings`). Only messages in the lobby (the all-zero `ChannelUUID`) pass. A message in any other channel is dropped and counted as *filtered*, whether the gateway has seen that channel or not, in full and in messages mode. No channel is bridged or created, and `talk.channelmap`, `talk.channeluuidmap` and `talk.radio.map` are not used (the gateway warns when they are set). With messages mode only the `PitchTalk.Message` interactions pass:
+**The lobby only** (`talk.channels=none`, kit `routers/talk-lobby-only.router.settings`). Only messages in the lobby (the all-zero `ChannelUUID`) pass. A message in any other channel is dropped and counted as *filtered*, whether the gateway has seen that channel or not, in full and in messages mode. No channel is bridged or created, and `talk.channelmap`, `talk.channeluuidmap` and `talk.radio.map` are not used (the gateway warns when they are set). With messages mode only the Talk message interactions pass:
 
 ```properties
 router.kind=talk
@@ -372,7 +385,7 @@ talk.messages=audio;text;image
 talk.channels=none
 ```
 
-**Messages-only mode** (`talk.mode=messages`, kit `routers/talk-messages.router.settings`). The gateway exchanges nothing but the `PitchTalk.Message` interactions of `talk.messages` (by default audio, radio and text). It mirrors no Talk object, and leaves MasterConfiguration, clients, users, equipment and permissions alone. The only objects it registers are the channels `talk.channelmap` maps to a name a federation lacks (`talk.createmappedchannels`, as in full mode). Set `talk.createmappedchannels=false` to register nothing at all.
+**Messages-only mode** (`talk.mode=messages`, kit `routers/talk-messages.router.settings`). The gateway exchanges nothing but the Talk message interactions of `talk.messages` (by default audio, radio and text). It mirrors no Talk object, and leaves MasterConfiguration, clients, users, equipment and permissions alone. The only objects it registers are the channels `talk.channelmap` maps to a name a federation lacks (`talk.createmappedchannels`, as in full mode). Set `talk.createmappedchannels=false` to register nothing at all.
 
 The usual need is still "channel X there is channel Y here". Messages carry only a channel UUID, so the gateway has to know what each UUID means on each side. With `talk.trackchannels=true` (the default) it watches the channel objects of each Talk federation (UUID, name, description, frequency only). Nothing is mirrored, and nothing is created except mapped channels a federation lacks. That gives it the same channel table as in full mode, so `talk.channelmap` works by name:
 
@@ -468,7 +481,7 @@ junction.groupvar.GROUPVAR2.desc=DIS exercise id
 - **One name runs once.** Starting an instance of the group that is already running is refused (`INSTANCE_RUNNING`), and nothing is started. The dialog says so before you press Start.
 - **Stop one instance or all.** Each running instance has a row in the group with its name, its values, how many of its gateways run, and its own **■ Stop**. **■ Stop all** (shown as **■ Stop group** while only one instance runs) stops every instance.
 - **An incomplete instance** (one of its gateways failed or was removed) is marked in red, `1/2 RUNNING`. To complete it, start the missing gateway on its own with the same instance name and values: a single start refuses only a running instance of *that* configuration.
-- **What changes per instance:** the objects the gateway registers itself are named after the instance, except for instance `1`. Pitch Talk channels, clients and radios become `Junction-<gateway>-<instance>-…`, so two instances in one Talk federation do not collide. Log lines and thread names include the instance too.
+- **What changes per instance:** the objects the gateway registers itself are named after the instance, except for instance `1`. Talk channels, clients and radios become `Junction-<gateway>-<instance>-…`, so two instances in one Talk federation do not collide. Log lines and thread names include the instance too.
 - **What does not change:** the files. Two instances with the *same* values bridge the same targets, and traffic is duplicated or loops; the start only warns about that.
 
 **Single gateways** have instances the same way: starting a gateway that already runs makes instance `2`, and its Start dialog has the *Instance* field too. The running gateways show *INSTANCE n* whenever a gateway is in a group, has another name than `1`, or runs more than once.
@@ -681,7 +694,7 @@ The gateway page shows the update mode and how much of the DIS volume was sent (
 
 ## 12. Limits and things to verify
 
-- **Pitch Talk** behaviour with mirrored clients and foreign `SenderUUID`s, the PCM16 byte order and the sample rate are not documented in the FOM. Verify them against your Talk version (`talk.audio.*`).
+- **Talk** behaviour with mirrored clients and foreign `SenderUUID`s, the PCM16 byte order and the sample rate are not documented in the FOM. Verify them against your Talk version (`talk.audio.*`).
 - **Opus** is passed through, not decoded.
 - No time management, no ownership transfer, no DDM regions.
 - DIS 7-only data that RPR v2 has no place for (e.g. variable parameter separation records) is not passed on (the PDU relay passes it).
@@ -696,7 +709,7 @@ The gateway page shows the update mode and how much of the DIS volume was sent (
 - **Link 16:** the J-message contents are defined in the restricted MIL-STD-6016; the gateway copies them, and Rift shows them as hex. The RPR v3 FOMs here have no Link-16 module, so between RPR v2 and v3 a Link 16 interaction goes as its nearest v3 superclass (`RawBinaryRadioSignal`, without the message data), unless both FOMs include the module. Check against your Link 16 simulators which `SISOSTD002Version` they send.
 - **FOM from the federation** (section 4) relies on the RTI providing `HLAcurrentFDD` as an `HLAunicodeString` with the merged FDD, and updating it when modules are added. The test RTIs do (`-Dfakerti.fddformat=2025` makes them report it in the 1516-2025 format, as pRTI 6 does); verify it with your RTI (pRTI 5 / 6), including the *FDD has changed* notice. `endpoint.hla.fddclass` / `fddattribute` cover an RTI that names them differently.
 - **Name templates** (section 5) apply to the copies the router registers. A reference to an object the gateway does not bridge passes with its original name.
-- **Value rules** (section 5) have no wildcards and no per-direction scope yet. They do not change values that the gateway builds itself: the IFF mode objects of `RprIffBridge` and Pitch Talk channels.
+- **Value rules** (section 5) have no wildcards and no per-direction scope yet. They do not change values that the gateway builds itself: the IFF mode objects of `RprIffBridge` and Talk channels.
 
 ---
 

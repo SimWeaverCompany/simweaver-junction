@@ -1,4 +1,4 @@
-# Group sample (2 of 2): the exercise's Pitch Talk federation and a site's Talk federation; the
+# Group sample (2 of 2): the exercise's Talk federation and a site's Talk federation; the
 # site's "Net1" is the exercise channel named by GROUPVAR3 (talk.channelmap.<receiver>).
 junction.name=Exercise: Talk<->Talk
 junction.group=Exercise

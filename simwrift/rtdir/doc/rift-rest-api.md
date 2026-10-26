@@ -256,7 +256,7 @@ All valid configurations. The server reads the folder again on every call.
       "standard": "IEEE1516_2025",
       "standardlabel": "HLA 4 (IEEE 1516-2025)",
       "hlafomrootdir": ".\\etc\\fom\\ieee1516-2025",
-      "hlafoms": ["RPR_FOM_v2.0_Link16_1516-2010.xml", "pitchtalk.xml", "netn4.xml"],
+      "hlafoms": ["RPR_FOM_v2.0_Link16_1516-2010.xml", "NETN-BASE.xml", "NETN-ENTITY.xml"],
       "hlalsd": "default",
       "hlalsds": ["default", "crc2"],
       "hlafederation": "test1",

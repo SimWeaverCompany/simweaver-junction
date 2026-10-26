@@ -28,8 +28,6 @@
 		'ieee1516-2010': [
 			{ v: 'RPR_FOM_v2.0_Link16_1516-2010.xml', l: 'RPR FOM v2.0 (one file, with Link 16)', g: 'RPR FOM' },
 			{ v: 'rpr3', l: 'rpr3/ - RPR FOM v3.0 (all 15 modules)', g: 'RPR FOM', title: 'The folder etc/fom/ieee1516-2010/rpr3: every module in it' },
-			{ v: 'pitchtalk.xml', l: 'pitchtalk.xml', g: 'Pitch Talk' },
-			{ v: 'pitchtalkeffects.xml', l: 'pitchtalkeffects.xml', g: 'Pitch Talk' },
 			{ v: 'netn4-hla3', l: 'netn4-hla3/ - NETN 4 (all modules)', g: 'NETN', title: 'The folder etc/fom/ieee1516-2010/netn4-hla3: every module in it' }
 		],
 		'ieee1516-2025': RPR2_2025.map(function (f) { return { v: f, l: f.replace('_v2.0.xml', ''), g: 'RPR FOM v2.0 modules (HLA 4 format)' }; })
@@ -127,8 +125,8 @@
 			d: { name: 'HLA 4 RPR', standard: 'ieee1516-2025', foms: ca.RPR2_2025_CORE, lsdMode: 'empty', federation: 'Green' } },
 		{ t: 'RPR FOM v3.0 federation', s: 'HLA Evolved with all RPR v3 modules (the rpr3 folder).',
 			d: { name: 'RPR v3', standard: 'ieee1516-2010', foms: RPR3, federation: 'Rpr3' } },
-		{ t: 'Pitch Talk federation', s: 'See the Talk clients, channels and messages, next to RPR traffic.',
-			d: { name: 'Pitch Talk', standard: 'ieee1516-2010', foms: 'RPR_FOM_v2.0_Link16_1516-2010.xml;pitchtalk.xml;pitchtalkeffects.xml', federation: 'PitchTalk' } },
+		{ t: 'Talk federation', s: 'See the Talk clients, channels and messages, next to RPR traffic. The FOM comes from the running federation.',
+			d: { name: 'Talk', standard: 'ieee1516-2010', foms: 'dynamic', federation: 'Talk' } },
 		{ t: 'DIS 7 network', s: 'Listen to DIS 7 PDUs on UDP, shown as RPR FOM objects.',
 			d: { name: 'DIS 7', standard: 'dis7' } },
 		{ t: 'DIS 6 network', s: 'DIS 6 (and 5) PDUs, shown as RPR FOM objects.',

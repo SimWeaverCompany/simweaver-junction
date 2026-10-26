@@ -7,7 +7,7 @@ datasource.standard=dis6
 datasource.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml;
 #
 # datasource.hla.lsd=default
-# datasource.hla.federation=PitchTalkDeafault
+# datasource.hla.federation=test1
 # datasource.hla.customfederatetype=SimwRift
 # datasource.hla.reconnectondisconnect=true
 # datasource.hla.reconnectintervalseconds=5

@@ -215,7 +215,7 @@ Some samples are provided; copy one and adapt it to add your own:
 |---|---|---|
 | `hla3-rpr2.datasource.settings` | HLA3-RPR2 | HLA Evolved, RPR FOM v2.0 with Link 16 |
 | `hla4-rpr2.datasource.settings` | HLA4-RPR2 | HLA 4, the same RPR FOM v2.0 with Link 16 in the HLA 4 format |
-| `hla3-rpr2-talk.datasource.settings` | HLA3-RPR2-Talk | HLA Evolved, RPR v2 and the Pitch Talk FOM |
+| `hla3-rpr2-talk.datasource.settings` | HLA3-RPR2-Talk | HLA Evolved with RPR v2 and the Talk FOM, taken from the running federation (`datasource.hla.foms=dynamic`: no Talk FOM is delivered; to use your own copy of the Talk FOM files, put them in `etc/fom/ieee1516-2010` and list them) |
 | `dis6.datasource.settings` | DIS6 | A DIS 6 network on UDP port 3000 |
 | `cdis.datasource.settings` | CDIS | A C-DIS network (SISO-STD-023-2024) on UDP port 3100 |
 

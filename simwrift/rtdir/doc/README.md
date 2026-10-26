@@ -353,7 +353,7 @@ What you filled in is remembered in this browser; **Start over** clears a sectio
 ## Junction gateways
 
 The top bar's **Junction gateways** opens `junction.html`: gateways that bridge HLA federations,
-DIS networks and Pitch Talk, configured in `etc/junctions`. Their endpoints also show up in the
+DIS networks and Talk federations, configured in `etc/junctions`. Their endpoints also show up in the
 datasource list here, marked "Junction". See [junction.md](junction.md) and
 [junction-rest-api.md](junction-rest-api.md).
 

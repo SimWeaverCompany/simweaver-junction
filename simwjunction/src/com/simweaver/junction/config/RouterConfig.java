@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * The router of a gateway, from a router kit ({@code etc/junctions/routers/*.router.settings})
- * or inline. Keys start with {@code router.} (Pitch Talk keys with {@code talk.}). Immutable.
+ * or inline. Keys start with {@code router.} (Talk keys with {@code talk.}). Immutable.
  */
 public final class RouterConfig implements Json.Writable {
 
@@ -22,7 +22,7 @@ public final class RouterConfig implements Json.Writable {
     public enum Kind {
         /** Moves (part of) an information model; RPR v2/v3 and DIS conversion. */
         IEM,
-        /** Moves Pitch Talk channel traffic with channel ids remapped. */
+        /** Moves Talk channel traffic with channel ids remapped. */
         TALK,
         /** Passes DIS PDUs between DIS 6, DIS 7 and C-DIS endpoints as they are (0.9.18). */
         PDU

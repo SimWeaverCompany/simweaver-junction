@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Finds what an endpoint could be started on, for the start dialog: the federations its RTI
  * knows (HLA), the exercise ids heard on its network (DIS, listening for a moment), or the
- * channels of a Pitch Talk federation (joining it briefly).
+ * channels of a Talk federation (joining it briefly).
  */
 public final class TargetProbe {
 
@@ -140,40 +140,54 @@ public final class TargetProbe {
         return new Result("exercise", l, null);
     }
 
-    /** Joins the Talk federation briefly and lists its channels by name. */
+    /**
+     * Joins the Talk federation briefly and lists its channels by name. A dynamic endpoint (the
+     * default for Talk, 0.9.21) joins without modules and reads the Talk FOM from the federation.
+     */
     private static Result talkChannels(EndpointConfig cfg, File runtimeDir, String federation, String lsd) {
         RtiSession.Version v = cfg.isHla4() ? RtiSession.Version.HLA_1516_2025 : RtiSession.Version.HLA_1516E;
         RtiSession s = null;
         try {
-            // a dynamic Talk endpoint joins without modules; the channel names are read with the standard Talk FOM
-            List<String> foms = cfg.isDynamicFom() ? cfg.getTalkFomPaths() : cfg.getFomPaths();
-            InformationExchangeModel iem = cfg.isHla4() ? InformationExchangeModel.fromHla4(foms)
-                    : InformationExchangeModel.fromHlaEvolved(foms);
-            ObjectClass channel = iem.getObjectClass("HLAobjectRoot.PitchTalk.Channel");
-            if (channel == null) {
-                return new Result("channel", Collections.emptyList(), "the FOM has no PitchTalk.Channel class");
+            final java.util.concurrent.atomic.AtomicReference<HlaCodec> codec = new java.util.concurrent.atomic.AtomicReference<HlaCodec>();
+            final java.util.concurrent.atomic.AtomicReference<ClassAttribute> nameAttr = new java.util.concurrent.atomic.AtomicReference<ClassAttribute>();
+            InformationExchangeModel fileModel = null;
+            if (!cfg.isDynamicFom()) {
+                fileModel = cfg.isHla4() ? InformationExchangeModel.fromHla4(cfg.getFomPaths())
+                        : InformationExchangeModel.fromHlaEvolved(cfg.getFomPaths());
             }
-            final HlaCodec codec = new HlaCodec(iem);
-            final ClassAttribute nameAttr = channel.getAttribute("Name");
             RtiLibrary lib = RtiLibrary.fromSetting(cfg.getRtiJar(), runtimeDir);
             s = lib.createSession(v);
             final Map<Long, String[]> found = new ConcurrentHashMap<Long, String[]>();
             final Map<Integer, String> classNames = new ConcurrentHashMap<Integer, String>();
             final int[] nameHandle = new int[1];
             final RtiSession probe = s;
+            final java.util.concurrent.atomic.AtomicReference<com.simweaver.common.hla.session.DynamicFom.Reader> fdd =
+                    new java.util.concurrent.atomic.AtomicReference<com.simweaver.common.hla.session.DynamicFom.Reader>();
             final Quiet listener = new Quiet() {
                 @Override
                 public void discovered(long instance, int objectClass, String name, String producer) {
+                    com.simweaver.common.hla.session.DynamicFom.Reader r = fdd.get();
+                    if (r != null && r.discovered(instance, objectClass)) {
+                        return;
+                    }
                     String cn = classNames.get(objectClass);
-                    found.put(instance, new String[] {"", cn == null ? "Channel" : cn});
+                    if (cn != null) {
+                        found.put(instance, new String[] {"", cn});
+                    }
                 }
 
                 @Override
                 public void reflected(long instance, int[] attributes, byte[][] values, byte[] tag, String producer) {
-                    for (int i = 0; i < attributes.length; i++) {
+                    com.simweaver.common.hla.session.DynamicFom.Reader r = fdd.get();
+                    if (r != null && r.reflected(instance, attributes, values)) {
+                        return;
+                    }
+                    HlaCodec c = codec.get();
+                    ClassAttribute na = nameAttr.get();
+                    for (int i = 0; i < attributes.length && c != null && na != null; i++) {
                         if (attributes[i] == nameHandle[0]) {
                             try {
-                                HValue n = codec.decode(nameAttr.getDataType(), values[i]);
+                                HValue n = c.decode(na.getDataType(), values[i]);
                                 String[] e = found.get(instance);
                                 if (e != null) {
                                     e[0] = n.asTrimmedText();
@@ -184,14 +198,35 @@ public final class TargetProbe {
                         }
                     }
                 }
+
+                @Override
+                public void removed(long instance, byte[] tag, String producer) {
+                    com.simweaver.common.hla.session.DynamicFom.Reader r = fdd.get();
+                    if (r != null) {
+                        r.removed(instance);
+                    }
+                }
             };
             synchronized (lib.connectLock()) {
                 probe.connect(settings(cfg, lsd), listener);
                 probe.join(federation, "SimwJunctionProbe", null, cfg.isDynamicFom() ? Collections.<String>emptyList() : cfg.getFomPaths(), false);
             }
-            for (String sub : new String[] {"HLAobjectRoot.PitchTalk.Channel.AudioChannel.RadioChannel",
-                    "HLAobjectRoot.PitchTalk.Channel.AudioChannel.VoiceChannel", "HLAobjectRoot.PitchTalk.Channel.ChatChannel",
-                    "HLAobjectRoot.PitchTalk.Channel"}) {
+            InformationExchangeModel iem = fileModel;
+            if (iem == null) {
+                com.simweaver.common.hla.session.DynamicFom.Reader r =
+                        new com.simweaver.common.hla.session.DynamicFom.Reader(s, cfg.getFddClass(), cfg.getFddAttribute());
+                fdd.set(r);
+                r.start();
+                iem = com.simweaver.common.hla.session.DynamicFom.toModel(r.await(cfg.getFddTimeoutSecs() * 1000L), cfg.isHla4());
+            }
+            ObjectClass channel = iem.getObjectClass(TALK_CHANNEL);
+            if (channel == null) {
+                return new Result("channel", Collections.emptyList(), "the federation's FOM has no Talk channel class (" + TALK_CHANNEL + ")");
+            }
+            codec.set(new HlaCodec(iem));
+            nameAttr.set(channel.getAttribute("Name"));
+            for (String sub : new String[] {TALK_CHANNEL + ".AudioChannel.RadioChannel", TALK_CHANNEL + ".AudioChannel.VoiceChannel",
+                TALK_CHANNEL + ".ChatChannel", TALK_CHANNEL}) {
                 if (iem.getObjectClass(sub) == null) {
                     continue;
                 }
@@ -214,13 +249,20 @@ public final class TargetProbe {
             }
             return new Result("channel", l, null);
         } catch (Exception e) {
-            return new Result("channel", Collections.emptyList(), e.getMessage());
+            String m = e.getMessage();
+            if (cfg.isDynamicFom() && String.valueOf(m).contains("DoesNotExist")) {
+                m = m + " (the Talk federation is not running)";
+            }
+            return new Result("channel", Collections.emptyList(), m);
         } finally {
             if (s != null) {
                 s.close();
             }
         }
     }
+
+    /** The channel class of the Talk FOM (its name in that FOM). */
+    private static final String TALK_CHANNEL = "HLAobjectRoot.PitchTalk.Channel";
 
     /** Ignores every callback. */
     private static class Quiet implements RtiSessionListener {

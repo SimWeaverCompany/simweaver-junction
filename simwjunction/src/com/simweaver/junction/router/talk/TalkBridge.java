@@ -40,7 +40,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
- * The Pitch Talk part of the Talk router (design §9), as an {@link IemRouter.Extension}: the
+ * The Talk part of the Talk router (design §9), as an {@link IemRouter.Extension}: the
  * {@code IemRouter} mirrors the Talk clients, users and equipment and routes the
  * {@code PitchTalk.Message} interactions; this class
  *

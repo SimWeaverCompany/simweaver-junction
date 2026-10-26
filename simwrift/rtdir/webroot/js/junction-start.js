@@ -105,7 +105,7 @@
 		return ui.busy(f.discoverBtn, req);
 	}
 
-	/** Pitch Talk: the channels of the federation in the input (join briefly). */
+	/** Talk: the channels of the federation in the input (join briefly). */
 	function loadChannels(f) {
 		var fed = f.input.value.trim();
 		if (!fed || !f.channels) { return; }

@@ -11,7 +11,7 @@ The 0.9.0 path `/api/junktion/...` is still answered the same way. The SSE topic
 
 Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the envelope `{"success":false,"error":{"code":"...","message":"..."}}`. Live updates come over Rift's SSE stream (section 7).
 
-API state: Junction 0.9.20, October 2026.
+API state: Junction 0.9.21, October 2026.
 
 ---
 

@@ -1,4 +1,4 @@
-# Gateway Talk<->Talk lobby only: two Pitch Talk federations, only the lobby's voice, text and
+# Gateway Talk<->Talk lobby only: two Talk federations, only the lobby's voice, text and
 # images pass (router kit Talk-Lobby-Only).
 junction.name=Talk<->Talk lobby only
 junction.endpoints=site1;site2

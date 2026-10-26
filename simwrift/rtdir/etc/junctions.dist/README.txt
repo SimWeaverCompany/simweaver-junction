@@ -11,7 +11,7 @@ this folder has the rest too:
   hla3-hla3-entitytype-filter.junction.settings  entity types rewritten by value rules
   hla3-hla3-class-filter.junction.settings       entities, fire and detonations only
   exercise-hla3-dis7.junction.settings           a group with group variables (1 of 2)
-  exercise-talk-talk.junction.settings           the same group's Pitch Talk part (2 of 2)
+  exercise-talk-talk.junction.settings           the same group's Talk part (2 of 2)
   talk-talk-lobby-only.junction.settings         two Talk federations, the lobby only
   talk-talk-dis7-radio.junction.settings         two Talk federations, two channels on DIS radio
   hla3-hla3-two-rtis.junction.settings           two RTI versions in one process

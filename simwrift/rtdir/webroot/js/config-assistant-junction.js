@@ -29,7 +29,7 @@
 		{ v: 'dis7', l: 'DIS 7 network', badge: 'DIS 7', fam: 'dis', help: 'DIS 7 on UDP (receives DIS 6 and 7), bridged as an RPR FOM v2.0 federation.' },
 		{ v: 'dis6', l: 'DIS 6 network', badge: 'DIS 6', fam: 'dis', help: 'DIS 6 on UDP (receives DIS 5 and 6), bridged as an RPR FOM v2.0 federation.' },
 		{ v: 'cdis', l: 'C-DIS network', badge: 'C-DIS', fam: 'dis', help: 'Compressed DIS (SISO-STD-023-2024) on UDP: a DIS 7 endpoint with C-DIS on the wire, bridged as an RPR FOM v2.0 federation.' },
-		{ v: 'talk', l: 'Pitch Talk federation', badge: 'TALK', fam: 'talk', help: 'A Pitch Talk federation (pitchtalk.xml + pitchtalkeffects.xml). Use it with the Pitch Talk router.' }
+		{ v: 'talk', l: 'Talk federation', badge: 'TALK', fam: 'talk', help: 'A Talk federation. The Talk FOM comes from the running federation (none is delivered). Use it with the Talk router.' }
 	];
 	function typeOf(std) { return TYPES.filter(function (t) { return t.v === std; })[0] || { v: std, l: std || '?', badge: '?', fam: 'hla', help: '' }; }
 
@@ -57,8 +57,8 @@
 			sets: [['Network', 'all interfaces, UDP port 3000'], ['DIS ids', 'site 900, application 2']] },
 		{ source: 'endpoints/cdis.endpoint.settings', name: 'CDIS', standard: 'cdis', target: '1',
 			sets: [['Network', 'all interfaces, UDP port 3100'], ['C-DIS', 'full updates; the DIS 7 heartbeats'], ['DIS ids', 'site 900, application 2']] },
-		{ source: 'endpoints/talk.endpoint.settings', name: 'Talk', standard: 'talk', target: 'PitchTalk',
-			sets: [['FOM', 'pitchtalk.xml + pitchtalkeffects.xml'], ['RTI', 'the RTI on Rift\'s class path']] },
+		{ source: 'endpoints/talk.endpoint.settings', name: 'Talk', standard: 'talk', target: 'Talk',
+			sets: [['FOM', 'from the running Talk federation'], ['RTI', 'the RTI on Rift\'s class path']] },
 		{ source: 'endpoints/hla3-rpr2-own-rti.endpoint.settings', name: 'HLA3-RPR2-own-RTI', standard: 'ieee1516-2010', target: 'Red',
 			sets: [['FOM', RPR2_FILE], ['RTI', 'its own library lib/rti/prti6/prti1516e.jar, CRC localhost:8989'],
 				['Use', 'bridges a second RTI or RTI version in one gateway'], DIST_ONLY] },
@@ -187,7 +187,7 @@
 			id: 'a', src: 'kit', kit: 'endpoints/hla3-rpr2.endpoint.settings', target: '', name: '', extra: '',
 			standard: 'ieee1516-2010', foms: 'RPR_FOM_v2.0_Link16_1516-2010.xml', federation: '',
 			rti: 'classpath', lsd: '', rtijar: '', rtiaddress: '', rtisettings: '', rtifactory: '',
-			createfed: true, destroyfed: false, fedname: '', fedtype: '', reconnect: true, reconnectSecs: '5', reftypes: '', talkhla: 'ieee1516-2010',
+			createfed: true, destroyfed: false, createfoms: '', fedname: '', fedtype: '', reconnect: true, reconnectSecs: '5', reftypes: '', talkhla: 'ieee1516-2010',
 			disIf: 'all', disAddr: '', disGroup: '239.1.2.3', disNic: '', disPort: '3000', disExid: '1', sendaddr: '', ttl: '8',
 			siteid: '900', appid: '1', entityids: 'keep', heartbeat: '5', timeout: '12',
 			cdisMode: 'full', cdisMult: '2.4', cdisTimeout: '2.4', hbEs: '5', hbEe: '10', hbDes: '5', hbTx: '2', hbIff: '10',
@@ -257,7 +257,7 @@
 				newEndpoint({ id: 'remote', src: 'new', standard: 'ieee1516-2025-fedpro', name: 'Remote site', federation: 'Remote',
 					foms: ca.RPR2_2025_CORE, rti: 'jar', rtijar: 'lib/rti/fedpro/fedpro-client.jar', rtiaddress: 'fedpro.example.org:15164' })],
 				rt: newRouter({ kit: 'routers/hla3-class-filter.router.settings' }) }); } },
-		{ t: 'Pitch Talk sites + radio', s: 'Two Talk federations, channels by name, a channel on DIS radio.', g: function () {
+		{ t: 'Talk sites + radio', s: 'Two Talk federations, channels by name, a channel on DIS radio.', g: function () {
 			return newGateway({ name: 'Talk sites + DIS radio', eps: [
 				newEndpoint({ id: 'site1', kit: 'endpoints/talk.endpoint.settings', target: 'TalkSite1' }),
 				newEndpoint({ id: 'site2', kit: 'endpoints/talk.endpoint.settings', target: 'TalkSite2' }),
@@ -345,7 +345,7 @@
 
 	function scenarioPanel(st) {
 		return panel('J1', 'What do you want to bridge?', null, [
-			el('p.ca-lead', null, ca.rich('A **gateway** connects two or more **endpoints** (HLA federations, DIS networks, Pitch Talk federations) through one **router**. Pick a starting point: it adds a gateway you can then change. Pick several to build a **group**.')),
+			el('p.ca-lead', null, ca.rich('A **gateway** connects two or more **endpoints** (HLA federations, DIS networks, Talk federations) through one **router**. Pick a starting point: it adds a gateway you can then change. Pick several to build a **group**.')),
 			anatomy(),
 			el('div.ca-scen', null, SCENARIOS.map(function (sc) {
 				return el('button', { type: 'button', on: { click: function () { addGateway(st, sc.g()); } } },
@@ -594,11 +594,13 @@
 		var fedpro = ep.standard === 'ieee1516-2025-fedpro';
 		var folder = talk ? ca.fomFolder(ep.talkhla) : ca.fomFolder(ep.standard);
 		card.appendChild(ca.grid([
-			ca.field('Federation', ca.input(ep, 'federation', { placeholder: talk ? 'e.g. PitchTalk' : 'e.g. Blue', vars: true }),
+			ca.field('Federation', ca.input(ep, 'federation', { placeholder: talk ? 'e.g. Talk' : 'e.g. Blue', vars: true }),
 				'The default target. The Start dialog lists the federations the RTI knows.', { req: true }),
 			ca.field('FOM modules', ca.fomPicker(ep, 'foms', folder, { vars: true }),
-				talk ? ca.rich('Empty: `pitchtalk.xml` and `pitchtalkeffects.xml`, the Talk FOM.')
-					: ca.rich('Files or folders in `etc/fom/' + folder + '`, or full paths. Must match the federation\'s FOM.'), { req: !talk, wide: true })
+				talk ? ca.rich('Empty: the Talk FOM is taken from the **running** Talk federation (no Talk FOM is delivered). Or your own copy of the Talk FOM files in `etc/fom/' + folder + '`.')
+					: ca.rich('Files or folders in `etc/fom/' + folder + '`, or full paths. Must match the federation\'s FOM. `dynamic`: from the running federation.'), { req: !talk, wide: true }),
+			ca.field('Create with', ca.input(ep, 'createfoms', { placeholder: talk ? 'your Talk FOM files, ;-separated' : 'FOM files, ;-separated', vars: true }),
+				ca.rich('Only when the FOM comes from the federation (' + (talk ? 'empty above' : '`dynamic`') + '): the files to **create** the federation with when it is not running (`endpoint.hla.createfoms`). Empty: the federation must be running.'), { opt: true, wide: true })
 		]));
 		card.appendChild(ca.grid([
 			ca.field('RTI library', fedpro ? el('div.ca-help', null, ca.rich('The **vendor\'s Federate Protocol client** library, loaded on its own.'))
@@ -716,13 +718,13 @@
 		card.appendChild(el('div.ca-card-head', null, [
 			el('span.ca-boxrole', { text: 'Router' }),
 			el('span.ca-badge', { text: kind === 'talk' ? 'TALK' : kind === 'pdu' ? 'PDU' : 'IEM' }),
-			el('span.ca-card-title', { text: kind === 'talk' ? 'Pitch Talk router' : kind === 'pdu' ? 'PDU relay' : 'IEM router' }),
+			el('span.ca-card-title', { text: kind === 'talk' ? 'Talk router' : kind === 'pdu' ? 'PDU relay' : 'IEM router' }),
 			el('span.ca-card-sub', { text: kind === 'talk' ? 'Talk channels and messages' : kind === 'pdu' ? 'DIS PDUs as they are' : 'objects and interactions by class' })
 		]));
 		card.appendChild(ca.goesInto(routerTargets(g, server)));
 		card.appendChild(ca.grid([
 			ca.field('Kind', ca.seg(rt, 'kind', [
-				{ v: 'iem', l: 'HLA / DIS objects & interactions' }, { v: 'talk', l: 'Pitch Talk' }, { v: 'pdu', l: 'DIS PDU relay' }
+				{ v: 'iem', l: 'HLA / DIS objects & interactions' }, { v: 'talk', l: 'Talk' }, { v: 'pdu', l: 'DIS PDU relay' }
 			], { onChange: function (v) {
 				var ks = routerKits(server).filter(function (k) { return k.kind === v; });
 				if (rt.src === 'kit' && ks.length) { rt.kit = ks[0].source; }
@@ -734,13 +736,13 @@
 					+ (kind === 'talk' ? ' Channel renames and the radio bridge (below) always go in the gateway file, because they name this gateway\'s endpoints.' : '')), { wide: true })
 		]));
 		if (kind === 'talk' && talkEps.length < 2) {
-			card.appendChild(ca.note('The Pitch Talk router bridges **Talk** endpoints: this gateway needs at least two (a DIS or RPR endpoint can carry the radio).', 'warn'));
+			card.appendChild(ca.note('The Talk router bridges **Talk** endpoints: this gateway needs at least two (a DIS or RPR endpoint can carry the radio).', 'warn'));
 		}
 		if (kind === 'pdu' && g.eps.some(function (e) { return famOf(e, server) !== 'dis'; })) {
 			card.appendChild(ca.note('The PDU relay takes **DIS 6, DIS 7 and C-DIS** endpoints only.', 'warn'));
 		}
 		if (kind !== 'talk' && talkEps.length) {
-			card.appendChild(ca.note('This gateway has Talk endpoints: choose the **Pitch Talk** router for them.', 'warn'));
+			card.appendChild(ca.note('This gateway has Talk endpoints: choose the **Talk** router for them.', 'warn'));
 		}
 
 		if (rt.src === 'kit') {
@@ -825,7 +827,7 @@
 				: 'Messages pass with channel ids rewritten by name; clients, users and equipment are mirrored.', { wide: true }),
 			ca.field('Messages', el('div.ca-checks', null, ['audio', 'radio', 'text', 'image'].map(function (m) {
 				return ca.check(rt.msgs, m, m.charAt(0).toUpperCase() + m.slice(1), { structural: false });
-			})), 'The PitchTalk.Message kinds bridged.'),
+			})), 'The Talk message kinds bridged.'),
 			ca.field('Match channels by', ca.select(rt, 'match', [{ v: 'name', l: 'Name' }, { v: 'description', l: 'Description' }], { structural: false })),
 			ca.field('Channels bridged', ca.input(rt, 'channels', { placeholder: '*', vars: true }), 'Channel names, * and ? as wildcards, ; between.'),
 			rt.mode === 'full' ? ca.field('Options', el('div.ca-checks', null, [
@@ -968,6 +970,9 @@
 		} else {
 			var foms = ca.splitList(ep.foms);
 			if (foms.length) { put('hla.foms', foms.join(';'), 'FOM modules (files or folders) in etc/fom/' + ca.fomFolder(ep.standard === 'talk' ? ep.talkhla : ep.standard)); }
+			if (String(ep.createfoms || '').trim() && (!foms.length || foms.join(';').toLowerCase() === 'dynamic')) {
+				put('hla.createfoms', ca.splitList(ep.createfoms).join(';'), 'create the federation with these FOM files when it is not running');
+			}
 			if (ep.standard === 'talk' && ep.talkhla !== 'ieee1516-2010') { put('talk.hlastandard', ep.talkhla); }
 			if (withTarget && ep.federation.trim()) { put('hla.federation', ep.federation.trim(), 'the default target'); }
 			var ownLib = ep.rti === 'jar' || ep.standard === 'ieee1516-2025-fedpro';
@@ -1222,7 +1227,7 @@
 			} else if (rt.saveKit) {
 				var rf = 'routers/' + rkitFileName(rt, g);
 				var rp = new ca.Props();
-				rp.comment('Router kit' + (rt.kind === 'talk' ? ' (Pitch Talk)' : ''));
+				rp.comment('Router kit' + (rt.kind === 'talk' ? ' (Talk)' : ''));
 				rp.comment('Made with the Config Assistant. Gateways refer to it with junction.router=' + rf);
 				rp.blank();
 				routerSettings(rt).forEach(function (x) { rp.kv(x.k, x.v, x.c); });
@@ -1249,10 +1254,10 @@
 				}
 			} else if (kind === 'talk') {
 				var talkEps = g.eps.filter(function (e) { return famOf(e, server) === 'talk'; });
-				if (talkEps.length < 2) { issues.push({ level: 'err', text: label + ': the Pitch Talk router needs at least two Talk endpoints.' }); }
+				if (talkEps.length < 2) { issues.push({ level: 'err', text: label + ': the Talk router needs at least two Talk endpoints.' }); }
 				g.eps.forEach(function (e) {
 					if (famOf(e, server) !== 'talk' && !(rt.radio && rt.radioEp === e.id)) {
-						issues.push({ level: 'warn', text: label + ': `' + e.id + '` is not a Talk endpoint; with the Pitch Talk router it only works as the radio endpoint.' });
+						issues.push({ level: 'warn', text: label + ': `' + e.id + '` is not a Talk endpoint; with the Talk router it only works as the radio endpoint.' });
 					}
 				});
 				if (rt.src === 'new' && !['audio', 'radio', 'text', 'image'].some(function (m) { return rt.msgs[m]; })) {
@@ -1266,7 +1271,7 @@
 				}
 			} else {
 				var talkHere = g.eps.filter(function (e) { return famOf(e, server) === 'talk'; });
-				if (talkHere.length) { issues.push({ level: 'err', text: label + ': Talk endpoints need the Pitch Talk router.' }); }
+				if (talkHere.length) { issues.push({ level: 'err', text: label + ': Talk endpoints need the Talk router.' }); }
 				var v3 = g.eps.some(function (e) { return e.src === 'kit' ? /rpr3/.test(e.kit) : /rpr3|_v3\.0/.test(e.foms); });
 				var v2 = g.eps.some(function (e) { return famOf(e, server) === 'dis' || (e.src === 'kit' ? !/rpr3/.test(e.kit) : /_v2\.0|RPR_FOM_v2/.test(e.foms)); });
 				if (v2 && v3) { issues.push({ level: 'info', text: label + ': RPR v2 and v3 endpoints: the router converts with `mappings/rpr2-rpr3.mapping`. The page\'s **Compatibility** button shows what passes.' }); }

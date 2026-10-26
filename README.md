@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.9.20 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.9.21 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ---
 
@@ -38,7 +38,7 @@ Version 0.9.20 · BSD 3-Clause License · © 2026 Simweaver AB
   - HLA 4 (IEEE 1516-2025), also over the Federate Protocol
   - DIS 6 and DIS 7
   - C-DIS (Compressed DIS, SISO-STD-023-2024), full and partial updates
-  - Pitch Talk
+  - Talk (the Talk FOM is taken from the running federation, see below)
 - **RPR FOM v2.0 ⇄ v3.0**, converted by a rules table plus code for the structural
   differences: IFF modes, articulated parts and jamming.
 - **DIS ⇄ RPR**, including:
@@ -50,7 +50,8 @@ Version 0.9.20 · BSD 3-Clause License · © 2026 Simweaver AB
 - **DIS 7 ⇄ C-DIS PDU relay**: all 22 C-DIS PDU types passed PDU by PDU, not through the RPR model.
 - **Class filters**, instance renaming and object reference rewriting.
 - **Value rules**, e.g. one entity type replaced by another in passing.
-- **Pitch Talk** channel mapping, and a radio bridge to RPR/DIS.
+- **Talk** channel mapping, and a radio bridge to RPR/DIS. No Talk FOM is delivered: Talk
+  endpoints take it from the running federation, or from your own copy of the files.
 - **FOM from the federation.** An HLA endpoint set to `dynamic` joins and reads the
   federation's FDD from the MOM, so it bridges whatever FOM the federation runs, without copies
   of the modules.
@@ -150,7 +151,7 @@ All in `simwrift/rtdir/doc/`:
 | `simweaver-rift-install-and-config.md` | Installation, server settings, datasources, maps and overlays |
 | `README.md` | The web UI: datasources, objects, interactions, the map view |
 | `rest-api.md` | Rift's REST API and SSE events |
-| `junction.md` | Junction: gateways, endpoints, routers, value rules, Pitch Talk, groups, RPR v2 ⇄ v3, DIS |
+| `junction.md` | Junction: gateways, endpoints, routers, value rules, Talk, groups, RPR v2 ⇄ v3, DIS |
 | `junction-rest-api.md` | Junction's REST API |
 
 ---

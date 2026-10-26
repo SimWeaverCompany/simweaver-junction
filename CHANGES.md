@@ -1,10 +1,22 @@
-# SimWeaver Junction 0.9.20
+# SimWeaver Junction 0.9.21
 
 This folder holds the new and changed files compared with the tree you sent on 2026-10-24, with
-your `etc` folder from 2026-10-25. It also contains everything from 0.9.19 back to 0.9.12,
+your `etc` folder from 2026-10-25. It also contains everything from 0.9.20 back to 0.9.12,
 described further down, so it replaces those deliveries.
 
-**Files to delete in your tree** (from 0.9.17, if you haven't applied it yet). This folder only
+**Files to delete in your tree (0.9.21).** This folder only adds and replaces files, so these
+have to go by hand:
+
+- `simwrift/rtdir/etc/fom/ieee1516-2010/pitchtalk.xml` and `pitchtalkeffects.xml`: the vendor's
+  Talk FOM, no longer delivered (below). Remove them from your source repository too; if the
+  repository is shared, note that they stay in its history until that is rewritten.
+- The 0.9.0 page files nothing uses any more (they also still named the vendor's product):
+  `simwrift/rtdir/webroot/js/junktion.js`, `junktion-api.js`, `junktion-compat.js`,
+  `junktion-group.js`, `junktion-start.js`, `config-assistant-junktion.js` and
+  `simwrift/rtdir/webroot/css/junktion.css`. `junktion.html` (the redirect for old bookmarks)
+  stays.
+
+**Also to delete** (from 0.9.17, if you haven't applied it yet). This folder only
 adds and replaces files, so the old sample files have to go by hand:
 
 - Easiest: replace `simwrift/rtdir/etc/junctions`, `etc/junctions.dist` and `etc/datasources`
@@ -20,12 +32,106 @@ adds and replaces files, so the old sample files have to go by hand:
 - In `etc/datasources`, delete `sample1`, `sample2`, `sample3` and `dissample`.
 - The ASIM files and `mappings/` are unchanged.
 
+## Version 0.9.21
+
+Rift (`rift/Version`, revision 21) and Junction (`junction/Version`) are both 0.9.21, and so are
+`README.md`, the docs and the developer notes.
+
+## The Talk FOM is no longer delivered
+
+The vendor's two Talk FOM files are gone from `rtdir` and from the source. What we know about
+Talk stays in the code: the Talk FOM's class names are still used as interoperability identifiers.
+The Talk FOM is now found like this:
+
+- **From the running federation (the default).** A Talk endpoint without FOM files
+  (`endpoint.standard=talk`, no `endpoint.hla.foms`) works like a `dynamic` HLA endpoint: it joins
+  without modules and reads the Talk FOM from the federation's FDD (MOM `HLAcurrentFDD`). Nothing
+  needs to be installed when the Talk federation is already running.
+- **Your own copy, to create the federation.** New setting for every dynamic endpoint (Talk or
+  HLA): `endpoint.hla.createfoms=<files>`. The endpoint still joins a running federation and reads
+  its FDD; only when the federation **is not running** does it create it with those files. Put
+  your copy of the Talk FOM from your Talk installation in `etc/fom/ieee1516-2010` and name it
+  there. (`endpoint.hla.createfederation=false` still forbids creating.)
+- **Your own copy, always.** `endpoint.hla.foms=<files>` works as before.
+- **Not running, nothing set:** the start fails with a message saying exactly that and what to
+  set, instead of an RTI exception.
+- **Discover** (the Start dialog's channel list) reads the Talk FOM from the federation too, and
+  says when the federation is not running.
+- **Compatibility** of a configuration compiles a dynamic endpoint's routes from its `createfoms`
+  files when it has them.
+
+Samples: the kit `endpoints/talk.endpoint.settings` is dynamic and shows the two settings for
+your own copy (commented out); its default federation is now `Talk`. Rift's
+`hla3-rpr2-talk.datasource.settings` is `datasource.hla.foms=dynamic` (federation `Talk`): it shows
+the RPR and Talk classes of a running federation, or list your own files there instead.
+
+**Your ASIM files are untouched**, as always, but note: `ASIM-EXT-talk` and `ASIM-INT-talk` name no
+FOM files (they relied on the delivered default), so they are now dynamic. They work as before
+when the comms federations are running when the ASIM group starts; they no longer create them.
+If they need to, add `endpoint.hla.createfoms=<your Talk FOM files>` to those two kits yourself.
+Their comments and `ASIM-COMMS` still mention the vendor's product.
+
+## "Talk", never the vendor's product name
+
+Every page, the Config Assistant, the samples, the docs and the labels now say **Talk**: the
+endpoint type is *Talk (HLA)*, the router *Talk router*, `junction.md` section 6 *Talk router*
+(with a new part on the Talk FOM). The Config Assistant no longer offers the vendor's files,
+its Talk endpoint card explains where the FOM comes from and has a **Create with** field
+(`endpoint.hla.createfoms`, also for dynamic HLA endpoints), and the Rift side's Talk scenario
+is dynamic. The settings still accept the old alias `pitchtalk` for `endpoint.standard` and
+`router.kind` (not documented). Mentions of the *pRTI* RTI product (LSD hints) stay: they are
+about the RTI, not Talk.
+
+## Self tests and the Talk FOM
+
+The two tests that need a Talk FOM use **your own copy** and skip without it:
+
+```sh
+java -Dtalk.foms=/path/to/talk-module-1.xml\;/path/to/talk-module-2.xml -cp out/classes:out/test \
+     com.simweaver.junction.TalkBridgeSelfTest
+```
+
+(also the environment variable `SIMWEAVER_TALK_FOMS`, or the vendor's two file names in
+`etc/fom/ieee1516-2010`). Without one, `TalkBridgeSelfTest` prints *SKIPPED … no Talk FOM* and
+`0 checks`, and `HlaCodecSelfTest` leaves out its Talk round trips.
+
+## Files (0.9.21)
+
+- `simwjunction`: `EndpointConfig` (Talk dynamic by default, `endpoint.hla.createfoms`),
+  `HlaEndpoint` (create when missing; the message), `TargetProbe` (Talk channels from the FDD),
+  `api/JunktionApi` (Compatibility with `createfoms`), wording in `EndpointType`, `RouterConfig`,
+  `Gateway`, `IemRouter`, `TalkRouter`, `TalkBridge`
+- `simwcommon`: `DynamicFom` (reader accessors)
+- samples: `endpoints/talk`, the Talk router kits and gateways, `README.txt`,
+  `datasources/hla3-rpr2-talk`, `datasources/dis6` (a comment)
+- `webroot`: `junction.html`, `js/junction-start.js`, `js/config-assistant-junction.js`,
+  `js/config-assistant-rift.js`
+- docs: `junction.md` (and `junction-config.md`), the Rift guide (and its copy), `rest-api.md` (and
+  its copy), `doc/README.md`, `README.md`, `simwjunction/CLAUDE.md`
+- tests: `simwcommon/test/com/simweaver/common/TestTalkFom.java` (new), `TalkBridgeSelfTest`,
+  `HlaCodecSelfTest`, `DynamicFomSelfTest`
+
+## Checked (0.9.21)
+
+- Without a Talk FOM: every suite passes; `TalkBridgeSelfTest` skips, `HlaCodecSelfTest` 91 checks.
+- With a Talk FOM (`-Dtalk.foms`): `TalkBridgeSelfTest` 96 checks (was 87) — the new part: a Talk
+  endpoint without FOM files is dynamic and does not create; with `createfoms` it creates;
+  `createfoms` next to FOM files is an error; a gateway joins a running Talk federation (FOM from
+  its FDD) and creates the other with `createfoms`, and a text passes; Discover lists a channel
+  with the FOM from the federation and says when the federation is not running; a federation that
+  is not running and nothing set fails with a message naming `endpoint.hla.createfoms`.
+  `HlaCodecSelfTest` 93 checks.
+- `DynamicFomSelfTest` (56): the new message, and an HLA dynamic endpoint with `createfoms`
+  creating a missing federation and still taking its FOM from the FDD, for HLA 3 and HLA 4.
+- The pages (Rift, Junction, Infra, Config Assistant) load without errors and none shows the
+  vendor's product name.
+
 ## Version 0.9.20
 
 Rift (`rift/Version`, revision 20) and Junction (`junction/Version`) are both 0.9.20, and so are
 `README.md`, the docs and the developer notes.
 
-## Infra: what the server has contact with
+## Infra: what the server has contact with (0.9.20)
 
 A new page, **Infra**, in the top bar of every page next to Rift and Junction (`infra.html`). It
 collects from everything that is running, Rift's datasources and Junction's gateway endpoints,
@@ -100,7 +206,7 @@ gateway against a running DIS exercise and the HLA side stayed empty until the s
 and restarted its entities. Now the endpoint forgets those when the router declares, and their
 next PDU is bridged. (0.9.19 and earlier have this.) A self test checks it.
 
-## Docs
+## Docs (0.9.20)
 
 - `simweaver-rift-install-and-config.md` (and its copy): the `infra.*` keys in 2.1 and a new
   section 2.6 *The Infra page*.
@@ -385,7 +491,7 @@ gateways' `junction.name`. Every gateway uses kits.
 | `hla4-rpr2` | HLA4-RPR2 | HLA 4, the full RPR v2 with Link 16, converted (below) |
 | `hla3-rpr3` | HLA3-RPR3 | HLA Evolved, RPR v3 |
 | `dis6`, `dis7` | DIS6, DIS7 | UDP port 3000 |
-| `talk` | Talk | A Pitch Talk federation |
+| `talk` | Talk | A Talk federation |
 
 **C-DIS** has no kit yet: see the end of this section.
 
@@ -396,8 +502,8 @@ gateways' `junction.name`. Every gateway uses kits.
 | `hla3-all`, `hla4-all` | HLA3-all, HLA4-all | Every class both sides have |
 | `hla3-class-filter` | HLA3-class-filter | Entities, fire and detonations only |
 | `hla3-entitytype-filter` | HLA3-EntityType-filter | Everything, entity types rewritten by value rules |
-| `talk-lobby-only` | Talk-Lobby-Only | Pitch Talk messages in the lobby only |
-| `talk-messages` | Talk-Messages | Pitch Talk messages only, all channels by name |
+| `talk-lobby-only` | Talk-Lobby-Only | Talk messages in the lobby only |
+| `talk-messages` | Talk-Messages | Talk messages only, all channels by name |
 
 `hla3-all` and `hla4-all` are identical, because routers work with any endpoint. They're kept
 apart, as you listed them, so a gateway's kit says what it's used with.
@@ -523,7 +629,7 @@ test.
 Rift (`rift/Version`, revision 16) and Junction (`junction/Version`) are both 0.9.16, and so are
 `README.md`, the docs and the developer notes.
 
-### New: Pitch Talk, the lobby only (`talk.channels=none`)
+### New: Talk, the lobby only (`talk.channels=none`)
 
 ```properties
 router.kind=talk
@@ -1171,7 +1277,7 @@ work the same way.
 **Under the hood**
 
 - **Object names per instance.** The objects a gateway registers itself are named after its
-  instance, except for instance `1`, so single starts keep today's names. Pitch Talk channels,
+  instance, except for instance `1`, so single starts keep today's names. Talk channels,
   clients and radios become `Junction-<gateway>-<instance>-…`, so two instances in one Talk
   federation don't collide.
 - Log lines, thread names and Inspect datasource names include the instance as well.

@@ -48,7 +48,7 @@ public final class IemRouter implements Router {
     private static final long TICK_MILLIS = 100;
 
     /**
-     * Adds behaviour to the router without changing how it bridges (the Pitch Talk router uses
+     * Adds behaviour to the router without changing how it bridges (the Talk router uses
      * it for its channel tables and the radio bridge). Every method is called on the dispatcher
      * thread, so an extension needs no locks of its own. Objects the extension creates use
      * negative gateway ids ({@link #createObject}).

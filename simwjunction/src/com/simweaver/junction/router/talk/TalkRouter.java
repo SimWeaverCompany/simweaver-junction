@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The Pitch Talk router ({@code router.kind=talk}): Talk federations bridged channel by channel,
+ * The Talk router ({@code router.kind=talk}): Talk federations bridged channel by channel,
  * optionally with Talk voice and radio channels on an RPR radio endpoint.
  *
  * <p>It is an {@link IemRouter} limited to the Talk classes that are bridged as objects

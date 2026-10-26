@@ -40,8 +40,9 @@ public final class EndpointConfig implements Json.Writable {
     /** endpoint.hla.foms=dynamic: no FOM files, the federation's FDD (HLAcurrentFDD) after the join */
     private final boolean dynamicFom;
     private final int fddTimeoutSecs;
-    /** the standard Pitch Talk modules (to read channel names when a Talk endpoint's FOM is dynamic) */
-    private final List<String> talkFomPaths;
+    /** endpoint.hla.createfoms (0.9.21): the modules a dynamic endpoint creates a missing federation with */
+    private final List<String> createFomNames;
+    private final List<String> createFomPaths;
     private final String fddClass;
     private final String fddAttribute;
     private final boolean destroyFederation;
@@ -96,6 +97,9 @@ public final class EndpointConfig implements Json.Writable {
         this.fomRootDir = p.getString("endpoint.hla.fomrootdir", "etc" + File.separator + "fom") + File.separator + std;
         String[] foms = p.getStringArray("endpoint.hla.foms");
         boolean dyn = com.simweaver.common.hla.session.DynamicFom.isDynamic(foms);
+        if (foms.length == 0 && t == EndpointType.TALK) {
+            dyn = true;               // 0.9.21: no Talk FOM is delivered; without FOM files it comes from the federation
+        }
         this.dynamicFom = dyn && t != null && t.isHla();
         if (dyn) {
             foms = new String[0];
@@ -103,9 +107,6 @@ public final class EndpointConfig implements Json.Writable {
         this.fddTimeoutSecs = Math.max(1, p.getInt("endpoint.hla.fddtimeoutseconds", 15));
         this.fddClass = p.getString("endpoint.hla.fddclass", com.simweaver.common.hla.session.DynamicFom.FEDERATION_CLASS).trim();
         this.fddAttribute = p.getString("endpoint.hla.fddattribute", com.simweaver.common.hla.session.DynamicFom.FDD_ATTRIBUTE).trim();
-        if (foms.length == 0 && !dyn && t == EndpointType.TALK) {
-            foms = new String[] {"pitchtalk.xml", "pitchtalkeffects.xml"};
-        }
         if (foms.length == 0 && t != null && t.isDis()) {
             if (dyn) {
                 errors.add("endpoint " + id + ": a DIS endpoint cannot take its FOM from a federation (endpoint.hla.foms=dynamic)");
@@ -114,11 +115,19 @@ public final class EndpointConfig implements Json.Writable {
         }
         this.fomNames = Collections.unmodifiableList(Arrays.asList(foms));
         this.fomPaths = Collections.unmodifiableList(resolveFoms(foms, baseDir));
-        this.talkFomPaths = Collections.unmodifiableList(resolveFoms(new String[] {"pitchtalk.xml", "pitchtalkeffects.xml"}, baseDir));
+        String[] createFoms = p.getStringArray("endpoint.hla.createfoms");
+        if (createFoms.length > 0 && !dynamicFom) {
+            errors.add("endpoint " + id + ": endpoint.hla.createfoms is for endpoints that take their FOM from the federation"
+                    + " (endpoint.hla.foms=dynamic)");
+            createFoms = new String[0];
+        }
+        this.createFomNames = Collections.unmodifiableList(Arrays.asList(createFoms));
+        this.createFomPaths = Collections.unmodifiableList(resolveFoms(createFoms, baseDir));
         this.federation = p.getString("endpoint.hla.federation", "");
         this.federateType = p.getString("endpoint.hla.federatetype", DEFAULT_FEDERATE_TYPE);
         this.federateName = p.getString("endpoint.hla.federatename", "");
-        this.createFederation = !dynamicFom && p.getBoolean("endpoint.hla.createfederation", true);   // no FOM to create it with
+        // a dynamic endpoint has no FOM to create a federation with, unless endpoint.hla.createfoms gives one
+        this.createFederation = (!dynamicFom || !createFomPaths.isEmpty()) && p.getBoolean("endpoint.hla.createfederation", true);
         this.destroyFederation = p.getBoolean("endpoint.hla.destroyfederation", false);
         this.rtiJar = p.getString("endpoint.hla.rtijar", "");
         this.rtiFactory = p.getString("endpoint.hla.rtifactory", "");
@@ -155,6 +164,11 @@ public final class EndpointConfig implements Json.Writable {
 
         if (t != null && t.isHla() && fomNames.isEmpty() && !dynamicFom) {
             errors.add("endpoint " + id + ": endpoint.hla.foms is empty");
+        }
+        for (int i = 0; i < createFomPaths.size(); i++) {
+            if (!new File(createFomPaths.get(i)).exists()) {
+                errors.add("endpoint " + id + ": FOM module of endpoint.hla.createfoms not found: " + createFomPaths.get(i));
+            }
         }
         for (int i = 0; i < fomPaths.size(); i++) {
             if (!new File(fomPaths.get(i)).exists()) {
@@ -243,6 +257,11 @@ public final class EndpointConfig implements Json.Writable {
         return lsdOptions;
     }
 
+    /** @return the folder relative FOM names are found in (endpoint.hla.fomrootdir plus the standard) */
+    public String getFomRootDir() {
+        return fomRootDir;
+    }
+
     /** @return the FOM names as configured */
     public List<String> getFomNames() {
         return fomNames;
@@ -276,9 +295,17 @@ public final class EndpointConfig implements Json.Writable {
         return dynamicFom;
     }
 
-    /** @return the standard Pitch Talk FOM modules, resolved */
-    public List<String> getTalkFomPaths() {
-        return talkFomPaths;
+    /**
+     * @return {@code endpoint.hla.createfoms}, resolved: the modules a dynamic endpoint creates its
+     *         federation with when it is not running (empty: it only joins)
+     */
+    public List<String> getCreateFomPaths() {
+        return createFomPaths;
+    }
+
+    /** @return {@code endpoint.hla.createfoms} as configured */
+    public List<String> getCreateFomNames() {
+        return createFomNames;
     }
 
     /** @return how long a dynamic endpoint waits for the federation's FDD */
@@ -431,6 +458,9 @@ public final class EndpointConfig implements Json.Writable {
             o.put("lsds", lsdOptions);
             o.put("foms", dynamicFom ? java.util.Collections.singletonList("dynamic") : fomNames);
             o.put("dynamicfom", dynamicFom);
+            if (!createFomNames.isEmpty()) {
+                o.put("createfoms", createFomNames);
+            }
             o.put("federatetype", federateType);
             o.put("createfederation", createFederation);
             o.put("rtijar", rtiJar);

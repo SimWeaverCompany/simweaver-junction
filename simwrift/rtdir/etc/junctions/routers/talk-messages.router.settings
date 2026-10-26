@@ -1,4 +1,4 @@
-# Router kit Talk-Messages: Pitch Talk in messages-only mode. Only PitchTalk.Message interactions
+# Router kit Talk-Messages: Talk in messages-only mode. Only the Talk message interactions
 # (audio, radio, text, image) are exchanged: no MasterConfiguration, channel, client, user,
 # equipment or permission object is mirrored. Channel UUIDs are rewritten to the receiving
 # federation's channel of the same name.

@@ -106,7 +106,7 @@ public final class Gateway implements Json.Writable {
 
     /**
      * @return the configuration id, with the instance name for every instance but the first: what
-     *         this gateway is called in the objects it registers itself (Pitch Talk channels,
+     *         this gateway is called in the objects it registers itself (Talk channels,
      *         clients and radios: {@code Junction-<name>-...}), in thread names and in the log
      */
     public String runtimeName() {

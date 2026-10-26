@@ -23,8 +23,8 @@ public enum EndpointType {
      * encoded to C-DIS when sent and decoded to DIS 7 when heard. Setting: {@code cdis}.
      */
     CDIS("cdis", "C-DIS (SISO-STD-023-2024)", false, false),
-    /** A Pitch Talk federation (HLA, by default 1516-2010). Setting: {@code talk}. */
-    TALK("talk", "Pitch Talk (HLA)", true, false);
+    /** A Talk federation (HLA, by default 1516-2010). Setting: {@code talk}. */
+    TALK("talk", "Talk (HLA)", true, false);
 
     private final String setting;
     private final String label;
