@@ -432,6 +432,39 @@ public final class Rti2025Session implements RtiSession {
         }
     }
 
+    // ================================================================== names from encoded handles (0.9.20)
+
+    @Override
+    public String objectClassName(byte[] encodedHandle) {
+        try {
+            RTIambassador amb = requireConnected();
+            return amb.getObjectClassName(amb.getObjectClassHandleFactory().decode(encodedHandle, 0));
+        } catch (Exception | LinkageError e) {
+            return null;
+        }
+    }
+
+    @Override
+    public String interactionClassName(byte[] encodedHandle) {
+        try {
+            RTIambassador amb = requireConnected();
+            return amb.getInteractionClassName(amb.getInteractionClassHandleFactory().decode(encodedHandle, 0));
+        } catch (Exception | LinkageError e) {
+            return null;
+        }
+    }
+
+    @Override
+    public String attributeName(byte[] encodedClass, byte[] encodedAttribute) {
+        try {
+            RTIambassador amb = requireConnected();
+            return amb.getAttributeName(amb.getObjectClassHandleFactory().decode(encodedClass, 0),
+                    amb.getAttributeHandleFactory().decode(encodedAttribute, 0));
+        } catch (Exception | LinkageError e) {
+            return null;
+        }
+    }
+
     // ================================================================== helpers
 
     private RTIambassador requireConnected() throws RtiSessionException {

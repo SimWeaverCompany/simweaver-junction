@@ -171,4 +171,24 @@ public interface RtiSession extends AutoCloseable {
 
     /** Asks the owners of all instances of a class to update the given attributes. */
     void requestClassAttributeUpdate(int objectClass, int[] attributes, byte[] tag) throws RtiSessionException;
+
+    // ------------------------------------------------------------------ names from encoded handles (0.9.20, Infra)
+
+    /**
+     * @param encodedHandle an object class handle as the RTI encodes it (e.g. in a MOM report)
+     * @return the class's qualified name, or null when the RTI cannot decode it
+     */
+    default String objectClassName(byte[] encodedHandle) {
+        return null;
+    }
+
+    /** @return an interaction class's qualified name from its encoded handle, or null */
+    default String interactionClassName(byte[] encodedHandle) {
+        return null;
+    }
+
+    /** @return an attribute's name from the encoded class and attribute handles, or null */
+    default String attributeName(byte[] encodedClass, byte[] encodedAttribute) {
+        return null;
+    }
 }

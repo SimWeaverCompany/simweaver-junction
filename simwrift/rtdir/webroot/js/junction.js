@@ -334,6 +334,7 @@
 			['TRANSCODED', r.transcoded], ['REFS', r.referencesrewritten], ['RENAMED', r.renamed],
 			['QUEUE', g.queue], ['DROPS', r.queuedrops], ['FAILED CONV.', r.conversionfailures]]
 			.concat(r.valuerules ? [['VALUES REPLACED', r.valuesreplaced]] : [])
+			.concat(r.providesforwarded ? [['ASKED ORIGIN', r.providesforwarded]] : [])
 			.forEach(function (kv) {
 				var warn = (kv[0] === 'DROPS' || kv[0] === 'FAILED CONV.') && kv[1] > 0;
 				n.stats.appendChild(el('span.jx-stat' + (warn ? '.warn' : ''), null, [

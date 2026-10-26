@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.9.18. Java 11, no libraries apart from the HLA RTIs.
+Version 0.9.20. Java 11, no libraries apart from the HLA RTIs.
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -53,7 +53,7 @@ What the IEM router does for an object discovered in endpoint S:
 
 - It creates a copy in every other endpoint D whose model has the class (or, with `promote`, its nearest superclass), under the same name, or `name@S` when the name is taken there (`router.names.policy`), or under a name from a template (`router.names.template`, see *Naming copies* below).
 - It passes on the attributes D's class has. Equal encodings are passed as they are. Others are converted value by value (`transcode`), and object references (`RTIobjectId`, also inside records and arrays) are renamed to the copies' names.
-- Attribute values are cached, so a late joiner or a provide request in D is answered by the gateway itself.
+- Attribute values are cached, so a late joiner or a provide request in D is answered by the gateway itself. Requested attributes the gateway has no value of yet are asked of the object's origin in S (`router.provide.forward`), and the answer goes to every copy.
 - When D's connection is lost it reconnects (HLA, `endpoint.hla.reconnect`) and recreates the copies.
 
 No time management and no ownership transfer: the gateway is a time-unaware, update-forwarding federate in each federation.
@@ -227,6 +227,8 @@ Samples: the kits `endpoints/hla3-dynamic-fom.endpoint.settings` (federation `Bl
 | `router.queue.capacity` | `50000` | Events waiting for the router; updates are dropped (and counted) when full, the rest waits |
 | `router.rpr.mapping` | `mappings/rpr2-rpr3.mapping` | RPR conversion table |
 | `router.deleteobjectsonstop` | `true` | Delete the copies when the gateway stops |
+| `router.provide.forward` | `true` | A provide request for attributes the gateway has no value of yet is passed on to the object's origin as an attribute update request (below) |
+| `router.provide.forwardintervalms` | `1000` | The same attribute of an object is asked of the origin at most this often (0 – 3600000 ms) |
 | `router.group` | | Group of every gateway using this kit (section 7) |
 | `router.valuemap.<datatype>[.<label>]` | | Value rules: `A -> B` replaces every value A of the datatype by B (below) |
 
@@ -297,6 +299,17 @@ router.names.template=GW-{name}
   - A name the gateway has not seen (an object that is not bridged) passes unchanged.
 - **Not used for DIS endpoints**, which name their objects by entity id. The gateway warns when a template is keyed to one, or to an endpoint the gateway does not have.
 - `router.names.policy=rti` lets the RTI choose names; a template applies instead where it is set.
+
+### Provide requests
+
+A federate that asks for attribute values of a copy (`requestAttributeValueUpdate`) gets them from the gateway, which keeps the last value of every attribute of every bridged object:
+
+- **Cached attributes** are answered at once, by the gateway, without asking the origin.
+- **Attributes the gateway has no value of yet** (the origin has not sent them since the gateway discovered the object) are asked of the origin, as an attribute update request in the origin's federation (0.9.19, `router.provide.forward=true`). Only those attributes are asked for. The origin's answer is an ordinary update, so it reaches the requester and every other copy.
+- **The same attribute of an object is asked for at most every `router.provide.forwardintervalms`** (1000 ms), so many federates asking at once, or a federate asking again and again, give the origin one request.
+- **DIS origins are not asked**: DIS has no such request; the entity's heartbeat brings the values.
+- On discovery the gateway already asks the origin for every attribute it subscribes to, so a request that has to be forwarded is mostly one for an attribute the origin does not send on its own, or one asked before the origin answered.
+- The gateway card and `routerstats` count the requests passed on (`providesforwarded`, shown as **ASKED ORIGIN**) next to those answered (`providesanswered`, **PROVIDED**).
 
 ---
 
@@ -540,6 +553,7 @@ A DIS endpoint is a DIS 6, DIS 7 or C-DIS network seen as an RPR v2 federation.
 **Receiving.** As Rift's DIS datasource:
 
 - Entities are named `site-app-entity`, radios `<host>/radio-<n>` and `<host>/receiver-<n>`.
+- Entities, radios and IFF systems that are already sending when the gateway starts are bridged as soon as the router is ready (0.9.20 fix: those heard while the other endpoints were still joining stayed out until they went quiet).
 - **Link 16** (SISO-STD-002-2021). A raw binary Signal PDU with TDL type 100 (or 113) becomes the `Link16RadioSignal` subclass of its Message Type Identifier: `JTIDSMessageRadioSignal`, `RTTABRadioSignal`, `RTTReplyRadioSignal`, the three JTIDS voice classes, `JTIDSLETRadioSignal` or `VMFRadioSignal`.
   - The 20-octet simulation network header gives `NPGNumber`, `NetNumber`, `TSEC_CVLL`, `MSEC_CVLL`, `TimeSlotID` and `PerceivedTransmitTime`, and `SISOSTD002Version` / `Link16Version` where the FOM has them.
   - The header word and the J-words (or voice data) are copied octet for octet. Both the 2006 (byte swapped) and the 2021 (bit stream) form therefore pass unchanged.
@@ -661,6 +675,8 @@ The gateway page shows the update mode and how much of the DIS volume was sent (
    - the LSD of each HLA endpoint (section 4, *LSD choices*).
 3. **Kits**: the endpoint and router kits.
 
+**Infra** in the top bar (0.9.20) lists every DIS / C-DIS exercise the running gateways' DIS endpoints hear and every federation their HLA endpoints have joined, with the senders and federates in them (see the Rift guide, section 2.6). A DIS endpoint does not list its own PDUs there; each HLA endpoint's federate asks the MOM, nothing more.
+
 ---
 
 ## 12. Limits and things to verify
@@ -694,6 +710,9 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.common.hla.session.RtiSessionSelfTest` | RTI loading without an RTI on the class path |
 | `com.simweaver.common.dis.DisRoundTripSelfTest` | DIS → RPR → DIS for every PDU type, DIS 6 and 7, byte for byte: Electromagnetic Emission, Designator, IFF (transponder with layer 2, interrogator, Soviet, RRB) and Link 16 Signal PDUs (all eight message types, TDL 100 and 113) included; the Link 16 decoder's names, LET header, time slot and NTP time |
 | `com.simweaver.junction.BridgeSelfTest` | Filters; HLA3 ⇄ HLA4 on two isolated RTIs: renaming, references, provide, late joiner, reconnect |
+| `com.simweaver.common.infra.InfraSelfTest` | Infra without network or RTI: the MOM datatypes, the activity meter, a DIS tap (bundled and padded PDUs, versions, exercises, senders, site and application numbers, Live Entity ids, broken datagrams, C-DIS), forgetting, stable keys, the REST API's errors |
+| `com.simweaver.rift.InfraBridgeSelfTest` | Infra end to end (class path test RTI, `fakerti-1516e.jar` on the class path): a gateway with HLA 1516-2010, 1516-2025 and DIS 7 endpoints and a Rift datasource; the items, the MOM's federates, rates, traffic per producer, publications and subscriptions, a DIS exercise's senders, a DIS entity already sending when the gateway starts, items going when their sources stop |
+| `com.simweaver.junction.ProvideForwardSelfTest` | Provide requests the cache cannot answer: only the missing attributes asked of the origin, its answer reaching the requester, cached attributes not asked again, the interval, `router.provide.forward=false`, the counter |
 | `com.simweaver.junction.DisBridgeSelfTest` | HLA ⇄ DIS 7 over UDP: entities, ids, heartbeat, radio and audio, fire both ways, timeout, own-echo suppression; emitter systems, radar and jammer beams both ways (names, references, values, beams switched off, systems removed, heartbeats); IFF transponders and designators both ways; Link 16 (`JTIDSMessageRadioSignal`) both ways; a DIS entity whose name is taken in HLA (`1-2-3@dis`), with fire references following it both ways |
 | `com.simweaver.junction.TalkBridgeSelfTest` | Two Talk federations + DIS radio: channel remapping and renaming, client mirroring, lobby, radio bridge both ways with resampling; messages-only mode (no objects, UUID map, radio by UUID); the lobby only (`talk.channels=none`: lobby audio, text and images pass, a known and an unseen channel do not) |
 | `com.simweaver.junction.GroupSelfTest` | Groups and group variables; instances of a group and of a single gateway: names, refusals, listings, stop per instance, completing an instance; variable descriptions (labels only, merged per group, warnings) |

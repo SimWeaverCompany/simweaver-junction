@@ -120,6 +120,7 @@ public final class DisEndpoint implements Endpoint, PduPort {
     private final DisToRpr mapper7 = new DisToRpr(7);
     /** C-DIS endpoints: the encoder/decoder between the DIS 7 inside and the network; null for DIS. */
     private final CdisCodec cdis;
+    private volatile com.simweaver.common.infra.DisTap infra;      // 0.9.20: what the socket hears, for the Infra view
 
     private volatile InformationExchangeModel iem;
     private volatile HlaCodec codec;
@@ -295,6 +296,12 @@ public final class DisEndpoint implements Endpoint, PduPort {
         if (network.note() != null) {
             LOG.info("Junction " + gatewayId + "/" + id() + ": " + network.note());
         }
+        com.simweaver.common.infra.DisTap tap = com.simweaver.common.infra.InfraRegistry.global().openDis(
+                com.simweaver.common.infra.InfraSource.junction(gatewayId, cfg.getId()), cdis != null, network.port(), network.toString());
+        tap.setNote("Junction takes " + (exerciseIn == 0 ? "every exercise" : "exercise " + exerciseIn) + " of " + protocolLabel()
+                + " and sends as exercise " + sendExercise + ", site " + cfg.getDisSiteId() + ", application " + cfg.getDisApplicationId()
+                + " (its own PDUs are not listed)");
+        infra = tap;
         running = true;
         Thread t = new Thread(this::receiveLoop, "junction-" + gatewayId + "-" + cfg.getId() + "-rx");
         t.setDaemon(true);
@@ -337,6 +344,20 @@ public final class DisEndpoint implements Endpoint, PduPort {
         this.subscribe = sub;
         subscribedObjectClass.clear();
         subscribedInteraction.clear();
+        // 0.9.20 fix: entities, radios and IFF systems heard before the router declared (while the
+        // other endpoints were still joining) were kept without a class and never bridged while they
+        // kept sending; forget them, so their next PDU finds the class the router wants now
+        synchronized (inLock) {
+            for (java.util.Iterator<Map.Entry<Long, Native>> it = nativeEntities.entrySet().iterator(); it.hasNext();) {
+                Map.Entry<Long, Native> e = it.next();
+                if (e.getValue().objectClass == 0) {
+                    it.remove();
+                    nativeIds.remove(e.getKey());
+                }
+            }
+            nativeRadios.values().removeIf(n -> n.objectClass == 0);
+            nativeIffs.values().removeIf(n -> n.objectClass == 0);
+        }
     }
 
     // ================================================================== sending: objects
@@ -1175,9 +1196,14 @@ public final class DisEndpoint implements Endpoint, PduPort {
                 }
                 String producer = from.getAddress().getHostAddress() + ":" + from.getPort();
                 long now = System.currentTimeMillis();
+                com.simweaver.common.infra.DisTap tap = infra;
                 if (cdis != null) {
                     long errors = cdis.stats().getDecodeErrors();
-                    for (byte[] pdu : cdis.decode(buf, packet.getOffset(), packet.getLength(), now)) {
+                    List<byte[]> decoded = cdis.decode(buf, packet.getOffset(), packet.getLength(), now);
+                    if (tap != null) {
+                        tap.decoded(from.getAddress(), from.getPort(), packet.getLength(), decoded, now);
+                    }
+                    for (byte[] pdu : decoded) {
                         handleDatagram(pdu, 0, pdu.length, producer, now);
                     }
                     if (cdis.stats().getDecodeErrors() != errors) {
@@ -1186,6 +1212,9 @@ public final class DisEndpoint implements Endpoint, PduPort {
                                 + cdis.stats().getLastError());
                     }
                 } else {
+                    if (tap != null) {
+                        tap.datagram(from.getAddress(), from.getPort(), buf, packet.getOffset(), packet.getLength(), now);
+                    }
                     handleDatagram(buf, packet.getOffset(), packet.getLength(), producer, now);
                 }
             } catch (SocketTimeoutException quiet) {
@@ -1703,6 +1732,11 @@ public final class DisEndpoint implements Endpoint, PduPort {
             }
         }
         running = false;
+        com.simweaver.common.infra.DisTap tap = infra;
+        infra = null;
+        if (tap != null) {
+            tap.close();
+        }
         ticker.shutdownNow();
         closeSockets();
         Thread t = receiver;

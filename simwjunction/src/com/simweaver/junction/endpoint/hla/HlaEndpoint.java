@@ -89,6 +89,8 @@ public final class HlaEndpoint implements Endpoint {
     private volatile String stateMessage;
     private volatile String federateName = "";
     private volatile boolean closing;
+    /** 0.9.20: the Infra view's tap on the current session */
+    private volatile com.simweaver.common.infra.HlaTap infra;
 
     private volatile Interest publish = new Interest();
     private volatile Interest subscribe = new Interest();
@@ -238,6 +240,45 @@ public final class HlaEndpoint implements Endpoint {
             readFdd();
         }
         setState(EndpointState.JOINED, null, false);
+        openInfra(session);
+    }
+
+    // ------------------------------------------------------------------ Infra (0.9.20)
+
+    /** Registers the session's federation with the Infra view (MOM through the session, under the RTI lock). */
+    private void openInfra(final RtiSession s) {
+        closeInfra();
+        com.simweaver.common.infra.InfraRegistry reg = com.simweaver.common.infra.InfraRegistry.global();
+        if (s == null || !reg.isEnabled()) {
+            return;
+        }
+        com.simweaver.common.infra.SessionMomPort port = new com.simweaver.common.infra.SessionMomPort(s, rtiLock, this::ownAttributes);
+        infra = reg.openHla(com.simweaver.common.infra.InfraSource.junction(gatewayId, id()), cfg.isHla4(), federation,
+                federateName, lsd, port);
+    }
+
+    private void closeInfra() {
+        com.simweaver.common.infra.HlaTap t = infra;
+        infra = null;
+        if (t != null) {
+            t.close();
+        }
+    }
+
+    /** What the endpoint itself subscribes of a session class (its routes, the FDD reader). */
+    private int[] ownAttributes(int sessionClass) {
+        java.util.Set<Integer> all = new java.util.LinkedHashSet<Integer>();
+        int[] routed = map.subscribed.get(sessionClass);
+        if (routed != null) {
+            for (int a : routed) {
+                all.add(a);
+            }
+        }
+        com.simweaver.common.hla.session.DynamicFom.Reader r = fddReader;
+        if (r != null && r.objectClass() == sessionClass && r.attribute() != 0) {
+            all.add(r.attribute());
+        }
+        return all.stream().mapToInt(Integer::intValue).toArray();
     }
 
     /** Dynamic FOM: reads the federation's FDD on the new session and builds the model from it. */
@@ -746,6 +787,7 @@ public final class HlaEndpoint implements Endpoint {
     @Override
     public void close(boolean deleteObjects) {
         closing = true;
+        closeInfra();
         worker.shutdownNow();
         RtiSession s = session;
         session = null;
@@ -791,6 +833,7 @@ public final class HlaEndpoint implements Endpoint {
             return;
         }
         session = null;
+        closeInfra();
         discovered.clear();
         discoveredKey.clear();
         createdByKey.clear();
@@ -828,6 +871,7 @@ public final class HlaEndpoint implements Endpoint {
             stats.reconnects.incrementAndGet();
             LOG.info("Junction " + gatewayId + "/" + id() + ": joined " + federation + " again");
             setState(EndpointState.JOINED, null, true);
+            openInfra(session);
         } catch (RtiSessionException e) {
             RtiSession s = session;
             if (s != null) {
@@ -866,8 +910,10 @@ public final class HlaEndpoint implements Endpoint {
             if (!current()) {
                 return;
             }
+            com.simweaver.common.infra.HlaTap tap = infra;
+            boolean mom = tap != null && tap.discovered(instance, objectClass, name);
             com.simweaver.common.hla.session.DynamicFom.Reader r = fddReader;
-            if (r != null && r.discovered(instance, objectClass)) {
+            if ((r != null && r.discovered(instance, objectClass)) || mom) {
                 return;
             }
             Mapping m = map;
@@ -913,8 +959,10 @@ public final class HlaEndpoint implements Endpoint {
             if (!current()) {
                 return;
             }
+            com.simweaver.common.infra.HlaTap tap = infra;
+            boolean mom = tap != null && tap.reflected(instance, attributes, values);
             com.simweaver.common.hla.session.DynamicFom.Reader r = fddReader;
-            if (r != null && r.reflected(instance, attributes, values)) {
+            if ((r != null && r.reflected(instance, attributes, values)) || mom) {
                 return;
             }
             Long key = discoveredKey.get(instance);
@@ -947,6 +995,9 @@ public final class HlaEndpoint implements Endpoint {
             stats.updatesIn.incrementAndGet();
             stats.markIn(octets);
             listener.reflected(HlaEndpoint.this, key, ids, vals, tag, producer);
+            if (tap != null) {
+                tap.observed(producer, false, octets);
+            }
         }
 
         @Override
@@ -954,8 +1005,10 @@ public final class HlaEndpoint implements Endpoint {
             if (!current()) {
                 return;
             }
+            com.simweaver.common.infra.HlaTap tap = infra;
+            boolean mom = tap != null && tap.removed(instance);
             com.simweaver.common.hla.session.DynamicFom.Reader r = fddReader;
-            if (r != null && r.removed(instance)) {
+            if ((r != null && r.removed(instance)) || mom) {
                 return;
             }
             Long key = discoveredKey.remove(instance);
@@ -972,6 +1025,10 @@ public final class HlaEndpoint implements Endpoint {
         public void received(int interactionClass, int[] parameters, byte[][] values, byte[] tag, String producer) {
             if (!current()) {
                 return;
+            }
+            com.simweaver.common.infra.HlaTap tap = infra;
+            if (tap != null && tap.received(interactionClass, parameters, values)) {
+                return;                                  // a MOM report the Infra view asked for
             }
             Mapping m = map;
             int ic = m.iemInteraction(interactionClass);
@@ -999,6 +1056,9 @@ public final class HlaEndpoint implements Endpoint {
             stats.interactionsIn.incrementAndGet();
             stats.markIn(octets);
             listener.received(HlaEndpoint.this, ic, ids, vals, tag, producer);
+            if (tap != null) {
+                tap.observed(producer, true, octets);
+            }
         }
 
         @Override

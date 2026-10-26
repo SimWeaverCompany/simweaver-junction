@@ -39,7 +39,8 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
     private volatile String fddInstanceName;
     private String fddText;
     private final Object fddLock = new Object();
-    private final DataSourceCallbackSink callbackSink;     // told about a lost RTI connection
+    private final DataSourceCallbackSink callbackSink;
+    private volatile RiftMomPortHla3 infra;                      // 0.9.20: the Infra view's MOM access and counts     // told about a lost RTI connection
 
     private RTIambassador rtIambassador;
 
@@ -127,6 +128,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
 
     @Override
     public DatasourceManager.OpResult connectJoinSub() {
+        FederateHandle joinedAs = null;
 
         try {
             if (config.isHlaDynamicFom()) {
@@ -134,7 +136,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
                 rtIambassador = RtiFactoryFactory.getRtiFactory().getRtiAmbassador();
                 synchronized (com.simweaver.common.hla.session.RtiLibrary.classPath().connectLock()) {        // one connect / join at a time on the RTI
                     rtIambassador.connect(this, CallbackModel.HLA_IMMEDIATE, this.lsd);
-                    rtIambassador.joinFederationExecution(config.getHlaFederateType(), effectiveFederation);
+                    joinedAs = rtIambassador.joinFederationExecution(config.getHlaFederateType(), effectiveFederation);
                 }
                 String fdd = readFdd();
                 iem = com.simweaver.common.hla.session.DynamicFom.toModel(fdd, false);
@@ -159,7 +161,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
                 }catch (FederationExecutionAlreadyExists ignored){
                     // joined below
                 }
-                rtIambassador.joinFederationExecution(config.getHlaFederateType(),effectiveFederation,config.getHlaFomModuleUrls());
+                joinedAs = rtIambassador.joinFederationExecution(config.getHlaFederateType(),effectiveFederation,config.getHlaFomModuleUrls());
             }
             }
             binding = HlaEvolvedBinding.bind(iem,rtIambassador);
@@ -206,6 +208,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
             if (config.isHlaDynamicFom()) {
                 handOverFddObject();
             }
+            openInfra(joinedAs);
 
 
 
@@ -226,6 +229,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
 
     @Override
     public DatasourceManager.OpResult disconnect() {
+        closeInfra();
         if (rtIambassador != null){
             try {
                 rtIambassador.resignFederationExecution(ResignAction.CANCEL_THEN_DELETE_THEN_DIVEST);
@@ -360,6 +364,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
     public void connectionLost(String faultDescription) throws FederateInternalError {
         // Runs on an RTI thread: only hand over to the sink (no RTI calls here, the connection is gone)
         System.err.println("Datasource " + name + ": RTI connection lost: " + faultDescription);
+        closeInfra();
         if (callbackSink != null) {
             try {
                 callbackSink.connectionLost(id);
@@ -380,6 +385,10 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
     public void discoverObjectInstance(ObjectInstanceHandle theObject, ObjectClassHandle theObjectClass, String objectName, FederateHandle producingFederate) throws FederateInternalError {
         if (fddDiscovered(theObject, theObjectClass, objectName)) {
             return;
+        }
+        RiftMomPortHla3 mom = infra;
+        if (mom != null && mom.discovered(theObject, theObjectClass, objectName) && !mapOhdlIemId.containsKey(theObjectClass)) {
+            return;                                   // a MOM object for the Infra view only
         }
         String prodFed = federateName(producingFederate);
         Integer iemClassId = mapOhdlIemId.get(theObjectClass);
@@ -416,6 +425,10 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
             fddInstance = null;
             return;
         }
+        RiftMomPortHla3 mom = infra;
+        if (mom != null && mom.removed(theObject) && !mapOinstHdlDbId.containsKey(theObject)) {
+            return;
+        }
         Integer dbInstanceId = mapOinstHdlDbId.remove(theObject);     // FIX: both maps (handles may be reused)
         mapOinstHdlKnownClass.remove(theObject);
         if (dbInstanceId != null) {
@@ -440,6 +453,10 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
         if (fddReflected(theObject, theAttributes)) {
             return;
         }
+        RiftMomPortHla3 mom = infra;
+        if (mom != null && mom.reflected(theObject, theAttributes) && !mapOinstHdlDbId.containsKey(theObject)) {
+            return;
+        }
         Integer dbInstanceId = mapOinstHdlDbId.get(theObject);
         if (dbInstanceId != null) {
             ObjectClassHandle knownClassHandle = knownClass(theObject);
@@ -459,6 +476,9 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
                         raw.getValue(i), producingFederateName, now, userSuppliedTag));
             }
             db.reflectObjectUpdate(dbInstanceId,dbAttributes,raw);
+            if (mom != null) {
+                mom.observed(producingFederateName, false, octets(theAttributes));
+            }
         }
     }
 
@@ -478,6 +498,13 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
         String producingFederateName = receiveInfo != null && receiveInfo.hasProducingFederate()
                 ? federateName(receiveInfo.getProducingFederate()) : "";
 
+        RiftMomPortHla3 mom = infra;
+        if (mom != null && mom.received(interactionClass, theParameters) && !mapIhdlName.containsKey(interactionClass)) {
+            return;                                   // a MOM report for the Infra view only
+        }
+        if (mom != null) {
+            mom.observed(producingFederateName, true, octets(theParameters));
+        }
         String interactionClassName = mapIhdlName.get(interactionClass);
         Integer interactionId = mapIhdlIemId.get(interactionClass);
         ArrayList<RiftParameter> parameters = new ArrayList<>();
@@ -532,6 +559,62 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
             } catch (Exception e) {
                 return "";
             }
+        }
+        return n;
+    }
+
+    // ================================================================== Infra (0.9.20)
+
+    /** Registers this datasource's federation with the Infra view (after the subscriptions). */
+    private void openInfra(FederateHandle me) {
+        com.simweaver.common.infra.InfraRegistry reg = com.simweaver.common.infra.InfraRegistry.global();
+        if (!reg.isEnabled()) {
+            return;
+        }
+        String own = "";
+        try {
+            own = me == null ? "" : rtIambassador.getFederateName(me);
+        } catch (Exception ignored) {
+            // shown without it
+        }
+        RiftMomPortHla3 p = new RiftMomPortHla3(rtIambassador, this::ownSubscription);
+        p.setTap(reg.openHla(com.simweaver.common.infra.InfraSource.rift(config.getName() + " / " + effectiveFederation, name, id.toString()), false, effectiveFederation, own,
+                lsd, p));
+        infra = p;
+    }
+
+    private void closeInfra() {
+        RiftMomPortHla3 p = infra;
+        infra = null;
+        if (p != null) {
+            p.close();
+        }
+    }
+
+    /** The attributes this datasource subscribes of a class (null when it does not subscribe the class). */
+    private AttributeHandleSet ownSubscription(ObjectClassHandle c) {
+        Integer iemId = mapOhdlIemId.get(c);
+        if (iemId == null || iem == null) {
+            return null;
+        }
+        try {
+            AttributeHandleSet s = rtIambassador.getAttributeHandleSetFactory().create();
+            for (ClassAttribute a : iem.getObjectClass(iemId).getAttributes()) {
+                AttributeHandle h = mapIemIdAhdl.get(a.getId());
+                if (h != null) {
+                    s.add(h);
+                }
+            }
+            return s;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static int octets(java.util.Map<?, byte[]> values) {
+        int n = 0;
+        for (byte[] v : values.values()) {
+            n += v == null ? 0 : v.length;
         }
         return n;
     }

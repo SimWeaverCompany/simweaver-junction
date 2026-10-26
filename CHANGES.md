@@ -1,7 +1,7 @@
-# SimWeaver Junction 0.9.18
+# SimWeaver Junction 0.9.20
 
 This folder holds the new and changed files compared with the tree you sent on 2026-10-24, with
-your `etc` folder from 2026-10-25. It also contains everything from 0.9.17 back to 0.9.12,
+your `etc` folder from 2026-10-25. It also contains everything from 0.9.19 back to 0.9.12,
 described further down, so it replaces those deliveries.
 
 **Files to delete in your tree** (from 0.9.17, if you haven't applied it yet). This folder only
@@ -20,12 +20,201 @@ adds and replaces files, so the old sample files have to go by hand:
 - In `etc/datasources`, delete `sample1`, `sample2`, `sample3` and `dissample`.
 - The ASIM files and `mappings/` are unchanged.
 
+## Version 0.9.20
+
+Rift (`rift/Version`, revision 20) and Junction (`junction/Version`) are both 0.9.20, and so are
+`README.md`, the docs and the developer notes.
+
+## Infra: what the server has contact with
+
+A new page, **Infra**, in the top bar of every page next to Rift and Junction (`infra.html`). It
+collects from everything that is running, Rift's datasources and Junction's gateway endpoints,
+with nothing to configure:
+
+| List | What appears |
+|---|---|
+| DIS 6 exercises / DIS 7 exercises | every exercise a DIS socket hears, sorted by protocol version, *before* the socket's own version and exercise filters (a DIS 7 datasource on exercise 1 also reports the DIS 6 exercise 3 on its port) |
+| C-DIS exercises | the exercises of the C-DIS a C-DIS datasource or endpoint decodes |
+| HLA 1516-2010 / 1516-2025 federations | every federation a datasource or endpoint has joined |
+
+The same exercise heard by two sockets gives two rows (the doublettes you expected), each with
+its source, linked to the datasource page or the Junction page.
+
+### A row opens to its live detail
+
+- **DIS / C-DIS exercise**: the PDU types, and per sender: address and port (*this computer*
+  when it's one of the server's addresses), the **site : application** numbers in its PDUs,
+  entities, PDU types, PDUs per second, traffic and a sparkline of the last minute. Site and
+  application come from the first record of every PDU (8-bit for the Live Entity family). A
+  Junction endpoint doesn't list its own PDUs.
+- **HLA federation**: RTI, time implementation and the federates from the MOM
+  (`HLAmanager.HLAfederate`): name, type, host, state, time state, regulating / constrained,
+  what each sends and receives per second (from the MOM counters: updates sent, reflections,
+  interactions sent and received), and what this datasource or endpoint receives from each
+  (by producing federate), with a sparkline. Click a federate for all its MOM values and
+  **Ask the MOM for publications & subscriptions**: the RTI's report interactions are shown as
+  object classes with their attributes and interaction classes (passive subscriptions marked).
+
+### How the MOM is used
+
+The federate that is already joined (no extra federate) subscribes the MOM classes and asks for
+their values with **attribute update requests**: every 5 s while someone has the federation
+open, every 60 s otherwise. Publications and subscriptions are asked for only when you press the
+button (`HLArequestPublications` / `HLArequestSubscriptions`). Nothing is sent that changes the
+federation: no `HLAsetTiming`, no switches. An RTI whose MOM lacks an attribute or report is
+shown with what it has (the detail lists what's missing); without a MOM, the federates are known
+by their traffic only. Subscriptions are made as the union with what the datasource / endpoint
+already subscribes, so an RTI that replaces a class's subscription keeps theirs.
+
+### Breakout tab
+
+Tick rows and **Open breakout tab**: `infra.html?watch=key1,key2`, which keeps showing those
+items live while you work elsewhere, like the map tab. The keys stay the same when the same
+datasource configuration or gateway starts again, so the tab picks an item up again after a
+restart (until then: *not connected now*). Marks are kept in your browser.
+
+### Settings (all optional; defaults shown)
+
+In `etc/server.root.settings` (this package does not replace your copy):
+
+```
+infra.enabled=true             # false: nothing collected
+infra.hla.mom=true             # false: no MOM requests, federates by their traffic only
+infra.hla.pollseconds=5        # MOM requests while someone watches a federation
+infra.hla.slowpollseconds=60   # ... and otherwise
+infra.dis.forgetseconds=600    # a DIS sender quiet this long is forgotten (0 = never)
+```
+
+### REST
+
+`GET /api/infra`, `GET /api/infra/items?keys=…`, `GET /api/infra/items/{key}`,
+`POST /api/infra/items/{key}/refresh` and `POST /api/infra/items/{key}/declarations`
+(`rest-api.md` section 12).
+
+## Fixed: DIS entities already sending when a gateway starts (0.9.20)
+
+Found while testing Infra live. A Junction DIS endpoint opens before the router declares what it
+wants (the HLA endpoints are still joining). Entities, radios and IFF systems heard in that
+window were stored without a class and **never bridged while they kept sending**: start a
+gateway against a running DIS exercise and the HLA side stayed empty until the simulator stopped
+and restarted its entities. Now the endpoint forgets those when the router declares, and their
+next PDU is bridged. (0.9.19 and earlier have this.) A self test checks it.
+
+## Docs
+
+- `simweaver-rift-install-and-config.md` (and its copy): the `infra.*` keys in 2.1 and a new
+  section 2.6 *The Infra page*.
+- `rest-api.md` (and `rift-rest-api.md`): section 12 *Infra*.
+- `junction.md` (and `junction-config.md`): the page, the DIS fix, the new self tests.
+- `README.md`: Infra in *What it does*.
+
+## Files (0.9.20)
+
+- `simwcommon/src/com/simweaver/common/infra/`: new: `InfraRegistry`, `DisTap`, `HlaTap`,
+  `MomPort`, `SessionMomPort`, `MomCodec`, `InfraApi`, `InfraSource`, `ActivityMeter`,
+  `DisPduTypes`
+- `simwcommon/src/com/simweaver/common/hla/session/`: `RtiSession` (class / attribute names from
+  encoded handles), `impl1516e/Rti1516eSession`, `impl2025/Rti2025Session`, `DynamicFom`
+  (reader accessors)
+- `simwjunction`: `HlaEndpoint` and `DisEndpoint` (Infra taps; the DIS fix)
+- `simwrift`: `Server` (mounts `/api/infra`, reads the settings), `RiftFederateHla3/4`,
+  `RiftMomPortHla3/4` (new), `RiftDisConnection`
+- `webroot`: `infra.html`, `js/infra.js`, `js/infra-api.js`, `css/infra.css` (new); the Infra
+  button in `index.html`, `datasource.html`, `junction.html`, `map.html`, `config-assistant.html`
+- `fakerti`: MOM federate objects, handle factories and name lookups, the publication /
+  subscription reports
+- tests: `simwcommon/test/.../infra/InfraSelfTest`, `simwrift/test/.../InfraBridgeSelfTest` (new)
+- versions, docs, `simwjunction/CLAUDE.md`
+
+## Checked (0.9.20)
+
+- `InfraSelfTest` (52 checks): MOM datatypes (strings, counts, booleans, handles and handle
+  lists with padding, interaction subscription lists, module lists, logical times), the
+  activity meter, a DIS tap (bundled and padded PDUs, DIS 6 / 7, exercises, senders,
+  site/application numbers, Live Entity ids, broken datagrams, C-DIS), forgetting, stable keys,
+  switching Infra off, the REST API's errors.
+- `InfraBridgeSelfTest` (26 checks): a gateway with HLA 1516-2010, HLA 1516-2025 and DIS 7
+  endpoints plus a Rift HLA datasource and a simulator: the items, the MOM's federates (type,
+  host, handle, rates, counters), traffic per producer, this federate marked, publications and
+  subscriptions through the MOM, a DIS exercise's senders, the REST calls, a DIS entity already
+  sending when the gateway starts (fails with 0.9.19's `DisEndpoint`), and the items going when
+  their sources stop.
+- All the other suites unchanged and passing.
+- Live: the server with three gateways (HLA3 ⇄ DIS 7, HLA4 ⇄ DIS 6, DIS 7 ⇄ C-DIS relay), four
+  datasources (HLA3, HLA4, DIS 6, C-DIS) and a DIS sender with five simulators on two exercises
+  and both versions: all five lists filled, details, federate MOM values, declarations, the
+  breakout tab (also after a server restart: same keys), light theme and a phone-width window.
+- Not checked against a real RTI's MOM (pRTI): the attribute and report names are those of
+  IEEE 1516.1-2010; an RTI that names something differently shows it under *lacks*.
+
+## Version 0.9.19
+
+Rift (`rift/Version`, revision 19) and Junction (`junction/Version`) are both 0.9.19, and so are
+`README.md`, the docs and the developer notes.
+
+## Provide requests: cache misses go to the origin (0.9.19)
+
+Until now a provide request (`requestAttributeValueUpdate`) for a copy was answered from the
+gateway's cache only. An attribute the gateway had no value of was not answered at all, unless the
+origin happened to send it later.
+
+Now the gateway answers what it has at once and asks the object's origin for the rest:
+
+- **Only the missing attributes are asked for**, as an attribute update request in the origin's
+  federation. The origin's answer is an ordinary update, so it reaches the requester and every
+  other copy, and fills the cache.
+- **Cached attributes are never asked of the origin**, so the common case costs the origin nothing.
+- **Throttled**: the same attribute of an object is asked for at most once per
+  `router.provide.forwardintervalms` (default 1000 ms). Many federates asking at once, or one
+  asking in a loop, give the origin one request.
+- **DIS origins are not asked**. DIS has no such request; the heartbeat brings the values.
+- On discovery the gateway already asks the origin for everything it subscribes to, so a forwarded
+  request is mostly for an attribute the origin doesn't send on its own, or one asked before the
+  origin answered.
+
+Router settings (both optional; the `hla3-all` and `hla4-all` samples list them commented out,
+the ASIM files are untouched):
+
+```
+router.provide.forward=true
+router.provide.forwardintervalms=1000
+```
+
+The counter `providesforwarded` is in `routerstats` next to `providesanswered`, and the router's
+`provideforward` / `provideforwardintervalms` are in the gateway's `router` JSON. The gateway card
+shows **ASKED ORIGIN** when it isn't 0.
+
+The docs: `junction.md` (and `junction-config.md`) section 1 and section 5, with a new
+*Provide requests* subsection, plus `junction-rest-api.md`.
+
+## Files (0.9.19)
+
+- `simwjunction/src/com/simweaver/junction/router/IemRouter.java`: `forwardMisses`, the throttle
+  per object and attribute
+- `simwjunction/src/com/simweaver/junction/router/RouterStats.java`: `providesForwarded`
+- `simwjunction/src/com/simweaver/junction/config/RouterConfig.java`: the two settings
+- `simwjunction/test/com/simweaver/junction/ProvideForwardSelfTest.java`: new
+- `simwrift/rtdir/webroot/js/junction.js`: ASKED ORIGIN on the gateway card
+- `etc/junctions{,.dist}/routers/hla3-all` and `hla4-all`: the settings, commented out
+- versions, docs, `simwjunction/CLAUDE.md`
+
+## Checked (0.9.19)
+
+- `ProvideForwardSelfTest` (27 checks), HLA 1516-2010 origin ⇄ HLA 1516-2025, two isolated test
+  RTIs: a request for a cached and an uncached attribute gives the origin a request for the
+  uncached one only; the origin's answer reaches the requester; a now cached attribute isn't asked
+  again; two requests within the interval give one, another after it gives a second; with
+  `router.provide.forward=false` the origin isn't asked and the cache still answers; the counters
+  and the JSON.
+- All the other suites unchanged and passing (BridgeSelfTest's provide and late-joiner checks
+  included).
+
 ## Version 0.9.18
 
 Rift (`rift/Version`, revision 18) and Junction (`junction/Version`) are both 0.9.18, and so are
 `README.md`, the docs and the developer notes.
 
-## C-DIS (SISO-STD-023-2024)
+## C-DIS (SISO-STD-023-2024) (0.9.18)
 
 Compressed DIS, from the 2024 standard you sent, in three places:
 

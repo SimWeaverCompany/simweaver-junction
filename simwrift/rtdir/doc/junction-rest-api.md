@@ -11,7 +11,7 @@ The 0.9.0 path `/api/junktion/...` is still answered the same way. The SSE topic
 
 Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the envelope `{"success":false,"error":{"code":"...","message":"..."}}`. Live updates come over Rift's SSE stream (section 7).
 
-API state: Junction 0.9.18, October 2026.
+API state: Junction 0.9.20, October 2026.
 
 ---
 
@@ -76,6 +76,7 @@ API state: Junction 0.9.18, October 2026.
       "filtertext": "objects allow * interactions allow *", "promote": true, "namepolicy": "same-or-suffix",
       "valuemap": [ {"datatype":"EntityTypeStruct","from":"1.2.225.1.3.0.0","to":"1.2.222.1.3.0.0",
                      "key":"router.valuemap.EntityType.f16"} ],
+      "provideforward": true, "provideforwardintervalms": 1000,
       "settings": "router.kind=iem\n...", "warnings": [], "errors": [] },
   "autostart": false,
   "errors": [], "warnings": [],
@@ -220,7 +221,7 @@ POST /junction/gateways
                  "out": {"messages":0,"registered":0,"updates":0,"deleted":0,"interactions":0,"bytes":0,"rate":0.0,"bytesrate":0.0,"last":0},
                  "senderrors":0, "registrationfailures":0, "reconnects":0 } } ],
   "objects": { "bridged": 0, "copies": 0, "pending": 0, "failed": 0 },
-  "routerstats": { "updatesrouted":0, "interactionsrouted":0, "providesanswered":0, "transcoded":0,
+  "routerstats": { "updatesrouted":0, "interactionsrouted":0, "providesanswered":0, "providesforwarded":0, "transcoded":0,
       "referencesrewritten":0, "unresolvedreferences":0, "renamed":0, "valuerules":0, "valuesreplaced":0,
       "queuedrops":0, "queuehighwater":0,
       "unknownobjects":0, "conversionfailures":0, "conversionwarnings":0, "problems":[] },
@@ -239,6 +240,7 @@ POST /junction/gateways
 | `lsdoverridden` | HLA endpoints: the LSD was chosen at the start and is not the configured default |
 | `fom` | HLA endpoints: the FOM files, or for a dynamic endpoint where its FOM came from, e.g. `from the federation: FDD 7a6e65c9531f, RPR v2 recognised from its classes` (`from the federation (not read yet)` before the join) |
 | `dynamicfom` | HLA endpoints: the FOM is taken from the federation |
+| `providesanswered` / `providesforwarded` | Provide requests answered from the gateway's cache / passed on to the object's origin because the cache had no value of some requested attribute (0.9.19; at most once per attribute and object per `router.provide.forwardintervalms`, never to a DIS origin) |
 | `fomnotice` | Only when there is something to say, e.g. a dynamic endpoint's federation FDD changed after the start (a federate joined with more modules): restart the gateway to take in the new classes |
 
 DIS and C-DIS endpoints (0.9.18) also have `dis`: `disversion`, `exercise`, `sendexercise`, `destination`, `echoes` (own PDUs dropped), `otherexercise`, `malformed`, the objects heard and sent; with the PDU relay `relayedin` / `relayedout`. A C-DIS endpoint adds `"protocol": "C-DIS"`, `cdissettings` (as `cdis` in 2.2), `cdisobjects` (objects the decoder keeps state for) and the codec's counters:

@@ -187,6 +187,10 @@ Server-wide settings. Restart the server after changing this file.
 | `junction.enabled` | `true` | Run SimWeaver Junction gateways (see [junction.md](junction.md)). The 0.9.0 name `junktion.enabled` is still read |
 | `junction.dir` | `etc/junctions` | Junction's configuration folder (0.9.0 name `junktion.dir` still read). `etc/junctions.dist` next to it holds every delivered sample, untouched |
 | `junction.datasourceconfigs` | `true` | List each gateway endpoint as a datasource configuration; `false`: only the files in `etc/datasources` (Inspect on the Junction page still works) |
+| `infra.enabled` | `true` | The Infra page (2.6): the DIS / C-DIS exercises and HLA federations the datasources and gateways have contact with; `false` collects nothing |
+| `infra.hla.mom` | `true` | Ask each joined federation's MOM about its federates (2.6); `false`: the federates are known only by their traffic |
+| `infra.hla.pollseconds` / `infra.hla.slowpollseconds` | `5` / `60` | Seconds between MOM requests while someone watches a federation / otherwise |
+| `infra.dis.forgetseconds` | `600` | A DIS sender not heard for this long is forgotten (`0` = never) |
 | `map.enabled` | `true` | The map view of the datasource page (2.4); `false` removes it everywhere |
 | `map.file` | | The default background map: an image file, in `map.dir` or anywhere on the server (relative to the installation folder), e.g. `maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif` |
 | `map.files` | | More maps outside `map.dir`, `;`-separated files |
@@ -440,6 +444,24 @@ map.overlay.ne_10m_airports.labelcolor=#7b241c
 
 Field names are matched without regard to case, so `name` and `NAME` both work (the full
 `ne_10m_populated_places` writes them in upper case). Its id is then `ne_10m_populated_places`.
+
+### 2.6 The Infra page (0.9.20)
+
+**Infra** in the top bar (`infra.html`) lists what this server has contact with, from everything that is running: Rift's datasources and Junction's gateway endpoints. Nothing needs configuring.
+
+| List | What appears |
+|---|---|
+| DIS 6 / DIS 7 exercises | Every exercise a DIS socket hears, by protocol version, *before* the socket's own version and exercise filters: a DIS 7 datasource listening to exercise 1 also reports the DIS 6 exercise 3 on its port |
+| C-DIS exercises | The exercises of the C-DIS a C-DIS datasource or endpoint decodes |
+| HLA 1516-2010 / 1516-2025 federations | Every federation a datasource or an endpoint has joined |
+
+- **One row per contact.** The same exercise heard by two sockets (a datasource and a gateway on port 3000, say) is two rows, each with its source. The source links to the datasource page or the Junction page.
+- **A row opens to its live detail** (every 1.5 s):
+  - *Exercise*: the PDU types, and each sender — address and port (*this computer* when it is one of the server's own addresses), the site and application numbers in its PDUs, entities, PDU types, PDUs per second, traffic and the last minute as a sparkline. Site and application are read from the first record of every PDU (8-bit numbers for the Live Entity family). A Junction endpoint does not list its own PDUs.
+  - *Federation*: the RTI, the time implementation and the federates. Name, type, host, state and time state come from the MOM (`HLAmanager.HLAfederate`), with what each one sends and receives per second (from the MOM's counters) and what this datasource or endpoint receives from it (by producing federate). Click a federate for all its MOM values and **Ask the MOM for publications & subscriptions**: the RTI answers with report interactions, shown as object classes with their attributes and interaction classes (passive subscriptions marked).
+- **How the MOM is used.** The federate that is already joined subscribes the MOM classes and asks for their values with attribute update requests: every `infra.hla.pollseconds` while someone has the federation open, every `infra.hla.slowpollseconds` otherwise. Publications and subscriptions are asked for only on the button. Nothing is sent that changes the federation (no `HLAsetTiming`, no switches). An RTI whose MOM lacks an attribute or report of the standard is shown with what it has; without a MOM the federates are known by their traffic only.
+- **Breakout tab.** Tick rows and **Open breakout tab**: a tab (`infra.html?watch=key1,key2`) that keeps showing those items, live, while you work elsewhere. The keys stay the same when the same datasource configuration or gateway starts again, so the tab picks an item up again after a restart; until then it says *not connected now*. The marks are kept in your browser.
+- The rows stay while their source runs. A DIS sender is forgotten after `infra.dis.forgetseconds` of silence, a resigned federate after five minutes.
 
 ---
 

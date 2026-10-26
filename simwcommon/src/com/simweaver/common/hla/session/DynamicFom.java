@@ -281,6 +281,16 @@ public final class DynamicFom {
                     : "the federation object was discovered, but its value did not come") + ")", null);
         }
 
+        /** @return the session's MOM federation class (0 before {@link #start}) */
+        public int objectClass() {
+            return cls;
+        }
+
+        /** @return the session's FDD attribute (0 before {@link #start}) */
+        public int attribute() {
+            return attr;
+        }
+
         /** @param l receives every value that differs from the one before, the first included */
         public void onValue(Consumer<String> l) {
             this.valueListener = l;

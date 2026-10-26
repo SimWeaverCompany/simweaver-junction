@@ -54,6 +54,8 @@ public final class RouterConfig implements Json.Writable {
     private final int queueCapacity;
     private final String rprMapping;
     private final boolean deleteOnStop;
+    private final boolean provideForward;
+    private final int provideForwardIntervalMillis;
     private final List<String> warnings = new ArrayList<String>();
     private final List<String> errors = new ArrayList<String>();
     private final List<ValueRule> valueRules;
@@ -187,6 +189,14 @@ public final class RouterConfig implements Json.Writable {
         }
         this.rprMapping = mf.getPath();
         this.deleteOnStop = p.getBoolean("router.deleteobjectsonstop", true);
+        // 0.9.19: a provide request the cache cannot answer is asked of the object's origin
+        this.provideForward = p.getBoolean("router.provide.forward", true);
+        int fi = p.getInt("router.provide.forwardintervalms", 1000);
+        if (fi < 0 || fi > 3_600_000) {
+            errors.add("router " + id + ": router.provide.forwardintervalms must be 0 - 3600000 (ms)");
+            fi = 1000;
+        }
+        this.provideForwardIntervalMillis = fi;
         List<String> vkeys = new ArrayList<String>(Arrays.asList(p.getKeysWithPrefix(ValueRule.PREFIX)));
         Collections.sort(vkeys);
         Map<String, String> vvals = new LinkedHashMap<String, String>();
@@ -399,6 +409,19 @@ public final class RouterConfig implements Json.Writable {
         return deleteOnStop;
     }
 
+    /**
+     * @return {@code router.provide.forward}: a provide request for attributes the gateway has no
+     *         value of yet is passed on to the object's origin as a request
+     */
+    public boolean isProvideForward() {
+        return provideForward;
+    }
+
+    /** @return {@code router.provide.forwardintervalms}: the same attribute of an object is asked for at most this often */
+    public int getProvideForwardIntervalMillis() {
+        return provideForwardIntervalMillis;
+    }
+
     /** @return settings that were not understood (defaults used instead) */
     public List<String> getWarnings() {
         return Collections.unmodifiableList(warnings);
@@ -573,6 +596,10 @@ public final class RouterConfig implements Json.Writable {
             o.put("namemaxlengths", new LinkedHashMap<String, Object>(nameMaxLengths));
         }
         o.put("valuemap", valueRules);
+        if (kind != Kind.PDU) {
+            o.put("provideforward", provideForward);
+            o.put("provideforwardintervalms", provideForwardIntervalMillis);
+        }
         if (kind == Kind.PDU) {
             o.put("pdutypes", pduTypes);
         }

@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.9.18 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.9.20 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ---
 
@@ -58,6 +58,15 @@ Version 0.9.18 · BSD 3-Clause License · © 2026 Simweaver AB
   bridge two vendors or versions.
 - **Groups of gateways**, started together with shared variables.
 - **The Config Assistant** page writes gateway configurations for you.
+
+**Infra: what the server has contact with** (0.9.20)
+
+- Every **DIS 6, DIS 7 and C-DIS exercise** the datasources' and gateways' sockets hear, with each
+  sender's address, its site and application numbers, PDU types and activity.
+- Every **HLA 1516-2010 and 1516-2025 federation** they have joined, with the federates from the
+  MOM: host, type, state, what each sends and receives, and on request its publications and
+  subscriptions.
+- A **breakout tab** keeps watching the exercises and federations you pick.
 
 ---
 

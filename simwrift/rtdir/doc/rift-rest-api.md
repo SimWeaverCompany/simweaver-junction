@@ -27,6 +27,7 @@ API state: SimWeaver Rift, October 2026.
 9. [Errors](#9-errors)
 10. [Limits](#10-limits)
 11. [Quick start with curl](#11-quick-start-with-curl)
+12. [Infra](#12-infra-0920)
 
 ---
 
@@ -109,6 +110,11 @@ discovered, updated or removed, or an interaction received.
 | `GET` | [`/api/maps/overlays/{id}/tiles/{z}/{x}/{y}.png`](#34-get-apimapsoverlaysidtileszxypng) | An overlay tile (transparent PNG) |
 | `GET` | [`/api/maps/overlays/{id}/labels`](#35-get-apimapsoverlaysidlabels) | The labels of an overlay in a box |
 | `GET` | [`/api/events?topics=…`](#8-live-events-sse) | Live event stream (SSE) |
+| `GET` | [`/api/infra`](#121-get-apiinfra) | The exercises and federations the server has contact with (Infra page) |
+| `GET` | [`/api/infra/items?keys=…`](#122-get-apiinfraitemskeys) | The live detail of some of them |
+| `GET` | [`/api/infra/items/{key}`](#123-get-apiinfraitemskey) | The live detail of one |
+| `POST` | [`/api/infra/items/{key}/refresh`](#124-post-apiinfraitemskeyrefresh) | HLA: ask the MOM for fresh values now |
+| `POST` | [`/api/infra/items/{key}/declarations`](#125-post-apiinfraitemskeydeclarations) | HLA: ask the MOM for a federate's publications and subscriptions |
 
 ---
 
@@ -1033,6 +1039,71 @@ curl -k -N "$H/events?topics=ds:$DS:classes,ds:$DS:interactions"
 # Remove it
 curl -k -X DELETE $H/datasources/$DS
 ```
+
+---
+
+## 12. Infra (0.9.20)
+
+What the server has contact with: every DIS / C-DIS exercise its sockets hear and every HLA federation its federates have joined, from Rift's datasources and Junction's gateway endpoints (the Infra page). An **item** is one exercise or federation as one source sees it; its `key` (family, a dash, 12 hex digits) stays the same when the same datasource configuration or gateway starts again.
+
+### 12.1 `GET /api/infra`
+
+```json
+{ "enabled": true, "now": 1792989909038, "mom": true, "pollseconds": 5.0,
+  "dis6": [ ], "dis7": [ {item} ], "cdis": [ ], "hla3": [ {item} ], "hla4": [ ],
+  "counts": {"dis6":0, "dis7":1, "cdis":0, "hla3":1, "hla4":0}, "listeners": 2, "federates": 1, "sources": 2 }
+```
+
+Every item has `key`, `family` (`dis6` `dis7` `cdis` `hla3` `hla4`), `protocol` (label), `name`, `source` `{kind: rift|junction, key, label, link}` (link: a page of this server), `rate` (messages per second over the last 5 s), `octetrate`, `history` (59 values: messages per second, oldest first), `last` (epoch ms), `status` (`active` within 5 s, `quiet`, `silent` after a minute; HLA without traffic yet: `joined`).
+
+- DIS items add `exercise`, `versions`, `port`, `where` (the socket), `note` (what the owner does), `senders`, `entities`, `pdus`, `octets`, `first`.
+- HLA items add `federation`, `connection` (the LSD, `RTI default`), `ownfederate`, `federates`, `joined`, `mom` (`waiting`, `ok`, `unavailable`), `momproblem` (only then), `rtiversion`. Their `rate` is what the source receives from the other federates.
+
+### 12.2 `GET /api/infra/items?keys=…`
+
+`keys`: up to 64, comma separated. Returns `{"now": …, "items": [ … ]}` in the order asked; an item not there now is `{"key": "…", "missing": true}`. Asking for an HLA item counts as watching it: its MOM is asked every `infra.hla.pollseconds` for the next 30 s.
+
+A full **DIS** item adds `pdutypes` `[{type, name, pdus}]` (most first), `datagrams` and `malformed` (the whole socket), `listeningsince`, `senderslimited` (only when over 2000 senders) and `senderlist`:
+
+```json
+{ "address": "192.0.2.10", "port": 5000, "local": false,
+  "siteapps": [ {"site": 7, "app": 42, "pdus": 1188} ], "entities": 2,
+  "pdutypes": [ {"type": 1, "name": "Entity State", "pdus": 1188} ],
+  "pdus": 1204, "rate": 15.0, "octetrate": 2160, "first": …, "last": …, "status": "active", "history": [ … ] }
+```
+
+A full **HLA** item adds `federationinfo` (from `HLAmanager.HLAfederation`: `rtiversion`, `mimdesignator`, `fommodules`, `timeimplementationname`, `autoprovide`, `lastsavename` …, as the RTI gives them), `timeimplementation`, `mommissing` (MOM attributes and reports this RTI lacks), `momexceptions`, `declarationsavailable`, `pollseconds` and `federatelist`:
+
+```json
+{ "name": "BlueSim", "frommom": true, "handle": "00000069", "self": false, "type": "Tester", "host": "sim-04",
+  "rtiversion": "…", "state": "active", "timestate": "granted", "timeregulating": false, "timeconstrained": false,
+  "logicaltime": "12.5", "lookahead": "0.1",
+  "mom": { "HLAupdatesSent": 62, "HLAreflectionsReceived": 0, … },
+  "momrates": { "updatessent": 11.0, "reflectionsreceived": 0.0, "interactionssent": 1.0, "interactionsreceived": 0.0 },
+  "momupdated": …, "resigned": …,
+  "observed": { "updates": 62, "interactions": 1, "updaterate": 12.4, "interactionrate": 0.2, "octetrate": 149, "last": …, "history": [ … ] },
+  "declarations": { "requested": …, "received": …,
+     "publications":  { "objects": [ {"class": "HLAobjectRoot.…Aircraft", "attributes": ["Marking", "Spatial"]} ], "objectclasses": 1,
+                        "interactions": [ {"class": "HLAinteractionRoot.WeaponFire"} ] },
+     "subscriptions": { "objects": [ {"class": "…", "active": true, "attributes": [ … ]} ], "objectclasses": 1,
+                        "interactions": [ {"class": "HLAinteractionRoot.Detonation", "active": true} ] } } }
+```
+
+- `handle`: the federate handle as the RTI encodes it, in hex. `self`: the source's own federate. `momrates` come from successive MOM counter values (null until two have come). `observed` is what the source received from that federate (only when the RTI tells the producing federate).
+- A federate seen only by its traffic (not in the MOM) has `frommom: false`, `name` and `observed`.
+- `state`: `active`, `saving`, `restoring` (HLAfederateState 1, 3, 5). `logicaltime` / `lookahead` are read as HLAinteger64Time when the time implementation says integer, else HLAfloat64Time.
+
+### 12.3 `GET /api/infra/items/{key}`
+
+`{"item": {…}}`, the same full item; 404 `ITEM_UNKNOWN` when it is not there now.
+
+### 12.4 `POST /api/infra/items/{key}/refresh`
+
+HLA: asks the MOM for every federate's values now. 202 `{"success": true}`; 404 `ITEM_UNKNOWN`.
+
+### 12.5 `POST /api/infra/items/{key}/declarations`
+
+Body `{"federate": "<handle hex>"}`. Sends `HLArequestPublications` and `HLArequestSubscriptions` for that federate; the RTI's reports fill its `declarations` in the item (a moment later). 202 `{"success": true}`; 400 `BAD_REQUEST` (no or a malformed handle), 404 `ITEM_UNKNOWN`, 409 `MOM_REQUEST_FAILED` (no such federate, the RTI's MOM has no such requests, or the RTI refused).
 
 ---
 

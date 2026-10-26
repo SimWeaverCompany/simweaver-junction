@@ -75,6 +75,7 @@ public abstract class RiftDisConnection implements DataSource {
 
     private final UUID id = UUID.randomUUID();
     private final String name;
+    private volatile com.simweaver.common.infra.DisTap infra;      // 0.9.20: what the socket hears, for the Infra view
     private final DatasourceConfig config;
     private final String exerciseText;
     private final DataSourceCallbackSink callbackSink;
@@ -248,6 +249,10 @@ public abstract class RiftDisConnection implements DataSource {
         this.endpoint = ep;
         this.socket = s;
         db.setInteractionClassNames(interactionNames::get);
+        com.simweaver.common.infra.DisTap tap = com.simweaver.common.infra.InfraRegistry.global().openDis(
+                com.simweaver.common.infra.InfraSource.rift(config.getName() + " / exercise " + ex, name, id.toString()), cdis != null, ep.port(), ep.toString());
+        tap.setNote("Rift listens to " + (ex == 0 ? "every exercise" : "exercise " + ex) + " of " + protocolLabel());
+        infra = tap;
         running = true;
         lastTimeoutCheck = System.currentTimeMillis();
         Thread t = new Thread(this::receiveLoop, (cdis != null ? "rift-cdis-" : "rift-dis" + version + "-") + ep.port());
@@ -268,6 +273,9 @@ public abstract class RiftDisConnection implements DataSource {
     public synchronized DatasourceManager.OpResult disconnect() {
         if (!running && socket == null) return new DatasourceManager.OpResult(true, "Already stopped");
         running = false;
+        com.simweaver.common.infra.DisTap tap = infra;
+        infra = null;
+        if (tap != null) tap.close();
         MulticastSocket s = socket;
         socket = null;
         if (s != null) s.close();
@@ -297,8 +305,10 @@ public abstract class RiftDisConnection implements DataSource {
                 String producer = from.getAddress().getHostAddress() + ":" + from.getPort();
                 long now = System.currentTimeMillis();
                 if (cdis != null) {
-                    handleCdis(buf, packet.getOffset(), packet.getLength(), producer, now);
+                    handleCdis(buf, packet.getOffset(), packet.getLength(), producer, now, from);
                 } else {
+                    com.simweaver.common.infra.DisTap tap = infra;
+                    if (tap != null) tap.datagram(from.getAddress(), from.getPort(), buf, packet.getOffset(), packet.getLength(), now);
                     handleDatagram(buf, packet.getOffset(), packet.getLength(), producer, now);
                 }
             } catch (SocketTimeoutException quiet) {
@@ -333,8 +343,15 @@ public abstract class RiftDisConnection implements DataSource {
 
     /** A C-DIS datagram: decoded to DIS 7 PDUs, each handled as a datagram. Receiver thread; package private for tests. */
     void handleCdis(byte[] data, int offset, int length, String producer, long now) {
+        handleCdis(data, offset, length, producer, now, null);
+    }
+
+    private void handleCdis(byte[] data, int offset, int length, String producer, long now, InetSocketAddress from) {
         long errors = cdis.stats().getDecodeErrors();
-        for (byte[] pdu : cdis.decode(data, offset, length, now)) {
+        java.util.List<byte[]> pdus = cdis.decode(data, offset, length, now);
+        com.simweaver.common.infra.DisTap tap = infra;
+        if (tap != null && from != null) tap.decoded(from.getAddress(), from.getPort(), length, pdus, now);
+        for (byte[] pdu : pdus) {
             handleDatagram(pdu, 0, pdu.length, producer, now);
         }
         if (cdis.stats().getDecodeErrors() != errors) {

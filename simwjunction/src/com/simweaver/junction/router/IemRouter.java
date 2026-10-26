@@ -488,6 +488,8 @@ public final class IemRouter implements Router {
         final Map<Integer, byte[]> cache = new LinkedHashMap<Integer, byte[]>();
         final Map<Endpoint, Proxy> proxies = new IdentityHashMap<Endpoint, Proxy>();
         final Map<Endpoint, Map<Integer, byte[]>> extra = new IdentityHashMap<Endpoint, Map<Integer, byte[]>>();   // Extension#updateCopy
+        /** Source members last asked of the origin for a provide request, and when (forwarding throttle). */
+        final Map<Integer, Long> asked = new HashMap<Integer, Long>();
         boolean removed;
 
         GwObject(long id, Endpoint origin, long originKey, String originName, int originClass) {
@@ -819,6 +821,51 @@ public final class IemRouter implements Router {
         sendCached(p.object, p, attrs);
         sendExtra(p.object, p, attrs);
         stats.providesAnswered.incrementAndGet();
+        forwardMisses(p, attrs);
+    }
+
+    /**
+     * 0.9.19: asks the object's origin for the requested attributes the cache has no value of
+     * (yet). The answer comes back as an ordinary update and goes to every copy. The same
+     * attribute of an object is asked for at most every {@code router.provide.forwardintervalms};
+     * DIS origins are not asked (DIS has no such request; its heartbeats bring the values).
+     */
+    private void forwardMisses(Proxy p, int[] destinationMembers) {
+        GwObject g = p.object;
+        Endpoint o = g.origin;
+        if (!cfg.isProvideForward() || g.removed || !o.state().isUp() || o.type().isDis()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        int interval = cfg.getProvideForwardIntervalMillis();
+        int[] ask = new int[destinationMembers.length];
+        int n = 0;
+        for (int dm : destinationMembers) {
+            MemberRoute m = p.route.byDestination(dm);
+            if (m == null || g.cache.containsKey(m.sourceMember)) {
+                continue;
+            }
+            Long last = g.asked.get(m.sourceMember);
+            if (last != null && now - last < interval) {
+                continue;
+            }
+            boolean dup = false;
+            for (int i = 0; i < n; i++) {
+                dup |= ask[i] == m.sourceMember;
+            }
+            if (!dup) {
+                ask[n++] = m.sourceMember;
+            }
+        }
+        if (n == 0) {
+            return;
+        }
+        int[] members = java.util.Arrays.copyOf(ask, n);
+        for (int sm : members) {
+            g.asked.put(sm, now);
+        }
+        o.requestUpdate(g.originKey, members);
+        stats.providesForwarded.incrementAndGet();
     }
 
     private void onStateChanged(Endpoint e, EndpointState state) {

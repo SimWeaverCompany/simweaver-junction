@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SimWeaver Infra</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/infra.css">
+	<script src="js/theme.js"></script>
+</head>
+<body class="ix-page">
+
+<header class="topbar">
+	<a class="brand" href="infra.html" title="SimWeaver Infra - exercises and federations">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="36" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Infra</b></span>
+			<span class="sub" id="ix-sub">Exercises &amp; Federations</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<a class="app-nav-link" href="index.html" title="SimWeaver Rift - datasources">Rift datasources</a>
+		<a class="app-nav-link" href="junction.html" title="SimWeaver Junction - gateways">Junction gateways</a>
+		<span class="app-nav-link current" aria-current="page">Infra</span>
+		<a class="app-nav-link" href="config-assistant.html" title="SimWeaver Config Assistant - write configuration files">Config assistant</a>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page" id="ix-main">
+
+	<!-- overview: one panel per family (filled by js/infra.js) -->
+	<div id="ix-summary" class="ix-summary" aria-live="polite"></div>
+	<div id="ix-families"></div>
+
+	<!-- breakout tab (infra.html?watch=key1,key2) -->
+	<section id="ix-watch" class="panel" hidden aria-labelledby="ix-watch-title">
+		<div class="panel-head">
+			<span class="idx">&#9673;</span>
+			<h2 id="ix-watch-title" class="title">Watching</h2>
+			<span class="meta">
+				<span id="ix-watch-meta"></span>
+				<a class="btn" href="infra.html" title="All exercises and federations">&#8249; All of Infra</a>
+			</span>
+		</div>
+		<div class="panel-body">
+			<div id="ix-watch-list" class="ix-watch-list" aria-live="polite"></div>
+		</div>
+	</section>
+
+</main>
+
+<!-- marked items, for a breakout tab -->
+<div id="ix-bar" class="ix-bar" hidden>
+	<span id="ix-bar-text"></span>
+	<button id="ix-bar-open" type="button" class="primary" title="A tab that keeps watching the marked items">&#10697; Open breakout tab</button>
+	<button id="ix-bar-clear" type="button" class="btn">Clear marks</button>
+</div>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // INFRA</span>
+	<span class="license">By SimWeaver - released under Apache 2.0 license</span>
+	<span class="dim">DIS &middot; C-DIS &middot; HLA contact overview</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/infra-api.js"></script>
+<script src="js/infra.js"></script>
+</body>
+</html>

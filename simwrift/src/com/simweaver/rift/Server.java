@@ -49,7 +49,7 @@ public class Server {
         //
         System.out.println(Version.PRODUCT_NAME + " v " + Version.getVersion());
         System.out.println();
-        System.out.println(Version.LICENSE_TAG);
+        System.out.println("Released under Apache 2.0 license.");
         System.out.println();
         System.out.println("Log directory: "+mainLogDir);
         System.out.println("Web port:      "+webPort);
@@ -57,6 +57,9 @@ public class Server {
 
         System.out.println("Starting services...");
         System.out.println();
+
+        // 0.9.20: the Infra view (DIS exercises and HLA federations Rift and Junction have contact with)
+        com.simweaver.common.infra.InfraRegistry.global().configure(cfg);
 
         XrSseHub eventHub = new XrSseHub(1024,250);
         DatasourceManager datasourceManager = new DatasourceManager(eventHub);
@@ -91,6 +94,7 @@ public class Server {
                 apiRequestEntryPoint.mount("junction", junctionApi);
                 apiRequestEntryPoint.mount("junktion", junctionApi);          // the 0.9.0 path, still answered
             }
+            apiRequestEntryPoint.mount("infra", new com.simweaver.common.infra.InfraApi(com.simweaver.common.infra.InfraRegistry.global()));
             java.util.Map<String, com.sun.net.httpserver.HttpHandler> extra = new java.util.LinkedHashMap<>();
             extra.put("/api/maps", new MapHttpHandler(maps, "/api/maps"));        // NEW: binary tiles
             XrServer.run(webPort,apiRequestEntryPoint,webRoot,"/","/api",keyStorePath,keyStorePass,eventHub,extra);

@@ -23,6 +23,8 @@ public final class RouterStats implements HlaCodec.Issues, Json.Writable {
     public final AtomicLong interactionsRouted = new AtomicLong();
     public final AtomicLong updatesRouted = new AtomicLong();
     public final AtomicLong providesAnswered = new AtomicLong();
+    /** 0.9.19: attribute requests passed on to an object's origin (provide requests the cache could not answer) */
+    public final AtomicLong providesForwarded = new AtomicLong();
     public final AtomicLong renamed = new AtomicLong();
     /** Values replaced by the router's value rules. */
     public final AtomicLong valuesReplaced = new AtomicLong();
@@ -68,6 +70,7 @@ public final class RouterStats implements HlaCodec.Issues, Json.Writable {
                 .put("updatesrouted", updatesRouted.get())
                 .put("interactionsrouted", interactionsRouted.get())
                 .put("providesanswered", providesAnswered.get())
+                .put("providesforwarded", providesForwarded.get())
                 .put("transcoded", transcoded.get())
                 .put("referencesrewritten", referencesRewritten.get())
                 .put("unresolvedreferences", unresolvedReferences.get())
