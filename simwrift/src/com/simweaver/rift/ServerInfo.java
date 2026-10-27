@@ -62,7 +62,9 @@ public final class ServerInfo {
      *  "cpu":    {"process": %, "system": %, "cores": n},          % = null when not measurable
      *  "memory": {"heapused", "heapcommitted", "heapmax", "nonheapused",
      *             "processcommitted", "physicaltotal", "physicalfree"},   bytes; null when unknown
-     *  "threads": n, "datasources": n}
+     *  "threads": n, "datasources": n,
+     *  "syslog": {"enabled": false} | {"enabled": true, "target", "protocol", "format", "level", "connected",
+     *             "connectedsince", "sent", "queued", "dropped", "lasterror", "lasterrortime"}}
      * </pre>
      */
     Map<String, Object> toMap(int datasourceCount) {
@@ -96,6 +98,7 @@ public final class ServerInfo {
 
         m.put("threads", ManagementFactory.getThreadMXBean().getThreadCount());
         m.put("datasources", datasourceCount);
+        m.put("syslog", com.simweaver.common.logging.LogSetup.syslogStatus());      // 0.9.22
         return m;
     }
 

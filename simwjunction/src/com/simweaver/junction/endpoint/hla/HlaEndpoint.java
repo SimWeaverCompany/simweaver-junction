@@ -10,6 +10,7 @@ import com.simweaver.common.iem.ClassParameter;
 import com.simweaver.common.iem.InformationExchangeModel;
 import com.simweaver.common.iem.InteractionClass;
 import com.simweaver.common.iem.ObjectClass;
+import com.simweaver.common.logging.Events;
 import com.simweaver.junction.config.EndpointConfig;
 import com.simweaver.junction.config.EndpointType;
 import com.simweaver.junction.endpoint.Endpoint;
@@ -873,7 +874,9 @@ public final class HlaEndpoint implements Endpoint {
         createdByKey.clear();
         createdByInstance.clear();
         pendingNames.clear();
-        LOG.warning("Junction " + gatewayId + "/" + id() + ": RTI connection lost: " + reason);
+        Events.warning(LOG, "endpoint.connectionlost", "Junction " + gatewayId + "/" + id() + ": RTI connection lost: " + reason
+                + (cfg.isReconnect() ? "; reconnecting every " + cfg.getReconnectIntervalSecs() + " s" : ""),
+                "gateway", gatewayId, "endpoint", id(), "federation", federation, "by", "rti");
         setState(EndpointState.LOST, "RTI connection lost: " + reason, true);
         if (cfg.isReconnect()) {
             scheduleReconnect();
@@ -903,7 +906,8 @@ public final class HlaEndpoint implements Endpoint {
             }
             applyDeclarations();
             stats.reconnects.incrementAndGet();
-            LOG.info("Junction " + gatewayId + "/" + id() + ": joined " + federation + " again");
+            Events.notice(LOG, "endpoint.reconnected", "Junction " + gatewayId + "/" + id() + ": joined " + federation + " again",
+                    "gateway", gatewayId, "endpoint", id(), "federation", federation, "by", "reconnect");
             setState(EndpointState.JOINED, null, true);
             openInfra(session);
         } catch (RtiSessionException e) {

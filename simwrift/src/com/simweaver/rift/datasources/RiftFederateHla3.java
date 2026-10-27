@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RiftFederateHla3 extends NullFederateAmbassador implements DataSource {
 
+    private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger(RiftFederateHla3.class.getName());
+
     private UUID id;
     private String name;
     private DatasourceConfig config;
@@ -140,7 +142,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
                 }
                 String fdd = readFdd();
                 iem = com.simweaver.common.hla.session.DynamicFom.toModel(fdd, false);
-                System.out.println("Datasource " + name + ": FOM taken from federation " + effectiveFederation + " (FDD "
+                LOG.info("Datasource " + name + ": FOM taken from federation " + effectiveFederation + " (FDD "
                         + com.simweaver.common.hla.session.DynamicFom.fingerprint(fdd) + ", " + iem.getObjectClasses().size()
                         + " object classes" + com.simweaver.common.hla.session.DynamicFom.formatNote(fdd, false)
                         + (iem.getRprFomVersion() > 0 ? ", RPR v" + iem.getRprFomVersion() : "") + ")");
@@ -322,7 +324,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
             try {
                 discoverObjectInstance(h, fddClass, fddInstanceName, null);
             } catch (Exception e) {
-                System.err.println("Datasource " + name + ": the federation object could not be listed: " + e);
+                LOG.warning("Datasource " + name + ": the federation object could not be listed: " + e);
             }
         }
     }
@@ -363,14 +365,16 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
     @Override
     public void connectionLost(String faultDescription) throws FederateInternalError {
         // Runs on an RTI thread: only hand over to the sink (no RTI calls here, the connection is gone)
-        System.err.println("Datasource " + name + ": RTI connection lost: " + faultDescription);
+        // 0.9.22: logged by the sink as datasource.connectionlost (with this reason)
         closeInfra();
         if (callbackSink != null) {
             try {
-                callbackSink.connectionLost(id);
+                callbackSink.connectionLost(id, "RTI connection lost: " + faultDescription);
             } catch (RuntimeException e) {
-                e.printStackTrace();   // never let the sink's failure go back into the RTI
+                LOG.log(java.util.logging.Level.WARNING, "Datasource " + name + ": connection-lost handling failed", e);   // never back into the RTI
             }
+        } else {
+            LOG.warning("Datasource " + name + ": RTI connection lost: " + faultDescription);
         }
     }
 
@@ -412,7 +416,7 @@ public class RiftFederateHla3 extends NullFederateAmbassador implements DataSour
             rtIambassador.requestAttributeValueUpdate(theObject,attributeHandles, new byte[0]);
 
         } catch (Exception e) {
-            System.out.printf("Failed to request attributes for object class: %s\n", objectName);
+            LOG.fine("Datasource " + name + ": failed to request the attributes of " + objectName + ": " + e);
         }
 
 

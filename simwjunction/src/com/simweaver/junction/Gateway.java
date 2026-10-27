@@ -2,6 +2,7 @@ package com.simweaver.junction;
 
 import com.simweaver.common.SimwTimeStamp;
 import com.simweaver.common.json.Json;
+import com.simweaver.common.logging.Events;
 import com.simweaver.junction.config.EndpointConfig;
 import com.simweaver.junction.config.GatewayConfig;
 import com.simweaver.junction.config.RouterConfig;
@@ -171,6 +172,50 @@ public final class Gateway implements Json.Writable {
      * @throws GatewayException when an endpoint cannot be opened or declared
      */
     public void start() throws GatewayException {
+        try {
+            open();
+        } catch (GatewayException e) {
+            Events.warning(LOG, "gateway.startfailed", "Junction gateway " + label() + " did not start: " + e.getMessage(),
+                    eventFields("code", e.getCode()));
+            throw e.markLogged();
+        }
+        Events.notice(LOG, "gateway.started", "Junction gateway " + label() + " started: " + effectiveTargets(),
+                eventFields("targets", targetsText()));
+    }
+
+    /** "config" or "config instance 2" for the log. */
+    private String label() {
+        return cfg.getId() + (FIRST_INSTANCE.equals(instance) ? "" : " instance " + instance);
+    }
+
+    /** gateway, instance, group (if any), then {@code more}, for an event. */
+    private Object[] eventFields(Object... more) {
+        List<Object> l = new ArrayList<Object>();
+        l.add("gateway");
+        l.add(cfg.getId());
+        l.add("instance");
+        l.add(instance);
+        if (cfg.getGroup() != null && !cfg.getGroup().isEmpty()) {
+            l.add("group");
+            l.add(cfg.getGroup());
+        }
+        Collections.addAll(l, more);
+        return l.toArray();
+    }
+
+    /** {@code endpoint:target,endpoint:target} */
+    private String targetsText() {
+        StringBuilder b = new StringBuilder();
+        for (Map.Entry<String, String> t : effectiveTargets().entrySet()) {
+            if (b.length() > 0) {
+                b.append(',');
+            }
+            b.append(t.getKey()).append(':').append(t.getValue() == null ? "" : t.getValue());
+        }
+        return b.toString();
+    }
+
+    private void open() throws GatewayException {
         state = State.STARTING;
         Map<String, String> eff = effectiveTargets();
         Map<String, String> effLsd = effectiveLsds();
@@ -256,7 +301,6 @@ public final class Gateway implements Json.Writable {
             throw new GatewayException(EndpointException.CONFIG_INVALID, e.toString(), e);
         }
         state = State.RUNNING;
-        LOG.info("Junction gateway " + cfg.getId() + (FIRST_INSTANCE.equals(instance) ? "" : " instance " + instance) + " started: " + eff);
     }
 
     private void fail(String m) {
@@ -276,7 +320,7 @@ public final class Gateway implements Json.Writable {
         }
         closeEndpoints(cfg.getRouter().isDeleteOnStop());
         state = State.STOPPED;
-        LOG.info("Junction gateway " + cfg.getId() + (FIRST_INSTANCE.equals(instance) ? "" : " instance " + instance) + " stopped");
+        Events.notice(LOG, "gateway.stopped", "Junction gateway " + label() + " stopped", eventFields());
     }
 
     private void closeEndpoints(boolean deleteObjects) {

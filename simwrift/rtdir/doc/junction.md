@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.9.21. Java 11, no libraries apart from the HLA RTIs.
+Version 0.9.22. Java 11, no libraries apart from the HLA RTIs.
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -688,6 +688,8 @@ The gateway page shows the update mode and how much of the DIS volume was sent (
    - the LSD of each HLA endpoint (section 4, *LSD choices*).
 3. **Kits**: the endpoint and router kits.
 
+**The log** (0.9.22) has an event for every gateway and group started, refused or stopped, and for every HLA endpoint that lost its RTI connection or joined again, with who asked for it (`by=` the client's address, `autostart` or `shutdown`): `gateway.started`, `gateway.startfailed`, `gateway.stopped`, `group.started`, `group.stopped`, `endpoint.connectionlost`, `endpoint.reconnected`. With `syslog.enabled=true` the log goes to a syslog server too. See the Rift guide, section 2.7.
+
 **Infra** in the top bar (0.9.20) lists every DIS / C-DIS exercise the running gateways' DIS endpoints hear and every federation their HLA endpoints have joined, with the senders and federates in them (see the Rift guide, section 2.6). A DIS endpoint does not list its own PDUs there; each HLA endpoint's federate asks the MOM, nothing more.
 
 ---
@@ -728,7 +730,8 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.junction.ProvideForwardSelfTest` | Provide requests the cache cannot answer: only the missing attributes asked of the origin, its answer reaching the requester, cached attributes not asked again, the interval, `router.provide.forward=false`, the counter |
 | `com.simweaver.junction.DisBridgeSelfTest` | HLA ⇄ DIS 7 over UDP: entities, ids, heartbeat, radio and audio, fire both ways, timeout, own-echo suppression; emitter systems, radar and jammer beams both ways (names, references, values, beams switched off, systems removed, heartbeats); IFF transponders and designators both ways; Link 16 (`JTIDSMessageRadioSignal`) both ways; a DIS entity whose name is taken in HLA (`1-2-3@dis`), with fire references following it both ways |
 | `com.simweaver.junction.TalkBridgeSelfTest` | Two Talk federations + DIS radio: channel remapping and renaming, client mirroring, lobby, radio bridge both ways with resampling; messages-only mode (no objects, UUID map, radio by UUID); the lobby only (`talk.channels=none`: lobby audio, text and images pass, a known and an unseen channel do not) |
-| `com.simweaver.junction.GroupSelfTest` | Groups and group variables; instances of a group and of a single gateway: names, refusals, listings, stop per instance, completing an instance; variable descriptions (labels only, merged per group, warnings) |
+| `com.simweaver.junction.GroupSelfTest` | Groups and group variables; instances of a group and of a single gateway: names, refusals, listings, stop per instance, completing an instance; variable descriptions (labels only, merged per group, warnings); the log events of starts, refusals and stops with who asked |
+| `com.simweaver.common.logging.LoggingSelfTest` | Logging and syslog: the settings and their mistakes; RFC 5424 and RFC 3164 messages (PRI, header, time zones, BOM, line breaks, cutting at a character); events and `by=`; INFO to the `.log`, problems to the `.err.log`; the client address of a REST call; UDP, TCP (octet counting and line feeds) and TLS (host name checked, not checked, untrusted) against local receivers; a syslog server that comes up later, a full queue and the dropped-messages notice |
 | `com.simweaver.junction.router.RprConversionSelfTest` | RPR v2 → v3 → v2 with the delivered table, emitter systems and beams, designators and IFF systems included |
 | `com.simweaver.junction.IffBridgeSelfTest` | IFF modes RPR v2 ⇄ v3 (attributes ⇄ IFFData objects) both ways, and DIS IFF PDUs ⇄ an RPR v3 federation |
 | `com.simweaver.junction.NamingSelfTest` | Name templates: tokens, cutting to a length, the settings and their mistakes; an HLA ⇄ HLA gateway renaming in one direction, references in a simple attribute, an array, a record and interaction parameters both ways; the same names after a restart, also for objects that existed before the gateway started |

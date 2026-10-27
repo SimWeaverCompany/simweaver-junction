@@ -183,7 +183,13 @@ Server-wide settings. Restart the server after changing this file.
 | `webserver.root` | `webroot` | The web folder |
 | `webserver.keystore.path` | `keystore.jks` | Key store with the server certificate |
 | `webserver.keystore.pwd` | `password` | Its password |
-| `logdir` | `logs` | Log folder |
+| `logdir` | `logs` | Log folder (2.7) |
+| `syslog.enabled` | `false` | Also send the log to a syslog server (2.7) |
+| `syslog.host` / `syslog.port` | / `514` (`6514` for TLS) | The syslog server |
+| `syslog.protocol` | `udp` | `udp`, `tcp` or `tls` |
+| `syslog.format` | `rfc5424` | `rfc5424` or `rfc3164` (the older BSD format) |
+| `syslog.facility` / `syslog.level` | `local0` / `INFO` | Facility; lowest level sent: `SEVERE`, `WARNING`, `NOTICE`, `INFO`, `CONFIG`, `FINE` |
+| `syslog.*` (more) | | Names, framing, lengths, queue and TLS trust: see 2.7 |
 | `junction.enabled` | `true` | Run SimWeaver Junction gateways (see [junction.md](junction.md)). The 0.9.0 name `junktion.enabled` is still read |
 | `junction.dir` | `etc/junctions` | Junction's configuration folder (0.9.0 name `junktion.dir` still read). `etc/junctions.dist` next to it holds every delivered sample, untouched |
 | `junction.datasourceconfigs` | `true` | List each gateway endpoint as a datasource configuration; `false`: only the files in `etc/datasources` (Inspect on the Junction page still works) |
@@ -463,6 +469,81 @@ Field names are matched without regard to case, so `name` and `NAME` both work (
 - **Breakout tab.** Tick rows and **Open breakout tab**: a tab (`infra.html?watch=key1,key2`) that keeps showing those items, live, while you work elsewhere. The keys stay the same when the same datasource configuration or gateway starts again, so the tab picks an item up again after a restart; until then it says *not connected now*. The marks are kept in your browser.
 - The rows stay while their source runs. A DIS sender is forgotten after `infra.dis.forgetseconds` of silence, a resigned federate after five minutes.
 
+### 2.7 Logging and syslog (0.9.22)
+
+**The log folder.** The server writes everything it prints to `<logdir>/simwjunction.log`; warnings and errors also go to `simwjunction.err.log`. Each line starts with the date and time; each file is rotated at 1 MB, five files kept. A log line is `LEVEL: text`, and an *event* (below) adds its fields in brackets:
+
+```
+2026-10-26 21:01:54.476 NOTICE: Datasource HLA3-RPR2 (Blue) created  [event=datasource.created id=4b33… config=HLA3-RPR2 standard=IEEE1516_2010 federation=Blue by=10.0.0.5]
+```
+
+**Events.** Lifecycle and audit events, logged at level `NOTICE` (normal but significant) or, when something failed, `WARNING`. Each carries `event=<id>` and `by=` — who asked for it:
+
+| `by=` | Meaning |
+|---|---|
+| an IP address, e.g. `10.0.0.5` | A REST call (the Web UI or a script) from that client. Behind a proxy that sets `X-Forwarded-For`: `10.0.0.1 (forwarded for 10.0.0.5)`; the forwarded address is the client's claim, not checked |
+| `autostart` | A gateway with `junction.autostart=true` at start-up |
+| `shutdown` | The server stopping |
+| `rti`, `reconnect` | The RTI or the network (a lost connection, a reconnect) |
+| `server` | The server itself |
+
+| Event | Level | Fields |
+|---|---|---|
+| `server.started` / `server.stopping` / `server.stopped` | NOTICE | `version`, `port`, `pid` |
+| `server.webfailed` | SEVERE | `port`: the web server could not start |
+| `datasource.created` / `datasource.createfailed` | NOTICE / WARNING | `id`, `config`, `standard`, `federation`, `lsd`, `code` (failed) |
+| `datasource.removed` / `datasource.removefailed` | NOTICE / WARNING | `id`, `config`, `federation`, `code` (failed) |
+| `datasource.connectionlost` | WARNING | `id`, `config`, `federation`: the RTI connection (or the DIS socket) was lost; the datasource is removed |
+| `gateway.started` / `gateway.startfailed` | NOTICE / WARNING | `gateway`, `instance`, `group`, `targets`, `code` (failed: also a start the server refused, e.g. `VARIABLES_REQUIRED`) |
+| `gateway.stopped` | NOTICE | `gateway`, `instance`, `group` |
+| `group.started` / `group.startfailed` | NOTICE / WARNING | `group`, `instance`, `started`, `failed` (startfailed: none started) |
+| `group.stopped` | NOTICE | `group`, `instance`, `stopped` |
+| `endpoint.connectionlost` / `endpoint.reconnected` | WARNING / NOTICE | `gateway`, `endpoint`, `federation`: a Junction HLA endpoint lost its RTI connection / joined again |
+
+**Syslog.** With `syslog.enabled=true` the server sends the same log to a syslog server too (rsyslog, syslog-ng, a SIEM). Messages wait in a queue, so logging never waits for the network; while the syslog server cannot be reached the queue is kept and sending is retried (after 1 s, doubling up to a minute). When the queue is full, newer messages are dropped; after the next connection a NOTICE tells the syslog server how many. The local log notes once that syslog cannot be reached, and when it is connected again. The Web UI's server readout (top bar, tooltip) shows the syslog target and what was sent, queued and dropped; `GET /api/serverinfo` has it as `syslog`.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `syslog.enabled` | `false` | Send the log to a syslog server |
+| `syslog.host` | (required) | Its name or address |
+| `syslog.port` | `514`; `6514` for TLS | Its port |
+| `syslog.protocol` | `udp` | `udp` (RFC 5426: one message per datagram, nothing is known about delivery), `tcp` (RFC 6587) or `tls` (RFC 5425: TCP with TLS) |
+| `syslog.format` | `rfc5424` | `rfc5424`, or `rfc3164` for older collectors (BSD format, local time without a year) |
+| `syslog.facility` | `local0` | `kern`, `user`, `mail`, `daemon`, `auth`, `syslog`, `lpr`, `news`, `uucp`, `cron`, `authpriv`, `ftp`, `local0` … `local7`, or a number 0-23 |
+| `syslog.level` | `INFO` | Lowest level sent: `SEVERE`, `WARNING`, `NOTICE` (events and problems only), `INFO`, `CONFIG`, `FINE` (more detail than the local log shows) |
+| `syslog.appname` | `simweaver` | APP-NAME (RFC 5424) / TAG (RFC 3164) |
+| `syslog.hostname` | this computer's name | HOSTNAME in each message |
+| `syslog.tcp.framing` | `octet` (rfc5424), `lf` (rfc3164) | TCP / TLS: octet counting (`<length> <message>`) or a line feed after each message (for collectors that read lines) |
+| `syslog.maxlength` | `2048` (UDP; `1024` with rfc3164), `8192` (TCP, TLS) | Longer messages are cut |
+| `syslog.queuesize` | `10000` | Messages kept while the syslog server cannot be reached |
+| `syslog.bom` | `true` | RFC 5424: mark the message as UTF-8 with a BOM, as the RFC asks; `false` for collectors that show it as junk |
+| `syslog.tls.truststore` | Java's CA certificates | TLS: a `.jks` or `.p12` file with the certificate of the CA that signed the syslog server's certificate (or that certificate itself) |
+| `syslog.tls.truststorepassword` | | Its password |
+| `syslog.tls.verifyhostname` | `true` | TLS: the server's certificate must name `syslog.host`; `false` accepts any certificate the trust store trusts |
+
+A mistake in these settings (an unknown protocol, no host) is shown at start-up (`Syslog: WARNING: …`) and syslog stays off; the server starts anyway.
+
+A message in RFC 5424 format:
+
+```
+<133>1 2026-10-26T21:01:54.476+01:00 rift-1 simweaver 2645 datasource.created [origin software="SimWeaver" swVersion="0.9.22"] Datasource HLA3-RPR2 (Blue) created  [event=datasource.created id=… by=10.0.0.5]
+```
+
+- PRI = facility × 8 + severity. `SEVERE` is severity 3 (error), `WARNING` 4, `NOTICE` 5, `INFO` 6, `CONFIG` and `FINE` 7 (debug).
+- MSGID is the event id (`-` for other messages), so a collector can filter on it; the event's fields are in the message as `key=value` pairs.
+- The process id is the PROCID. Line breaks in a message become ` | `.
+
+Example: TLS to a central collector, events and problems only.
+
+```
+syslog.enabled=true
+syslog.host=logs.example.org
+syslog.protocol=tls
+syslog.tls.truststore=etc/syslog-ca.p12
+syslog.tls.truststorepassword=changeit
+syslog.level=NOTICE
+```
+
 ---
 
 ## 3. Security
@@ -470,6 +551,8 @@ Field names are matched without regard to case, so `name` and `NAME` both work (
 The REST API and the Web UI have **no login**. Anyone who can reach the server's port can
 start and remove datasources and read everything they receive. Restrict access to the port
 with a firewall or network segmentation.
+
+Syslog over UDP or TCP is not encrypted, and UDP messages can be lost without notice. Use `syslog.protocol=tls` when the log crosses networks you do not trust (2.7). The `by=` of an event is the client's address as the server sees it: with no login it says *from where*, not *who*.
 
 ---
 

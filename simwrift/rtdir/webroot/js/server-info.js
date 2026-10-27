@@ -119,9 +119,23 @@
 			mem.processcommitted ? 'Process committed ' + mb(mem.processcommitted) : null,
 			'Threads ' + (i.threads != null ? i.threads : '—') + '  datasources ' + (i.datasources != null ? i.datasources : '—') +
 				'  up ' + uptime(i.uptimeseconds),
-			[i.java ? 'Java ' + i.java : null, i.os || null].filter(Boolean).join('  ')
+			[i.java ? 'Java ' + i.java : null, i.os || null].filter(Boolean).join('  '),
+			syslogLine(i.syslog)
 		].filter(Boolean).join('\n');
 	};
+
+	/* 0.9.22: "Syslog udp 10.0.0.9:514 (RFC 5424): 1520 sent" / "... not reachable: <error>, 12 queued" */
+	function syslogLine(s) {
+		if (!s || !s.enabled) return null;
+		var line = 'Syslog ' + s.protocol + ' ' + s.target + ' (' + (s.format === 'rfc3164' ? 'RFC 3164' : 'RFC 5424') + '): ';
+		if (s.connected) {
+			line += s.sent + ' sent';
+		} else {
+			line += 'not reachable' + (s.lasterror ? ': ' + s.lasterror : '') + ', ' + s.queued + ' queued';
+		}
+		if (s.dropped) line += ', ' + s.dropped + ' dropped';
+		return line;
+	}
 
 	var host = document.getElementById('server-info');
 	if (host && Rift.api && Rift.api.endpoints.serverInfo) {

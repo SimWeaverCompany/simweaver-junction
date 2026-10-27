@@ -90,14 +90,17 @@ public class XrRequestHandler implements HttpHandler {
             }
 
             XrResultPair resultPair;
+            java.net.InetSocketAddress remote = exchange.getRemoteAddress();
+            RequestContext.enter(remote == null || remote.getAddress() == null ? null : remote.getAddress().getHostAddress(),
+                    exchange.getRequestHeaders().getFirst("X-Forwarded-For"));       // 0.9.22: who asked, for the log
             try {
                 resultPair = apiCallHandler.handleCallToJson(
                         requestMethod, requestUri, apiRoute, queryMap, requestBody);
             } catch (RuntimeException e) {
                 // Without this the exchange is never answered: the client sees a reset
                 // connection or waits for a reply that does not come.
-                System.err.println("rest: API handler failed for " + requestMethod + " " + requestUri + ": " + e);
-                e.printStackTrace();
+                java.util.logging.Logger.getLogger(XrRequestHandler.class.getName()).log(java.util.logging.Level.SEVERE,
+                        "rest: API handler failed for " + requestMethod + " " + requestUri, e);
                 sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
                 return;
             }
@@ -107,6 +110,7 @@ public class XrRequestHandler implements HttpHandler {
             }
             sendResponse(exchange, resultPair.getValue(), resultPair.getText());
         } finally {
+            RequestContext.leave();
             exchange.close();   // idempotent; guarantees the connection is released
         }
     }

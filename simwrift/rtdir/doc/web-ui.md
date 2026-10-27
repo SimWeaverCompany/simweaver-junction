@@ -46,7 +46,9 @@ certificate installed as trusted on the client machines.
   The page keeps retrying by itself.
 - **Server readout:** the server version, the server process's CPU (in percent of the whole
   machine) and its memory use. Hover over it for details such as uptime, threads and Java
-  version. It turns amber from 70 % and red from 90 %. It is hidden on narrow screens.
+  version, and, when the server sends its log to a syslog server, how many messages were sent,
+  are waiting or were dropped. It turns amber from 70 % and red from 90 %. It is hidden on
+  narrow screens.
 - **Day / Night:** switches between the dark and the light theme. The browser remembers the
   choice.
 

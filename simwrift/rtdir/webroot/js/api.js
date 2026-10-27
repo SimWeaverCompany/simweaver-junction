@@ -33,7 +33,8 @@
 
 	var endpoints = {
 		/* GET  -> {"serverinfo":{"name","version","uptimeseconds","cpu":{"process","system","cores"},
-		            "memory":{"heapused","heapmax",...},"threads","datasources",...}}   (top bar) */
+		            "memory":{"heapused","heapmax",...},"threads","datasources",
+		            "syslog":{"enabled",...}}}   (top bar) */
 		serverInfo:        function () { return BASE + '/api/serverinfo'; },
 		/* GET  -> {"datasourceconfigs":[{...}]} */
 		datasourceConfigs: function () { return BASE + '/api/datasourceconfigs'; },

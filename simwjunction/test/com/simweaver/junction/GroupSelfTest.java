@@ -89,6 +89,26 @@ public final class GroupSelfTest {
         check("and in the name", "One Fed".equals(withVars.getName()));
         check("nothing unresolved", withVars.getUnresolved().isEmpty());
 
+        // 0.9.22: the log events of starts and stops
+        final List<java.util.logging.LogRecord> events = Collections.synchronizedList(new java.util.ArrayList<java.util.logging.LogRecord>());
+        java.util.logging.Handler capture = new java.util.logging.Handler() {
+            @Override
+            public void publish(java.util.logging.LogRecord rec) {
+                if (com.simweaver.common.logging.Events.tagOf(rec) != null) {
+                    events.add(rec);
+                }
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        java.util.logging.Logger.getLogger("com.simweaver.junction").addHandler(capture);
+
         JunctionManager m = new JunctionManager(dir, j, null, Inspector.NONE);
         try {
             m.start("one", new LinkedHashMap<String, String>());
@@ -98,7 +118,8 @@ public final class GroupSelfTest {
         }
         Map<String, String> vars = new LinkedHashMap<String, String>();
         vars.put("GROUPVAR1", "FederationX");
-        List<JunctionManager.GroupStart> r = m.startGroup("Exercise", vars);
+        List<JunctionManager.GroupStart> r = com.simweaver.common.rest.RequestContext.runAs("10.9.8.7",
+                () -> m.startGroup("Exercise", vars));
         check("group start: two gateways", r.size() == 2);
         for (JunctionManager.GroupStart s : r) {
             check(s.configId + " started " + (s.error == null ? "" : s.error.getMessage()), s.error == null && s.gateway != null
@@ -114,11 +135,28 @@ public final class GroupSelfTest {
                 && "FederationX-two-b".equals(targets.get("b")));
         check("the other group is not started", m.gateways().size() == 2);
         check("unknown group", m.startGroup("Nope", vars).isEmpty());
+        check("event: refused start is gateway.startfailed (VARIABLES_REQUIRED, by=server)", events.size() > 0
+                && event(events.get(0)).equals("event=gateway.startfailed gateway=one code=VARIABLES_REQUIRED by=server")
+                && events.get(0).getLevel() == java.util.logging.Level.WARNING);
+        check("events: gateway.started twice and group.started, by the caller", events.size() == 4
+                && event(events.get(1)).startsWith("event=gateway.started gateway=") && event(events.get(1)).contains(" instance=1 group=Exercise targets=")
+                && event(events.get(1)).endsWith(" by=10.9.8.7") && event(events.get(2)).startsWith("event=gateway.started ")
+                && event(events.get(3)).equals("event=group.started group=Exercise instance=1 started=2 failed=0 by=10.9.8.7")
+                && events.get(3).getLevel() == com.simweaver.common.logging.Events.NOTICE);
         instances(m);
         m.shutdown();
+        long stopped = events.stream().filter(x -> event(x).startsWith("event=gateway.stopped gateway=")).count();
+        long started = events.stream().filter(x -> event(x).startsWith("event=gateway.started gateway=")).count();
+        check("events: one gateway.stopped per gateway.started (" + started + ")", started > 4 && stopped == started);
+        check("events: group.stopped for stopGroup", events.stream().anyMatch(x -> event(x).startsWith("event=group.stopped group=Exercise")));
+        java.util.logging.Logger.getLogger("com.simweaver.junction").removeHandler(capture);
         descriptions(rpr2, jar);
         System.out.println(checks + " checks, " + failures + " failures");
         System.exit(failures == 0 ? 0 : 1);
+    }
+
+    private static String event(java.util.logging.LogRecord r) {
+        return com.simweaver.common.logging.Events.tagOf(r).text();
     }
 
     /** Several instances of a group and of a single gateway: names, refusals, listings, stop per instance. */

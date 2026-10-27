@@ -143,7 +143,12 @@ Version and resource use of the server process. Cheap to call; the Web UI polls 
       "physicaltotal": 34359738368, "physicalfree": 12884901888
     },
     "threads": 57,
-    "datasources": 2
+    "datasources": 2,
+    "syslog": {
+      "enabled": true, "target": "logs.example.org:6514", "protocol": "tls", "format": "rfc5424",
+      "level": "INFO", "connected": true, "connectedsince": "2026-10-21T06:00:01.020Z",
+      "sent": 1520, "queued": 0, "dropped": 0
+    }
   }
 }
 ```
@@ -157,6 +162,7 @@ Version and resource use of the server process. Cheap to call; the Web UI polls 
 | `memory.*` | Bytes. `heap*` = Java heap; `processcommitted` = memory committed to the process; `physical*` = the machine's RAM |
 | `threads` | Live threads in the server process |
 | `datasources` | Running datasources |
+| `syslog` | 0.9.22. `{"enabled": false}` without syslog. Otherwise its settings (`target`, `protocol`, `format`, `level`; install guide 2.7) and state: `connected` (UDP: once the address is known), `connectedsince`, messages `sent`, `queued` (waiting for the syslog server) and `dropped` (the queue was full), and after a problem `lasterror` / `lasterrortime` |
 
 Any `cpu` or `memory` value is `null` when the Java runtime cannot tell.
 

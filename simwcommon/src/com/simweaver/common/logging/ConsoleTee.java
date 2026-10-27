@@ -34,6 +34,8 @@ public final class ConsoleTee {
     private ConsoleTee() {
     }
 
+    private static volatile Runnable closer;
+
     /**
      * @param dir       directory the logs are written to (created if missing)
      * @param baseName  file name stem, e.g. "bridgeservice"
@@ -42,6 +44,16 @@ public final class ConsoleTee {
      */
     public static void install(Path dir, String baseName, long maxBytes, int maxFiles)
             throws IOException {
+        install(dir, baseName, maxBytes, maxFiles, true);
+    }
+
+    /**
+     * As {@link #install(Path, String, long, int)}; with {@code closeOnShutdown=false} the files
+     * stay open until {@link #close()} is called, so a shutdown hook of the application can still
+     * log its last lines (0.9.22).
+     */
+    public static void install(Path dir, String baseName, long maxBytes, int maxFiles, boolean closeOnShutdown)
+            throws IOException {
 
         RotatingSink outSink = new RotatingSink(dir.resolve(baseName + ".log"), maxBytes, maxFiles);
         RotatingSink errSink = new RotatingSink(dir.resolve(baseName + ".err.log"), maxBytes, maxFiles);
@@ -49,15 +61,31 @@ public final class ConsoleTee {
         PrintStream originalOut = System.out;
         PrintStream originalErr = System.err;
 
-        System.setOut(tee(originalOut, outSink));
-        System.setErr(tee(originalErr, errSink));
+        PrintStream teeOut = tee(originalOut, outSink);
+        PrintStream teeErr = tee(originalErr, errSink);
+        System.setOut(teeOut);
+        System.setErr(teeErr);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            close(System.out);   // flushes any unterminated partial line
-            close(System.err);
+        closer = () -> {
+            close(teeOut);       // flushes any unterminated partial line
+            close(teeErr);
+            System.setOut(originalOut);
+            System.setErr(originalErr);
             close(outSink);
             close(errSink);
-        }, "console-tee-shutdown"));
+        };
+        if (closeOnShutdown) {
+            Runtime.getRuntime().addShutdownHook(new Thread(ConsoleTee::close, "console-tee-shutdown"));
+        }
+    }
+
+    /** Writes the last partial lines and closes the files; the console keeps working. */
+    public static synchronized void close() {
+        Runnable c = closer;
+        closer = null;
+        if (c != null) {
+            c.run();
+        }
     }
 
     /** Wraps an OutputStream that echoes to {@code original} and emits whole lines to {@code sink}. */

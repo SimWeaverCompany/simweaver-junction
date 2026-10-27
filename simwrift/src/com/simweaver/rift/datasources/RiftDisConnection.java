@@ -320,7 +320,7 @@ public abstract class RiftDisConnection implements DataSource {
                     s.close();
                     if (callbackSink != null) {
                         try {
-                            callbackSink.connectionLost(id);
+                            callbackSink.connectionLost(id, "receiving failed: " + e.getMessage());
                         } catch (RuntimeException sinkFailure) {
                             LOG.log(Level.WARNING, "DIS datasource " + name + ": callback failed", sinkFailure);
                         }

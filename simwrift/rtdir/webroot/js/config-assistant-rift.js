@@ -325,8 +325,12 @@
 		if (s.mapEnabled === undefined) { s.mapEnabled = true; s.mapDir = 'maps/raster'; s.mapCache = 'maps/cache'; s.mapMaxZoom = ''; }
 		if (s.mapFile === undefined) { s.mapFile = ''; }
 		if (s.jxList === undefined) { s.jxList = true; }
+		if (s.syslogOn === undefined) {          // 0.9.22: saved states from before
+			s.syslogOn = false; s.syslogHost = ''; s.syslogProtocol = 'udp'; s.syslogPort = ''; s.syslogFormat = 'rfc5424';
+			s.syslogFacility = 'local0'; s.syslogLevel = 'INFO'; s.syslogTrust = ''; s.syslogTrustPwd = '';
+		}
 		var body = [
-			el('p.ca-lead', null, ca.rich('Server-wide settings: the HTTPS port, the key store, the log folder, and whether Junction runs. Only needed when the defaults do not suit you.')),
+			el('p.ca-lead', null, ca.rich('Server-wide settings: the HTTPS port, the key store, the log folder and syslog, and whether Junction runs. Only needed when the defaults do not suit you.')),
 			ca.check(s, 'on', '**Write server settings** (`etc/server.root.settings`)')
 		];
 		if (s.on) { body.push(ca.goesInto([{ role: 'server', path: 'etc/server.root.settings' }])); }
@@ -349,6 +353,31 @@
 				s.mapEnabled ? ca.field('Tile cache', ca.input(s, 'mapCache', { placeholder: 'maps/cache' }), 'Made tiles, on disk. Rebuilt when the raster file changes.') : null,
 				s.mapEnabled ? ca.field('Deepest tile zoom', ca.input(s, 'mapMaxZoom', { numeric: true, placeholder: 'from the raster (Natural Earth 10 m: 6)',
 					validate: function (v) { return v && !ca.isInt(v, 1, 14) ? '1 - 14' : null; } }), 'Deeper zooms scale these tiles up.', { opt: true }) : null
+			]));
+			body.push(ca.sub('Syslog'));
+			body.push(ca.note('The server can send its log to a syslog server too: start and stop of the server, datasources and gateways created or removed with the address of whoever asked, lost connections, problems. Messages wait in a queue while the syslog server cannot be reached.'));
+			var tls = s.syslogProtocol === 'tls';
+			body.push(ca.grid([
+				ca.field('Syslog', ca.check(s, 'syslogOn', 'Send the log to a syslog server')),
+				s.syslogOn ? ca.field('Syslog server', ca.input(s, 'syslogHost', { placeholder: 'logs.example.org',
+					validate: function (v) { return !String(v || '').trim() ? 'needed' : (/\s/.test(String(v).trim()) ? 'a name or address' : null); } }),
+					'Name or address.', { req: true }) : null,
+				s.syslogOn ? ca.field('Protocol', ca.select(s, 'syslogProtocol', [
+					{ v: 'udp', l: 'UDP (default)' }, { v: 'tcp', l: 'TCP' }, { v: 'tls', l: 'TLS (encrypted)' }]),
+					'UDP may lose messages without notice; TLS when the log crosses networks you do not trust.') : null,
+				s.syslogOn ? ca.field('Port', ca.input(s, 'syslogPort', { numeric: true, placeholder: tls ? '6514' : '514',
+					validate: function (v) { return v && portCheck(v) ? '1 - 65535' : null; } }), null, { opt: true }) : null,
+				s.syslogOn ? ca.field('Format', ca.select(s, 'syslogFormat', [
+					{ v: 'rfc5424', l: 'RFC 5424 (default)' }, { v: 'rfc3164', l: 'RFC 3164 (older collectors)' }])) : null,
+				s.syslogOn ? ca.field('Facility', ca.select(s, 'syslogFacility', ['local0', 'local1', 'local2', 'local3', 'local4', 'local5',
+					'local6', 'local7', 'user', 'daemon'].map(function (f) { return { v: f, l: f + (f === 'local0' ? ' (default)' : '') }; }))) : null,
+				s.syslogOn ? ca.field('Lowest level sent', ca.select(s, 'syslogLevel', [
+					{ v: 'SEVERE', l: 'SEVERE: errors' }, { v: 'WARNING', l: 'WARNING: problems' },
+					{ v: 'NOTICE', l: 'NOTICE: events and problems' }, { v: 'INFO', l: 'INFO (default): as the log file' },
+					{ v: 'FINE', l: 'FINE: more detail' }])) : null,
+				s.syslogOn && tls ? ca.field('Trust store', ca.input(s, 'syslogTrust', { placeholder: "Java's CA certificates" }),
+					'A .p12 or .jks file with the CA of the syslog server\'s certificate, when Java\'s own CAs do not have it.', { opt: true }) : null,
+				s.syslogOn && tls && String(s.syslogTrust || '').trim() ? ca.field('Trust store password', ca.input(s, 'syslogTrustPwd', {})) : null
 			]));
 			body.push(ca.sub('Certificate (HTTPS)'));
 			body.push(ca.note('The server only speaks HTTPS. It needs a Java key store with a certificate. The command in the result creates a self-signed one with Java\'s `keytool`; browsers warn about it once.'));
@@ -482,6 +511,19 @@
 			sp.kv('webserver.keystore.pwd', s.pwd || 'password');
 			sp.blank();
 			sp.kv('logdir', s.logdir.trim() || 'logs', 'log folder');
+			if (s.syslogOn) {
+				sp.kv('syslog.enabled', 'true', 'also send the log to a syslog server');
+				sp.kv('syslog.host', String(s.syslogHost || '').trim());
+				if (s.syslogProtocol && s.syslogProtocol !== 'udp') { sp.kv('syslog.protocol', s.syslogProtocol); }
+				if (String(s.syslogPort || '').trim()) { sp.kv('syslog.port', String(s.syslogPort).trim()); }
+				if (s.syslogFormat === 'rfc3164') { sp.kv('syslog.format', 'rfc3164'); }
+				if (s.syslogFacility && s.syslogFacility !== 'local0') { sp.kv('syslog.facility', s.syslogFacility); }
+				if (s.syslogLevel && s.syslogLevel !== 'INFO') { sp.kv('syslog.level', s.syslogLevel); }
+				if (s.syslogProtocol === 'tls' && String(s.syslogTrust || '').trim()) {
+					sp.kv('syslog.tls.truststore', String(s.syslogTrust).trim().replace(/\\/g, '/'));
+					if (s.syslogTrustPwd) { sp.kv('syslog.tls.truststorepassword', s.syslogTrustPwd); }
+				}
+			}
 			sp.blank();
 			sp.kv('junction.enabled', s.jxEnabled ? 'true' : 'false', 'SimWeaver Junction gateways');
 			if (s.jxEnabled) { sp.kv('junction.dir', s.jxDir.trim() || 'etc/junctions'); }
@@ -498,6 +540,8 @@
 				about: 'Every installation has this file: replace it, or copy the lines you changed into it.', content: sp.text(),
 				role: 'server', from: { text: 'the **Server settings** box', ref: { section: 'rift', box: 'server' } } });
 			if (portCheck(s.port)) { issues.push({ level: 'err', text: 'Server settings: the HTTPS port is not a port number.' }); }
+			if (s.syslogOn && !String(s.syslogHost || '').trim()) { issues.push({ level: 'err', text: 'Server settings: syslog needs the syslog server.' }); }
+			if (s.syslogOn && String(s.syslogPort || '').trim() && portCheck(s.syslogPort)) { issues.push({ level: 'err', text: 'Server settings: the syslog port is not a port number.' }); }
 			if (!s.pwd) { issues.push({ level: 'warn', text: 'Server settings: the key store password is the built-in default "password".' }); }
 		}
 

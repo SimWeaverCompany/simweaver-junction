@@ -1,6 +1,8 @@
 package com.simweaver.junction;
 
 import com.simweaver.common.json.Json;
+import com.simweaver.common.logging.Events;
+import com.simweaver.common.rest.RequestContext;
 import com.simweaver.common.rest.XrSseHub;
 import com.simweaver.junction.config.ConfigLoader;
 import com.simweaver.junction.config.EndpointConfig;
@@ -180,6 +182,22 @@ public final class JunctionManager {
      */
     public Gateway start(String configId, Map<String, String> targets, Map<String, String> vars, String instance,
                          Map<String, String> lsds) throws GatewayException {
+        try {
+            return startChecked(configId, targets, vars, instance, lsds);
+        } catch (GatewayException e) {
+            if (!e.isLogged()) {                     // refused before the gateway tried to open
+                Events.warning(LOG, "gateway.startfailed", "Junction gateway " + configId
+                        + (instance == null || instance.trim().isEmpty() ? "" : " instance " + instance.trim())
+                        + " did not start: " + e.getMessage(), "gateway", configId,
+                        "instance", instance == null || instance.trim().isEmpty() ? null : instance.trim(), "code", e.getCode());
+                e.markLogged();
+            }
+            throw e;
+        }
+    }
+
+    private Gateway startChecked(String configId, Map<String, String> targets, Map<String, String> vars, String instance,
+                                 Map<String, String> lsds) throws GatewayException {
         String wanted = checkInstanceName(instance);
         reload();
         if (configs.gateway(configId) == null) {
@@ -528,6 +546,13 @@ public final class JunctionManager {
                 reservedInstances.remove(key);
             }
         }
+        int ok = 0;
+        for (GroupStart gs : out) {
+            ok += gs.error == null ? 1 : 0;
+        }
+        Events.log(LOG, ok > 0 ? Events.NOTICE : Level.WARNING, ok > 0 ? "group.started" : "group.startfailed",
+                "Junction group " + group + " instance " + inst + ": " + ok + " of " + out.size() + " gateways started",
+                "group", group, "instance", inst, "started", ok, "failed", out.size() - ok);
         return out;
     }
 
@@ -550,6 +575,10 @@ public final class JunctionManager {
                 n++;
             }
         }
+        if (n > 0) {
+            Events.notice(LOG, "group.stopped", "Junction group " + group + (instance == null ? "" : " instance " + instance.trim())
+                    + ": " + n + " gateways stopped", "group", group, "instance", instance == null ? null : instance.trim(), "stopped", n);
+        }
         return n;
     }
 
@@ -558,18 +587,21 @@ public final class JunctionManager {
         return gateways.values().stream().anyMatch(g -> group.equals(g.getConfig().getGroup()) && g.getInstance().equals(instance.trim()));
     }
 
-    /** Starts the gateways marked {@code junction.autostart=true}, in the background. */
+    /**
+     * Starts the gateways marked {@code junction.autostart=true}, in the background. Their log
+     * events name who called this ({@code RequestContext}; the server calls it as "autostart").
+     */
     public void autostart() {
+        final String by = RequestContext.actor();
         for (final GatewayConfig c : configs.getGateways()) {
             if (c.isAutostart() && c.isValid()) {
-                Thread t = new Thread(() -> {
+                Thread t = new Thread(() -> RequestContext.runAs(by, () -> {
                     try {
-                        Gateway g = start(c.getId(), new LinkedHashMap<String, String>());
-                        LOG.info("Junction: started " + c.getId() + " (autostart): " + g.effectiveTargets());
+                        start(c.getId(), new LinkedHashMap<String, String>());
                     } catch (GatewayException e) {
-                        LOG.warning("Junction: autostart of " + c.getId() + " failed: " + e.getMessage());
+                        // logged as gateway.startfailed (by=autostart)
                     }
-                }, "junction-autostart-" + c.getId());
+                }), "junction-autostart-" + c.getId());
                 t.setDaemon(true);
                 t.start();
             }

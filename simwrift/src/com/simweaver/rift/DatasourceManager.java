@@ -4,6 +4,7 @@ package com.simweaver.rift;
 import com.simweaver.common.config.SimwProperties;
 import com.simweaver.common.hla.FederationProbe;
 import com.simweaver.common.json.Json;
+import com.simweaver.common.logging.Events;
 import com.simweaver.common.rest.Jsons;
 import com.simweaver.common.rest.XrResultPair;
 import com.simweaver.common.rest.XrSseHub;
@@ -29,9 +30,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class DatasourceManager implements DataSourceCallbackSink {
+
+    private static final Logger LOG = Logger.getLogger(DatasourceManager.class.getName());
 
     /** NEW: optional list-view profiles (see RiftListProfiles.fromProperties); RPR defaults when absent. */
     private static final Path LIST_PROFILES_FILE = Paths.get("etc/listprofiles.properties");
@@ -44,6 +49,8 @@ public class DatasourceManager implements DataSourceCallbackSink {
     private final RiftListProfiles listProfiles;
     private final Map<UUID, RiftEventPublisher> publishers = new ConcurrentHashMap<>();
     private final Map<UUID, String[]> states = new ConcurrentHashMap<>();  // {state, statemessage}
+    // 0.9.22: {configuration name, federation or ""} per datasource, for the log events
+    private final Map<UUID, String[]> labels = new ConcurrentHashMap<>();
 
     // NEW: version, CPU and memory for GET /api/serverinfo (the web UI's top bar)
     private final ServerInfo serverInfo = new ServerInfo("SimWeaver Rift", Version::getVersion);
@@ -103,7 +110,7 @@ public class DatasourceManager implements DataSourceCallbackSink {
 
 
         } catch (IOException e) {
-            System.err.println("Error reading directory: " + e.getMessage());
+            LOG.warning("Error reading the datasource configurations: " + e.getMessage());
             // NEW: the external configurations do not depend on the folder
             List<DatasourceConfig> loaded = new ArrayList<>();
             addExternal(loaded);
@@ -128,7 +135,7 @@ public class DatasourceManager implements DataSourceCallbackSink {
                 List<DatasourceConfig> l = source.get();
                 if (l != null) into.addAll(l);
             } catch (RuntimeException e) {
-                System.err.println("External datasource configurations failed: " + e);
+                LOG.log(Level.WARNING, "External datasource configurations failed: " + e, e);
             }
         }
     }
@@ -164,7 +171,7 @@ public class DatasourceManager implements DataSourceCallbackSink {
             }
 
         }catch (NumberFormatException nfe){
-            nfe.printStackTrace();
+            LOG.fine("autofederations: '" + datasourceConfigId + "' is not a configuration id");
         }
 
         return Json.object().put("federations",federations).toString();
@@ -230,6 +237,22 @@ public class DatasourceManager implements DataSourceCallbackSink {
 
     /** @param lsd 0.9.15, HLA: the LSD / RTI configuration name to connect with; null = the configuration's default */
     public SetupResult setupDatasource(DatasourceConfig config, String federation, String lsd) {
+        SetupResult r = createDatasource(config, federation, lsd);
+        String fed = federation == null || federation.trim().isEmpty() ? null : federation.trim();
+        if (r.dataSource != null) {
+            labels.put(r.dataSource.getId(), new String[] {config.getName(), fed == null ? "" : fed});
+            Events.notice(LOG, "datasource.created", "Datasource " + config.getName() + (fed == null ? "" : " (" + fed + ")")
+                    + " created", "id", r.dataSource.getId(), "config", config.getName(), "standard", config.getStandard() == null ? null : config.getStandard().name(),
+                    "federation", fed, "lsd", lsd == null || lsd.isEmpty() ? null : lsd);
+        } else {
+            Events.warning(LOG, "datasource.createfailed", "Datasource " + config.getName() + (fed == null ? "" : " (" + fed + ")")
+                    + " could not be created: " + r.message, "config", config.getName(), "standard", config.getStandard() == null ? null : config.getStandard().name(),
+                    "federation", fed, "lsd", lsd == null || lsd.isEmpty() ? null : lsd, "code", r.errorCode);
+        }
+        return r;
+    }
+
+    private SetupResult createDatasource(DatasourceConfig config, String federation, String lsd) {
         DataSource dataSource;
         try {
             dataSource = DatasourceFactory.createDatasource(config, federation, lsd, this);
@@ -259,7 +282,6 @@ public class DatasourceManager implements DataSourceCallbackSink {
             // FIX: a failed join left the RTI connected and the database threads running
             dataSource.disconnect();
             discard(dataSource.getId(), db);
-            System.out.println(createJsonResultFailure("INTERNAL_ERROR",result.getMessage()));
             return new SetupResult(null, 500, "INTERNAL_ERROR", result.getMessage());
         }
     }
@@ -302,7 +324,12 @@ public class DatasourceManager implements DataSourceCallbackSink {
         for (DataSource dataSource : dataSources) {
             if (dataSource.getId().toString().equalsIgnoreCase(datasourceId)){
                 OpResult disconnectResult = dataSource.disconnect();
+                String[] label = labels.getOrDefault(dataSource.getId(), new String[] {"?", ""});
+                String what = "Datasource " + label[0] + (label[1].isEmpty() ? "" : " (" + label[1] + ")");
                 if (disconnectResult.isSuccess()){
+                    labels.remove(dataSource.getId());
+                    Events.notice(LOG, "datasource.removed", what + " removed", "id", dataSource.getId(), "config", label[0],
+                            "federation", label[1].isEmpty() ? null : label[1]);
                     dataSources.remove(dataSource);
                     // NEW: open pages go back to the overview; the database threads stop
                     RiftEventPublisher publisher = publishers.get(dataSource.getId());
@@ -311,6 +338,9 @@ public class DatasourceManager implements DataSourceCallbackSink {
                     return new XrResultPair("",204);                              // FIX: 204 has no body
                 }
                 else{
+                    Events.warning(LOG, "datasource.removefailed", what + " could not be removed: " + disconnectResult.getMessage(),
+                            "id", dataSource.getId(), "config", label[0], "federation", label[1].isEmpty() ? null : label[1],
+                            "code", "RESIGN_FAILED");
                     return new XrResultPair(createJsonResultFailure("RESIGN_FAILED", disconnectResult.getMessage()),409);
                 }
             }
@@ -353,7 +383,7 @@ public class DatasourceManager implements DataSourceCallbackSink {
         try (InputStream in = Files.newInputStream(LIST_PROFILES_FILE)) {
             p.load(in);
         } catch (IOException e) {
-            System.err.println("Error reading " + LIST_PROFILES_FILE + ": " + e.getMessage() + " (using the RPR defaults)");
+            LOG.warning("Error reading " + LIST_PROFILES_FILE + ": " + e.getMessage() + " (using the RPR defaults)");
             return RiftListProfiles.rprDefaults();
         }
         return RiftListProfiles.fromProperties(p, RiftListProfiles.PROPERTY_PREFIX, RiftListProfiles.rprDefaults());
@@ -370,8 +400,21 @@ public class DatasourceManager implements DataSourceCallbackSink {
      */
     @Override
     public void connectionLost(UUID datasourceId) {
+        connectionLost(datasourceId, null);
+    }
+
+    /** 0.9.22: with the reason, logged as datasource.connectionlost. */
+    @Override
+    public void connectionLost(UUID datasourceId, String reason) {
         for (DataSource dataSource : dataSources) {
             if (dataSource.getId().equals(datasourceId)){                  // FIX: was ==, a reference comparison
+                String[] label = labels.getOrDefault(datasourceId, new String[] {"?", ""});
+                labels.remove(datasourceId);
+                Events.warning(LOG, "datasource.connectionlost", "Datasource " + label[0]
+                        + (label[1].isEmpty() ? "" : " (" + label[1] + ")") + " lost its connection"
+                        + (reason == null || reason.isEmpty() ? "" : ": " + reason) + "; it is removed",
+                        "id", datasourceId, "config", label[0], "federation", label[1].isEmpty() ? null : label[1],
+                        "by", "rti");
                 setState(datasourceId, "CONNECTION_LOST", "The connection to the RTI was lost");
                 RiftEventPublisher publisher = publishers.get(datasourceId);
                 if (publisher != null) publisher.datasourceRemoved();

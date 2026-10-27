@@ -10,6 +10,22 @@ webserver.keystore.path=keystore.jks
 webserver.keystore.pwd=password
 logdir=./log
 
+# ---------------------------------------------------------------- syslog (0.9.22)
+# Also send the log to a syslog server. Full list: doc/simweaver-rift-install-and-config.md, 2.7.
+syslog.enabled=false
+#syslog.host=logs.example.org
+# udp (default, port 514), tcp (514) or tls (6514)
+#syslog.protocol=udp
+#syslog.port=514
+# rfc5424 (default) or rfc3164 (the older BSD format)
+#syslog.format=rfc5424
+#syslog.facility=local0
+# lowest level sent: SEVERE WARNING NOTICE (events and problems only) INFO CONFIG FINE
+#syslog.level=INFO
+# tls: the CA of the syslog server's certificate, if Java's own CAs do not have it
+#syslog.tls.truststore=etc/syslog-ca.p12
+#syslog.tls.truststorepassword=changeit
+
 # ---------------------------------------------------------------- Junction gateways
 junction.enabled=true
 junction.dir=etc/junctions

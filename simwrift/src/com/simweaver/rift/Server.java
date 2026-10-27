@@ -4,6 +4,9 @@ package com.simweaver.rift;
 import com.simweaver.common.config.SimwArgs;
 import com.simweaver.common.config.SimwProperties;
 import com.simweaver.common.logging.ConsoleTee;
+import com.simweaver.common.logging.Events;
+import com.simweaver.common.logging.LogSetup;
+import com.simweaver.common.rest.RequestContext;
 import com.simweaver.common.rest.XrServer;
 import com.simweaver.common.rest.XrSseHub;
 import com.simweaver.junction.JunctionManager;
@@ -16,12 +19,15 @@ import com.simweaver.rift.map.MapService;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.logging.Logger;
 
 public class Server {
 
     public static void main(String[] args){
 
-
+        // 0.9.22: before anything logs (the log stays open while the server stops)
+        LogSetup.prepare();
 
         // Read basic config
         SimwProperties cfg = new SimwProperties();
@@ -35,10 +41,13 @@ public class Server {
         // Logging
         String mainLogDir = cfg.getString("logdir","logs");
         try {
-            ConsoleTee.install(Paths.get(mainLogDir), "simwjunction", 1024 * 1024, 5);
+            ConsoleTee.install(Paths.get(mainLogDir), "simwjunction", 1024 * 1024, 5, false);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // 0.9.22: one line per log record (INFO to the .log, problems to the .err.log) and syslog
+        List<String> syslogLines = LogSetup.install(cfg, Version.getVersion());
+        final Logger log = Logger.getLogger(Server.class.getName());
 
         //
         int webPort = cfg.getInt("webserver.port",8843);
@@ -53,6 +62,9 @@ public class Server {
         System.out.println();
         System.out.println("Log directory: "+mainLogDir);
         System.out.println("Web port:      "+webPort);
+        for (String line : syslogLines) {
+            System.out.println("Syslog:        " + line);
+        }
         System.out.println();
 
         System.out.println("Starting services...");
@@ -102,6 +114,8 @@ public class Server {
         } catch (Exception e) {
             System.out.println("There was an issue starting the web server:");
             System.out.println(e.getMessage());
+            Events.log(log, java.util.logging.Level.SEVERE, "server.webfailed",
+                    "The web server could not start on port " + webPort + ": " + e.getMessage(), "port", webPort);
         }
 
         System.out.println("Listening to HTTPS on TCP port " + webPort);
@@ -109,22 +123,31 @@ public class Server {
         System.out.println("API URL:   https://SERVER-IP:" + webPort + "/api");
         System.out.println();
         System.out.println("We are good to go!");
+        Events.notice(log, "server.started", Version.PRODUCT_NAME + " " + Version.getVersion() + " started",
+                "version", Version.getVersion(), "port", webPort, "pid", ProcessHandle.current().pid());
 
         if (junctionManager != null) {
-            junctionManager.autostart();                 // NEW: gateways with junction.autostart=true
+            // NEW: gateways with junction.autostart=true; 0.9.22: logged as started by "autostart"
+            RequestContext.runAs("autostart", junctionManager::autostart);
         }
 
 
-        Runtime.getRuntime().addShutdownHook(new Thread()
+        Runtime.getRuntime().addShutdownHook(new Thread("server-shutdown")
         {
             public void run()
             {
-                System.out.println("Shutdown Hook is running to clean up...");
-                // NEW: stop the gateways (their bridged objects are deleted, the federates resign)
-                if (junctionManager != null) {
-                    junctionManager.shutdown();
-                }
-                maps.shutdown();
+                RequestContext.runAs("shutdown", () -> {
+                    Events.notice(log, "server.stopping", Version.PRODUCT_NAME + " is stopping");
+                    System.out.println("Shutdown Hook is running to clean up...");
+                    // NEW: stop the gateways (their bridged objects are deleted, the federates resign)
+                    if (junctionManager != null) {
+                        junctionManager.shutdown();
+                    }
+                    maps.shutdown();
+                    Events.notice(log, "server.stopped", Version.PRODUCT_NAME + " stopped");
+                });
+                LogSetup.shutdown();          // 0.9.22: what syslog still has queued is sent (at most 3 s)
+                ConsoleTee.close();
             }
         });
     }
