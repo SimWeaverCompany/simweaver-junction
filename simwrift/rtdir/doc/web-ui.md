@@ -157,13 +157,26 @@ history.
 
 **Map** (in the object panel: **☰ List | ◉ Map**, or **⧉ Map tab** for a page of its own)
 - The objects of the current filter (class tree, search, *+ related*) that have a position, on a
-  map: circles coloured by force (friendly blue, opposing red, neutral green, other yellow),
-  sized by zoom, with a speed line in the heading. The labels show the marking, entity id and
+  map: symbols coloured by force (friendly blue, opposing red, neutral green, other yellow),
+  sized by zoom, with a speed line in the heading. The shape tells what kind of object it is
+  (0.9.22; the legend shows them):
+
+  | Symbol | Objects (the class and its subclasses) |
+  |---|---|
+  | Circle | Platforms, and every other kind of entity |
+  | Smaller circle (80 %) | `Lifeform` (people, animals) and `Munition` |
+  | Square, as wide as the circle | `AggregateEntity` (units, formations) |
+  | Smaller square (80 %) | Attached equipment: radios, emitter systems, designators and other `EmbeddedSystem`s, beams, and radio or sensor entities attached to a platform. White, as they have no force of their own |
+
+  The shape comes from the class name, so it works for DIS (by entity kind) and for RPR v2,
+  RPR v3 and NETN federations alike. The labels show the marking, entity id and
   class; where they would overlap, only some are shown (**LBL** switches automatic / all / off).
 - Positions are the dead-reckoned `Spatial`, updated once a second and moved on in between.
   Objects without a position are counted in the status line, not drawn.
 - **Carried objects** (radios, mounted or attached parts) are not drawn on their own: their host
-  has a **+N** badge. Click it to fan them out, or use *Carries N* in the host's card.
+  has a **+N** badge. Click it to fan them out, or use *Carries N* in the host's card. Fanned out,
+  each has its own shape: equipment a small white square, a mounted lifeform a small circle in
+  its force's colour, and so on.
 - **Zoom** with the wheel, a pinch, double-click, **+ / −** or the keys `+` `-`; drag or use the arrow
   keys to pan. **⤢** shows all entities.
 - **Click an entity** for its card: position, altitude, heading, speed, what it carries.

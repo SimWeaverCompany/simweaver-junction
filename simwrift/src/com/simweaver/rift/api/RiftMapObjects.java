@@ -196,6 +196,7 @@ final class RiftMapObjects {
                 ce.put("classnameq", x.getClassName());
                 ce.put("entityid", x.getEntityKey());
                 ce.put("relation", via.getOrDefault(x, "hosted"));
+                ce.put("force", force(text(x, "ForceIdentifier")));     // 0.9.22: a carried entity's symbol colour
                 RiftInstance h = hostOf.get(x);
                 if (h != null && h != o) {
                     ce.put("parent", h.externalId());          // a host below the drawn one

@@ -1,8 +1,13 @@
 /* ============================================================
    SimWeaver Rift - map view (NEW).
    The objects of a datasource's object list filter that have a
-   position, on a zoomable map: circles coloured by force, sized by
-   zoom, labelled with marking, entity id and class. Positions are
+   position, on a zoomable map: symbols coloured by force, sized by
+   zoom, labelled with marking, entity id and class. The shape tells
+   the kind of object (0.9.22, symbolOf): a circle for platforms and
+   anything else, a smaller circle (80 %) for lifeforms and munitions,
+   a square as wide as the circle for aggregates, a smaller square
+   (80 %) for attached equipment (radios, emitters and other embedded
+   systems, beams). Positions are
    the server's dead-reckoned Spatial (polled once a second) and are
    moved on between polls by their velocity.
 
@@ -70,6 +75,46 @@
 		other: { c: '#f0b429', l: 'Other' },
 		none: { c: '#9aa3ad', l: 'No force' }
 	};
+
+	/* 0.9.22: the symbol of an object by its class (segments of the qualified class name, so the
+	   subclasses count too) and, for a carried object, how it is carried. */
+	var SYMBOL = {
+		platform: { shape: 'circle', scale: 1, l: 'Platform' },
+		small: { shape: 'circle', scale: 0.8, l: 'Lifeform, munition' },
+		aggregate: { shape: 'square', scale: 1, l: 'Aggregate' },
+		equipment: { shape: 'square', scale: 0.8, l: 'Equipment' }
+	};
+
+	/**
+	 * @param {Object} o        a map object or a child ({classnameq, class})
+	 * @param {string} [relation] a child's relation to its host: hosted, partof, beam
+	 * @return one of SYMBOL
+	 */
+	function symbolOf(o, relation) {
+		var segs = String(o.classnameq || o['class'] || '').split('.');
+		function has(n) { return segs.indexOf(n) >= 0; }
+		if (has('EmbeddedSystem') || has('EmitterBeam') || relation === 'hosted' || relation === 'beam') { return SYMBOL.equipment; }
+		if (has('AggregateEntity')) { return SYMBOL.aggregate; }
+		if (has('Lifeform') || has('Munition')) { return SYMBOL.small; }
+		if (relation === 'partof' && (has('Radio') || has('Sensor'))) { return SYMBOL.equipment; }   // a radio entity attached to a platform
+		return SYMBOL.platform;
+	}
+
+	/** Size of a symbol: h = half the width; ext = how far it reaches from its centre (rings, labels, hits). */
+	function symbolSize(sym, r) {
+		var h = r * sym.scale;
+		return { h: h, ext: sym.shape === 'square' ? h * 1.2 : h };
+	}
+
+	/** The path of a symbol of half width h (begins a new path). */
+	function symbolPath(c, shape, x, y, h) {
+		c.beginPath();
+		if (shape === 'square') {
+			c.rect(x - h, y - h, 2 * h, 2 * h);
+		} else {
+			c.arc(x, y, h, 0, Math.PI * 2);
+		}
+	}
 
 	/* ---------- Web Mercator, in pixels of zoom z (fractional zoom allowed) ---------- */
 
@@ -240,7 +285,10 @@
 			this.msg,
 			this.legend = el('div.mv-legend', null, ['friendly', 'opposing', 'neutral', 'other'].map(function (f) {
 				return el('span.mv-leg', null, [el('i', { style: 'background:' + FORCE[f].c }), FORCE[f].l]);
-			}).concat([
+			}).concat(['platform', 'small', 'aggregate', 'equipment'].map(function (k, i) {      // 0.9.22: the shapes
+				var sym = SYMBOL[k];
+				return el('span.mv-leg' + (i === 0 ? '.mv-leg-first' : ''), null, [el('i.mv-leg-shape' + (sym.shape === 'square' ? '.sq' : '') + (sym.scale < 1 ? '.sm' : '')), sym.l]);
+			})).concat([
 				this.legFire = el('span.mv-leg', null, [el('i.mv-leg-flash', { style: 'background:' + FLASH.fire.c + ';border-color:' + FLASH.fire.ring }), 'Fire']),
 				this.legDet = el('span.mv-leg', null, [el('i.mv-leg-flash', { style: 'background:' + FLASH.detonation.c + ';border-color:' + FLASH.detonation.ring }), 'Detonation']),
 				this.legRadar = el('span.mv-leg', null, [el('i.mv-leg-beam', { style: 'background:rgba(' + BEAM.radar.c + ',0.45);border-color:rgb(' + BEAM.radar.c + ')' }), 'Radar']),
@@ -1124,32 +1172,30 @@
 		drawn.forEach(function (d) {
 			var o = d.o, x = d.x, y = d.y;
 			var col = (FORCE[o.force] || FORCE.none).c;
+			var sym = symbolOf(o), sz = symbolSize(sym, r), h = sz.h, ext = sz.ext;
 			// speed / heading tick
 			if (!o.frozen && o.gs > 0.5) {
-				var len = r + clamp(5 + o.gs / 15, 6, 30), a = (o.hdg || 0) * Math.PI / 180;
+				var len = ext + clamp(5 + o.gs / 15, 6, 30), a = (o.hdg || 0) * Math.PI / 180;
 				c.strokeStyle = 'rgba(15,20,25,0.85)';
 				c.lineWidth = 2;
 				c.beginPath();
-				c.moveTo(x + Math.sin(a) * r, y - Math.cos(a) * r);
+				c.moveTo(x + Math.sin(a) * ext, y - Math.cos(a) * ext);
 				c.lineTo(x + Math.sin(a) * len, y - Math.cos(a) * len);
 				c.stroke();
 			}
 			if (o === sel || o.id === self.followId) {
-				c.beginPath();
-				c.arc(x, y, r + 5, 0, Math.PI * 2);
+				symbolPath(c, sym.shape, x, y, h + 5);
 				c.strokeStyle = o.id === self.followId ? '#ffcc33' : '#ffffff';
 				c.lineWidth = 2.5;
 				c.stroke();
 				if (o.id === self.followId) {
-					c.beginPath();
-					c.arc(x, y, r + 9, 0, Math.PI * 2);
+					symbolPath(c, sym.shape, x, y, h + 9);
 					c.strokeStyle = 'rgba(255,204,51,0.6)';
 					c.lineWidth = 1.5;
 					c.stroke();
 				}
 			}
-			c.beginPath();
-			c.arc(x, y, r, 0, Math.PI * 2);
+			symbolPath(c, sym.shape, x, y, h);
 			if (o.context) {
 				c.fillStyle = 'rgba(255,255,255,0.75)';
 				c.fill();
@@ -1165,10 +1211,10 @@
 				c.lineWidth = 1.5;
 				c.stroke();
 			}
-			hits.push({ id: o.id, x: x, y: y, r: r + 3, kind: 'object' });
+			hits.push({ id: o.id, x: x, y: y, r: ext + 3, kind: 'object' });
 			var kids = o.children || [];
 			if (kids.length) {
-				var bx = x + r * 0.75, by = y - r - 7;
+				var bx = x + h * 0.75, by = y - h - 7;
 				var txt = (self.expanded[o.id] ? '−' : '+') + kids.length;
 				c.font = '700 10px ' + monoFont();
 				var bw = c.measureText(txt).width + 8;
@@ -1178,9 +1224,9 @@
 				c.fillStyle = self.expanded[o.id] ? '#1d2329' : '#ffffff';
 				c.fillText(txt, bx + 2, by + 3.5);
 				hits.push({ id: o.id, x: bx - 2 + bw / 2, y: by - 0.5, r: Math.max(9, bw / 2 + 2), kind: 'badge' });
-				if (self.expanded[o.id]) { self.drawChildren(c, o, x, y, r, kids, hits); }
+				if (self.expanded[o.id]) { self.drawChildren(c, o, x, y, ext, r, kids, hits); }
 			}
-			d.r = r;
+			d.r = ext;
 		});
 		// labels last, without overlaps (selected / followed first; children's labels already placed)
 		var placed = this.reserved.slice();
@@ -1207,10 +1253,12 @@
 		this.hits = hits;
 	};
 
-	MapView.prototype.drawChildren = function (c, o, x, y, r, kids, hits) {
+	/** @param r the host's reach (symbol extent); base: the zoom's symbol radius */
+	MapView.prototype.drawChildren = function (c, o, x, y, r, base, kids, hits) {
 		var n = kids.length;
 		var ring = r + 26 + Math.max(0, n - 8) * 3;
 		var self = this;
+		var kb = Math.max(base, 5.6);          // fanned-out children stay clickable when zoomed out (equipment 9 px, as before)
 		kids.forEach(function (k, i) {
 			var a = -Math.PI * 5 / 6 + i * 2 * Math.PI / Math.max(n, 1);     // first at upper left: the badge is upper right
 			var kx = x + Math.cos(a) * ring, ky = y + Math.sin(a) * ring;
@@ -1221,21 +1269,26 @@
 			c.lineTo(kx, ky);
 			c.stroke();
 			var selK = self.selected && self.selected.id === k.id;
-			c.fillStyle = selK ? '#ffcc33' : '#ffffff';
+			var ksym = symbolOf(k, k.relation), kh = symbolSize(ksym, kb).h;
+			var equipment = ksym === SYMBOL.equipment;
+			// equipment white, carried entities (mounted, attached) in their force's colour; the selected one amber
+			c.fillStyle = selK ? '#ffcc33' : equipment ? '#ffffff' : (FORCE[k.force] || FORCE.none).c;
 			c.strokeStyle = '#1d2329';
 			c.lineWidth = 1.5;
-			c.fillRect(kx - 4.5, ky - 4.5, 9, 9);
-			c.strokeRect(kx - 4.5, ky - 4.5, 9, 9);
+			symbolPath(c, ksym.shape, kx, ky, kh);
+			c.fill();
+			c.stroke();
 			var right = Math.cos(a) >= -0.1;
 			var t1 = k.label || shortName(k.name), t2 = k['class'] + (k.relation === 'partof' ? ' (part)' : '');
 			c.font = '700 10.5px ' + monoFont();
 			var tw = Math.max(c.measureText(t1).width, c.measureText(t2).width * 0.95) + 4;
 			c.textAlign = right ? 'left' : 'right';
-			haloText(c, t1, kx + (right ? 8 : -8), ky - 1, '700 10.5px ' + monoFont(), '#10161b');
-			haloText(c, t2, kx + (right ? 8 : -8), ky + 10, '9.5px ' + monoFont(), '#2c3640');
+			var tx = Math.max(8, kh * 1.2 + 4);
+			haloText(c, t1, kx + (right ? tx : -tx), ky - 1, '700 10.5px ' + monoFont(), '#10161b');
+			haloText(c, t2, kx + (right ? tx : -tx), ky + 10, '9.5px ' + monoFont(), '#2c3640');
 			c.textAlign = 'left';
-			self.reserved.push({ x: right ? kx + 6 : kx - 8 - tw, y: ky - 12, w: tw + 4, h: 26 });
-			hits.push({ id: k.id, x: kx, y: ky, r: 8, kind: 'child', parent: o.id });
+			self.reserved.push({ x: right ? kx + tx - 2 : kx - tx - tw, y: ky - 12, w: tw + 4, h: 26 });
+			hits.push({ id: k.id, x: kx, y: ky, r: Math.max(8, kh * 1.2 + 2), kind: 'child', parent: o.id });
 		});
 	};
 
@@ -1565,4 +1618,6 @@
 	MapView.available = function () { return maps().then(function (m) { return m.enabled; }); };
 
 	Rift.MapView = MapView;
+	MapView.symbolOf = symbolOf;          // 0.9.22: the map page's list uses the same shapes
+	MapView.SYMBOL = SYMBOL;
 })(window, document);

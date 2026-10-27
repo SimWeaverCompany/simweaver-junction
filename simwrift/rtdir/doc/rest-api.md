@@ -550,7 +550,7 @@ The objects of an object-list filter that have a position, for the map view. Tak
       "lat": 59.6495589, "lon": 17.9665224, "alt": 6000.0, "hdg": 94.8, "gs": 230.0,
       "vn": -19.2, "ve": 229.2, "vd": 0.0, "age": 0.4, "frozen": false,
       "children": [ { "id": "o12", "label": null, "name": "1-3-1/radio-1", "class": "RadioTransmitter",
-                      "classnameq": "…", "entityid": null, "relation": "hosted" } ] } ] }
+                      "classnameq": "…", "entityid": null, "relation": "hosted", "force": null } ] } ] }
 ```
 
 - **Position:** the RPR `Spatial`, dead reckoned to `now` (as `DRSpatial`, at most 30 s ahead).
@@ -559,7 +559,7 @@ The objects of an object-list filter that have a position, for the map view. Tak
 - **Carried objects:** an object with a `HostObjectIdentifier` (radios, emitter systems), an
   `IsPartOf` (mounted or attached entities) or an `EmitterSystemIdentifier` (beams) is listed in
   `children` of its top-most positioned host (`relation`: `hosted`, `partof` or `beam`; `parent`
-  when its own host is a carried object), not on its own.
+  when its own host is a carried object; `force` as for the objects, 0.9.22), not on its own.
 - A host that is not in the filter is still listed, with `"context": true`, so a matching carried
   object can be reached.
 - `force` is `friendly`, `opposing`, `neutral`, `other` (from `ForceIdentifier`, including the

@@ -77,11 +77,21 @@
 				dblclick: function () { mv.goTo(o.id, { follow: true }); }
 			}
 		}, [
-			kid ? el('span', { text: '└', style: 'color:var(--fg-faint)' }) : el('i.mv-dot', { style: 'background:' + colour + (o.context ? ';opacity:0.45' : '') }),
+			symbol(o, kid, colour),
 			el('span.k', { text: o.label || o.name }),
 			el('span.c', { text: [o.entityid, o['class'], o.context ? 'outside the filter' : null].filter(Boolean).join(' · ') }),
 			!kid && (o.children || []).length ? el('span.n', { text: '+' + o.children.length }) : el('span')
 		]));
+	}
+
+	/* 0.9.22: the map's shape for the object (Rift.MapView.symbolOf); equipment white, as on the map */
+	function symbol(o, kid, colour) {
+		var sym = Rift.MapView.symbolOf(o, kid ? o.relation : null);
+		var equipment = sym === Rift.MapView.SYMBOL.equipment;
+		var fill = kid ? (equipment ? '#ffffff' : FORCE[o.force] || '#9aa3ad') : colour;
+		return el('i.mv-dot' + (sym.shape === 'square' ? '.sq' : '') + (sym.scale < 1 ? '.sm' : ''), {
+			title: sym.l, style: 'background:' + fill + (o.context ? ';opacity:0.45' : '')
+		});
 	}
 
 	function markSelected() {
