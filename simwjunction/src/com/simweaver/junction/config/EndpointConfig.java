@@ -66,6 +66,14 @@ public final class EndpointConfig implements Json.Writable {
     private final int disTtl;
     private final boolean disKeepEntityIds;
     private final com.simweaver.common.dis.cdis.CdisSettings cdisSettings;
+    // 0.10.0: J2J session endpoint
+    private final String j2jSession;
+    private final int j2jDisVersion;
+    private final int j2jExerciseId;
+    private final boolean j2jReliableOnly;
+    private final boolean j2jFomsGiven;
+    private final List<String> j2jDefaultFomPaths;
+    private boolean j2jObjects;
     // per-endpoint filters (optional): what this endpoint contributes (in) and receives (out)
     private final ClassFilter inFilter;
     private final ClassFilter outFilter;
@@ -84,7 +92,7 @@ public final class EndpointConfig implements Json.Writable {
         EndpointType t = EndpointType.fromSetting(standardSetting);
         if (t == null) {
             errors.add("endpoint " + id + ": unknown endpoint.standard '" + standardSetting
-                    + "' (ieee1516-2010, ieee1516-2025, ieee1516-2025-fedpro, dis6, dis7, cdis, talk)");
+                    + "' (ieee1516-2010, ieee1516-2025, ieee1516-2025-fedpro, dis6, dis7, cdis, talk, j2j)");
         }
         this.type = t;
         String talkStd = p.getString("endpoint.talk.hlastandard", "ieee1516-2010");
@@ -107,12 +115,21 @@ public final class EndpointConfig implements Json.Writable {
         this.fddTimeoutSecs = Math.max(1, p.getInt("endpoint.hla.fddtimeoutseconds", 15));
         this.fddClass = p.getString("endpoint.hla.fddclass", com.simweaver.common.hla.session.DynamicFom.FEDERATION_CLASS).trim();
         this.fddAttribute = p.getString("endpoint.hla.fddattribute", com.simweaver.common.hla.session.DynamicFom.FDD_ATTRIBUTE).trim();
+        this.j2jFomsGiven = foms.length > 0;
+        if (t == EndpointType.J2J && dyn) {
+            errors.add("endpoint " + id + ": a J2J session has a fixed model: give its FOM files in endpoint.hla.foms (not dynamic)");
+        }
         if (foms.length == 0 && t != null && t.isDis()) {
             if (dyn) {
                 errors.add("endpoint " + id + ": a DIS endpoint cannot take its FOM from a federation (endpoint.hla.foms=dynamic)");
             }
             foms = new String[] {"RPR_FOM_v2.0_Link16_1516-2010.xml"};
         }
+        // a J2J object session without endpoint.hla.foms has the RPR FOM v2.0 (checked when it opens;
+        // a PDU session has no model)
+        this.j2jDefaultFomPaths = t == EndpointType.J2J && foms.length == 0
+                ? Collections.unmodifiableList(resolveFoms(new String[] {"RPR_FOM_v2.0_Link16_1516-2010.xml"}, baseDir))
+                : Collections.<String>emptyList();
         this.fomNames = Collections.unmodifiableList(Arrays.asList(foms));
         this.fomPaths = Collections.unmodifiableList(resolveFoms(foms, baseDir));
         String[] createFoms = p.getStringArray("endpoint.hla.createfoms");
@@ -156,6 +173,28 @@ public final class EndpointConfig implements Json.Writable {
         if (t == EndpointType.CDIS) {
             for (String e : cdisErrors) {
                 errors.add("endpoint " + id + ": " + e);
+            }
+        }
+
+        // 0.10.0: a J2J session (the PDUs of the session are DIS <version> of <exercise>)
+        this.j2jSession = p.getString("endpoint.j2j.session", "").trim();
+        this.j2jDisVersion = p.getInt("endpoint.j2j.dis", 7);
+        this.j2jExerciseId = p.getInt("endpoint.j2j.exid", 1);
+        String transport = p.getString("endpoint.j2j.transport", "auto").trim().toLowerCase(Locale.ROOT);
+        this.j2jReliableOnly = "reliable".equals(transport);
+        if (t == EndpointType.J2J) {
+            String why = com.simweaver.j2j.session.J2jSessions.nameProblem(j2jSession);
+            if (why != null && !com.simweaver.junction.config.GroupVariables.TOKEN.matcher(j2jSession).find()) {
+                errors.add("endpoint " + id + ": endpoint.j2j.session: " + why);
+            }
+            if (j2jDisVersion != 6 && j2jDisVersion != 7) {
+                errors.add("endpoint " + id + ": endpoint.j2j.dis must be 6 or 7");
+            }
+            if (j2jExerciseId < 1 || j2jExerciseId > 255) {
+                errors.add("endpoint " + id + ": endpoint.j2j.exid must be 1-255");
+            }
+            if (!"auto".equals(transport) && !"reliable".equals(transport)) {
+                errors.add("endpoint " + id + ": endpoint.j2j.transport must be auto or reliable");
             }
         }
 
@@ -423,6 +462,46 @@ public final class EndpointConfig implements Json.Writable {
     /** 0.9.16: the target setting as written, when it holds group variables (e.g. "GROUPVAR1-Talk"); null otherwise */
     private volatile String targetTemplate;
 
+    /** @return {@code endpoint.j2j.session}: the session a J2J endpoint joins (the default target) */
+    public String getJ2jSession() {
+        return j2jSession;
+    }
+
+    /** @return {@code endpoint.j2j.dis}: the DIS version of the session's PDUs (6 or 7) */
+    public int getJ2jDisVersion() {
+        return j2jDisVersion;
+    }
+
+    /** @return {@code endpoint.j2j.exid}: the exercise of the session's PDUs */
+    public int getJ2jExerciseId() {
+        return j2jExerciseId;
+    }
+
+    /** @return {@code endpoint.j2j.transport=reliable}: every PDU reliable (no best effort for Entity State) */
+    public boolean isJ2jReliableOnly() {
+        return j2jReliableOnly;
+    }
+
+    /** @return true when the J2J endpoint carries objects (IEM or Talk gateway), false for DIS PDUs (PDU relay) */
+    public boolean isJ2jObjects() {
+        return j2jObjects;
+    }
+
+    /** @return the FOM files of a J2J object session: {@code endpoint.hla.foms}, else the RPR FOM v2.0 */
+    public List<String> getJ2jFomPaths() {
+        return fomPaths.isEmpty() ? j2jDefaultFomPaths : fomPaths;
+    }
+
+    /** @return true when {@code endpoint.hla.foms} was given (a J2J endpoint in a Talk gateway needs the Talk FOM) */
+    public boolean isJ2jFomsGiven() {
+        return j2jFomsGiven;
+    }
+
+    /** Set by the loader from the gateway's router: objects for an IEM or Talk router. */
+    void setJ2jObjects(boolean objects) {
+        this.j2jObjects = objects;
+    }
+
     void setTargetTemplate(String t) {
         this.targetTemplate = t;
     }
@@ -435,6 +514,9 @@ public final class EndpointConfig implements Json.Writable {
     public String getDefaultTarget() {
         if (type != null && type.isDis()) {
             return String.valueOf(disExerciseId);
+        }
+        if (type == EndpointType.J2J) {
+            return j2jSession;
         }
         return federation;
     }
@@ -475,6 +557,17 @@ public final class EndpointConfig implements Json.Writable {
             o.put("disentityids", disKeepEntityIds ? "keep" : "assign");
             o.putIfNotNull("dissendaddress", disSendAddress.isEmpty() ? null : disSendAddress);
             o.put("foms", fomNames);
+        }
+        if (type == EndpointType.J2J) {
+            o.put("isj2j", true);
+            o.put("j2jsession", j2jSession);
+            o.put("j2jdis", j2jDisVersion);
+            o.put("j2jexid", j2jExerciseId);
+            o.put("j2jtransport", j2jReliableOnly ? "reliable" : "auto");
+            o.put("j2jkind", j2jObjects ? "objects" : "pdu");
+            if (j2jObjects) {
+                o.put("foms", fomNames.isEmpty() ? Collections.singletonList("RPR_FOM_v2.0_Link16_1516-2010.xml") : fomNames);
+            }
         }
         if (type == EndpointType.CDIS) {
             o.put("iscdis", true);

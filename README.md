@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.9.22 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.10.1 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ---
 
@@ -59,6 +59,19 @@ Version 0.9.22 · BSD 3-Clause License · © 2026 Simweaver AB
   bridge two vendors or versions.
 - **Groups of gateways**, started together with shared variables.
 - **The Config Assistant** page writes gateway configurations for you.
+
+**J2J: a network of SimWeaver servers** (0.10.0, off unless configured)
+
+- **Encrypted links** between the servers of an exercise (AES-256-GCM, a shared network key,
+  fresh keys per link), over TCP and UDP on one port, or TLS on 443 as the last resort, also
+  through a web proxy. A server behind NAT only dials out.
+- **Routing** through the servers that reach each other, around broken links; reliable traffic
+  is resent on the new path.
+- **Sessions:** Junction gateways on different servers share DIS PDUs as they are, or the objects
+  and interactions of an HLA object model (RPR, NETN, Talk …), so federations and DIS networks at
+  several sites become one exercise.
+- **The J2J page:** the members, how each is reached, ping, a diagram of the network and its
+  sessions, and the J2J events. The protocol is documented for other implementations.
 
 **Infra: what the server has contact with** (0.9.20)
 
@@ -160,11 +173,13 @@ All in `simwrift/rtdir/doc/`:
 
 | File | Contents |
 |---|---|
-| `simweaver-rift-install-and-config.md` | Installation, server settings, datasources, maps and overlays |
-| `web-ui.md` | The web UI: datasources, objects, interactions, the map view, Infra |
+| `simweaver-rift-install-and-config.md` | Installation, server settings, datasources, maps and overlays, logging, the J2J network |
+| `web-ui.md` | The web UI: datasources, objects, interactions, the map view, Infra, J2J |
 | `rest-api.md` | Rift's REST API and SSE events |
-| `junction.md` | Junction: gateways, endpoints, routers, value rules, Talk, groups, RPR v2 ⇄ v3, DIS |
+| `junction.md` | Junction: gateways, endpoints, routers, value rules, Talk, groups, RPR v2 ⇄ v3, DIS, J2J sessions |
 | `junction-rest-api.md` | Junction's REST API |
+| `j2j-rest-api.md` | The REST API of the J2J page |
+| `j2j-wire-protocol.md` | The J2J protocol between the servers, with test vectors |
 
 ---
 

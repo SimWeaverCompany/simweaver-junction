@@ -1,0 +1,10 @@
+# Gateway HLA3<->J2J (0.10.0): an HLA Evolved RPR v2 federation shared with gateways on other
+# SimWeaver servers through an object session of the J2J network. Start the same (or a DIS, HLA 4
+# or RPR v3 gateway with a J2J RPR v2 endpoint) on the other servers: they meet in the session.
+junction.name=HLA3<->J2J
+junction.description=RPR v2 federation shared with the other members of a J2J session (objects and interactions)
+junction.endpoints=hla;j2j
+junction.endpoint.hla=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.j2j=endpoints/j2j-rpr2.endpoint.settings
+junction.router=routers/hla3-all.router.settings
+junction.autostart=false

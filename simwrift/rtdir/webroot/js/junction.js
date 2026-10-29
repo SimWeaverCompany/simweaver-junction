@@ -19,7 +19,7 @@
 
 	var TYPE_BADGE = {
 		'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO',
-		'dis6': 'DIS6', 'dis7': 'DIS7', 'cdis': 'C-DIS', 'talk': 'TALK'
+		'dis6': 'DIS6', 'dis7': 'DIS7', 'cdis': 'C-DIS', 'talk': 'TALK', 'j2j': 'J2J'
 	};
 
 	var state = { configs: [], gateways: {}, nodes: {}, streamClose: null, vardesc: {} };
@@ -92,6 +92,7 @@
 		if (std === 'dis6' || std === 'dis7' || std === 'cdis') {
 			return String(ep.target) === '0' ? 'exercise 0 (all)' : 'exercise ' + ep.target;
 		}
+		if (std === 'j2j') { return 'session ' + (ep.target || '—'); }
 		return ep.target || '—';
 	}
 
@@ -217,9 +218,12 @@
 		p.cdis = el('span.jx-ep-cdis', { hidden: true });
 		p.notice = el('div.jx-ep-msg.warn', { hidden: true });
 		p.msg = el('div.jx-ep-msg', { hidden: true });
-		p.inspect = el('button.btn.jx-inspect', { type: 'button',
-			title: 'Open a Rift datasource on ' + ep.name + "'s target in a new tab",
-			on: { click: function () { inspect(g.id, ep.id, p.inspect); } } }, 'Inspect ↗');
+		p.inspect = ep.standard === 'j2j'
+			// 0.10.0: a J2J session has nothing Rift could join; the J2J page shows the session
+			? el('a.btn.jx-inspect', { href: 'j2j.html', title: 'The J2J page: the session with all its members' }, 'J2J page ↗')
+			: el('button.btn.jx-inspect', { type: 'button',
+				title: 'Open a Rift datasource on ' + ep.name + "'s target in a new tab",
+				on: { click: function () { inspect(g.id, ep.id, p.inspect); } } }, 'Inspect ↗');
 		p.root = el('li.jx-port', { 'data-ep': ep.id }, [
 			el('div.jx-wire', { 'aria-hidden': 'true' }, [p.wireIn, p.wireOut]),
 			el('div.jx-ep', null, [
@@ -259,6 +263,25 @@
 			+ 'Not sent (no C-DIS form): ' + count(c.notconvertible) + ' · unknown C-DIS PDUs: ' + count(c.unknownpdus)
 			+ ' · timed out: ' + count(c.timedout)
 			+ (c.lasterror ? '\nLast error: ' + c.lasterror : '');
+	}
+
+	/** 0.10.0: a J2J endpoint's session: its model and the other members (J2J page for more). */
+	function j2jLine(node, j) {
+		var ms = j.members || [];
+		var lost = ms.filter(function (m) { return m.state === 'lost'; }).length;
+		var bad = ms.filter(function (m) { return m.state === 'mismatch'; }).length;
+		node.hidden = false;
+		node.textContent = (j.model || '').toUpperCase() + ' · ' + (ms.length ? ms.length + (ms.length === 1 ? ' OTHER MEMBER' : ' OTHER MEMBERS') : 'NO OTHER MEMBER YET')
+			+ (lost ? ' · ' + lost + ' LOST' : '') + (bad ? ' · ' + bad + ' OTHER MODEL' : '') + (j.loopsdropped ? ' · ' + count(j.loopsdropped) + ' LOOPED BACK, NOT SENT' : '')
+			+ (j.kind === 'objects' ? ' · ' + count(j.ownobjects) + ' OWN / ' + count(j.remoteobjects) + ' REMOTE OBJECTS' : '');
+		node.title = 'J2J session ' + j.session + ' (' + (j.model || '') + ', transport ' + (j.transport || 'auto') + ')\n'
+			+ (ms.length ? ms.map(function (m) {
+				return (m.local ? 'here' : m.node) + ' / ' + m.gateway + ' · ' + m.state + (m.statemessage ? ': ' + m.statemessage : '');
+			}).join('\n') : 'No other member: the PDUs reach nobody yet') + '\n'
+			+ (j.kind === 'objects' ? 'Objects: ' + count(j.ownobjects) + ' of this gateway in the session, ' + count(j.remoteobjects) + ' of the others here'
+				+ (j.unknownids ? ' · ' + count(j.unknownids) + ' ids not in the model' : '') + '\n' : '')
+			+ 'Sent ' + count(j.sent) + (j.kind === 'objects' ? ' messages (' : ' PDUs (') + count(j.copies) + ' copies to other servers, ' + count(j.notsent) + ' not sent), received ' + count(j.received)
+			+ '\nThe J2J page shows the whole session.';
 	}
 
 	function updateGateway(n, g) {
@@ -310,7 +333,7 @@
 			p.fom.title = ep.fom || '';
 			p.notice.hidden = !ep.fomnotice;
 			p.notice.textContent = ep.fomnotice || '';
-			cdisLine(p.cdis, ep.dis);
+			if (ep.j2j) { j2jLine(p.cdis, ep.j2j); } else { cdisLine(p.cdis, ep.dis); }
 			var st = ep.stats || {}, si = st['in'] || {}, so = st.out || {};
 			p.rateIn.textContent = rate(si.rate);
 			p.rateOut.textContent = rate(so.rate);
@@ -324,8 +347,10 @@
 			p.wireOut.classList.toggle('dead', es !== 'ok');
 			p.msg.hidden = !ep.message;
 			p.msg.textContent = ep.message || '';
-			p.inspect.classList.toggle('opened', !!ep.inspectdatasource);
-			p.inspect.textContent = ep.inspectdatasource ? 'Inspect ↗ (open)' : 'Inspect ↗';
+			if (ep.standard !== 'j2j') {
+				p.inspect.classList.toggle('opened', !!ep.inspectdatasource);
+				p.inspect.textContent = ep.inspectdatasource ? 'Inspect ↗ (open)' : 'Inspect ↗';
+			}
 		});
 
 		var r = g.routerstats || {};
@@ -487,7 +512,7 @@
 				el('span.jx-ep-id', { text: ep.id }),
 				el('span.jx-cfg-target', { title: 'Default target', text: ep.isdis
 					? (String(ep.defaulttarget) === '0' ? 'exercise 0 (all)' : 'exercise ' + ep.defaulttarget)
-					: (ep.defaulttarget || '(federation at start)') }),
+					: ep.isj2j ? 'session ' + (ep.defaulttarget || '(at start)') : (ep.defaulttarget || '(federation at start)') }),
 				ep.dynamicfom ? el('span.jx-chip', { title: "The FOM is taken from the federation's FDD when the gateway starts", text: 'DYNAMIC FOM' }) : null,
 				ep.ishla ? lsdChip(ep) : null,
 				ep.rtijar ? el('span.jx-chip', { title: 'Own RTI library: ' + ep.rtijar, text: 'JAR' }) : null,
@@ -571,7 +596,7 @@
 				badge(ep.standard),
 				el('div.jx-kit-body', null, [
 					el('div.jx-kit-name', { text: ep.name || ep.id }),
-					el('div.jx-kit-sub', { text: (ep.isdis ? 'exercise ' + ep.defaulttarget : (ep.defaulttarget || '—')) + ' · ' + ep.source }),
+					el('div.jx-kit-sub', { text: (ep.isdis ? 'exercise ' + ep.defaulttarget : ep.isj2j ? 'session ' + (ep.defaulttarget || '—') : (ep.defaulttarget || '—')) + ' · ' + ep.source }),
 					(ep.errors || []).length ? el('div.jx-kit-err', { text: ep.errors.join('; ') }) : null,
 					ep.available === false ? el('div.jx-kit-err', { text: 'RTI missing' }) : null
 				])

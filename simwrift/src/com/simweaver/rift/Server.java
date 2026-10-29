@@ -98,6 +98,18 @@ public class Server {
         }
         final JunctionManager junctionManager = junktion;
 
+        // 0.10.0: J2J, the network of Junction servers; its code is com.simweaver.j2j, its settings etc/j2j/ and j2j.*
+        final com.simweaver.j2j.J2jService j2j = new com.simweaver.j2j.J2jService(cfg, Paths.get("etc/j2j/network.settings"),
+                Paths.get("etc/j2j/network.key"), "SimWeaver " + Version.getVersion());
+        com.simweaver.j2j.J2jService.setGlobal(j2j);
+        j2j.setStatusSource(new J2jStatus(junctionManager));
+        com.simweaver.j2j.J2jNode j2jNode = j2j.start();
+        System.out.println("J2J:           " + (j2jNode.isRunning() ? j2jNode.config().selfId() + " in network " + j2jNode.config().networkId()
+                + ", " + j2jNode.config().members().size() + " members, port " + j2jNode.config().port()
+                : j2jNode.config().problems().isEmpty() ? "off (no members in etc/j2j/network.settings)"
+                : "NOT STARTED: " + String.join("; ", j2jNode.config().problems())));
+        final com.simweaver.j2j.api.J2jApi j2jApi = new com.simweaver.j2j.api.J2jApi(j2j);
+
         try {
             ApiRequestEntryPoint apiRequestEntryPoint = new ApiRequestEntryPoint(datasourceManager);
             apiRequestEntryPoint.setMapEnabled(maps.isEnabled());
@@ -107,6 +119,9 @@ public class Server {
                 apiRequestEntryPoint.mount("junktion", junctionApi);          // the 0.9.0 path, still answered
             }
             apiRequestEntryPoint.mount("infra", new com.simweaver.common.infra.InfraApi(com.simweaver.common.infra.InfraRegistry.global()));
+            // 0.10.0: the J2J network (off unless etc/j2j/network.settings lists members)
+            j2jApi.startLive(eventHub);
+            apiRequestEntryPoint.mount("j2j", j2jApi);
             java.util.Map<String, com.sun.net.httpserver.HttpHandler> extra = new java.util.LinkedHashMap<>();
             extra.put("/api/maps", new MapHttpHandler(maps, "/api/maps"));        // NEW: binary tiles
             XrServer.run(webPort,apiRequestEntryPoint,webRoot,"/","/api",keyStorePath,keyStorePass,eventHub,extra);
@@ -144,6 +159,8 @@ public class Server {
                         junctionManager.shutdown();
                     }
                     maps.shutdown();
+                    j2jApi.stopLive();
+                    j2j.stop();
                     Events.notice(log, "server.stopped", Version.PRODUCT_NAME + " stopped");
                 });
                 LogSetup.shutdown();          // 0.9.22: what syslog still has queued is sent (at most 3 s)

@@ -24,9 +24,13 @@
 	var state = { cfg: null, onStarted: null, busy: false, inputs: {}, vars: null, instance: null };
 
 	function isDis(ep) { return !!ep.isdis; }
+	function isJ2j(ep) { return !!ep.isj2j; }
+	/** what an endpoint's target is called */
+	function noun(ep) { return isDis(ep) ? 'exercise' : isJ2j(ep) ? 'session' : 'federation'; }
 
 	function validTarget(ep, v) {
 		if (isDis(ep)) { return /^\d{1,3}$/.test(v) && Number(v) <= 255; }
+		if (isJ2j(ep)) { return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(v); }
 		return v.length > 0;
 	}
 
@@ -40,7 +44,8 @@
 			f.input.classList.toggle('invalid', !good && f.touched);
 			f.msg.classList.toggle('err', !good && f.touched);
 			f.msg.textContent = good ? (isDis(ep) && v === '0' ? 'Exercise 0: PDUs of every exercise are received; sent PDUs use exercise 0.' : '')
-				: (isDis(ep) ? 'An exercise id 0-255 is required.' : 'A federation name is required.');
+				: (isDis(ep) ? 'An exercise id 0-255 is required.' : isJ2j(ep) ? 'A session name is required: 1-64 letters, digits, ".", "_" and "-".'
+					: 'A federation name is required.');
 			markPicked(f);
 			ok = ok && good;
 		});
@@ -77,21 +82,28 @@
 	function discover(f) {
 		var ep = f.ep;
 		var token = ++f.token;
-		ui.clear(f.list).appendChild(ui.loadingRow(isDis(ep) ? 'Listening on the DIS network…' : 'Asking the RTI for its federations…'));
+		ui.clear(f.list).appendChild(ui.loadingRow(isDis(ep) ? 'Listening on the DIS network…' : isJ2j(ep) ? 'Asking the J2J network for its sessions…'
+			: 'Asking the RTI for its federations…'));
 		var req = jx.fetchTargets(state.cfg.id, ep.id, null, f.lsd ? f.lsd.value() : null).then(function (r) {
 			if (token !== f.token) { return; }
 			ui.clear(f.list);
 			if (r.error) {
-				f.list.appendChild(ui.errorRow(isDis(ep) ? 'Could not listen' : 'Could not list federations', new Error(r.error)));
+				f.list.appendChild(ui.errorRow(isDis(ep) ? 'Could not listen' : isJ2j(ep) ? 'Could not list sessions' : 'Could not list federations', new Error(r.error)));
 				return;
 			}
 			if (r.targets.length === 0) {
-				f.list.appendChild(ui.emptyBlock(isDis(ep) ? 'Nothing heard' : 'No federations found',
-					isDis(ep) ? 'No DIS PDUs arrived in 1.5 s. Type the exercise id.' : 'Nothing runs on this RTI right now. Type the federation name.'));
+				f.list.appendChild(ui.emptyBlock(isDis(ep) ? 'Nothing heard' : isJ2j(ep) ? 'No sessions yet' : 'No federations found',
+					isDis(ep) ? 'No DIS PDUs arrived in 1.5 s. Type the exercise id.'
+						: isJ2j(ep) ? 'No gateway in the J2J network has joined a session. Type a name: the first member starts the session.'
+						: 'Nothing runs on this RTI right now. Type the federation name.'));
 				return;
 			}
 			var dflt = String(ep.defaulttarget || '');
 			f.list.appendChild(el('ul.fed-list', null, r.targets.map(function (t) {
+				if (t && typeof t === 'object' && t.model !== undefined) {
+					return option(f, String(t.id), t.id + '  · ' + (t.model || '?') + ' · ' + t.members + (t.members === 1 ? ' member' : ' members'),
+						String(t.id) === dflt ? 'CONFIG' : null);
+				}
 				if (t && typeof t === 'object') {
 					return option(f, String(t.id), 'exercise ' + t.id + (t.pdus ? '  · ' + t.pdus + ' PDUs' : ''), String(t.id) === dflt ? 'CONFIG' : null);
 				}
@@ -129,7 +141,7 @@
 		var f = { ep: ep, touched: false, token: 0, chToken: 0 };
 		var id = 'sd-t-' + ep.id;
 		f.input = el('input', { id: id, type: 'text', autocomplete: 'off', spellcheck: 'false',
-			placeholder: isDis(ep) ? 'exercise id 0-255' : 'federation name' });
+			placeholder: isDis(ep) ? 'exercise id 0-255' : isJ2j(ep) ? 'session name' : 'federation name' });
 		f.input.value = ep.defaulttarget === undefined || ep.defaulttarget === null ? '' : String(ep.defaulttarget);
 		f.input.addEventListener('input', function () { f.touched = true; validate(); });
 		f.input.addEventListener('change', function () { if (ep.istalk) { loadChannels(f); } });
@@ -151,7 +163,7 @@
 			el('div.jx-target-head', null, [
 				el('span.jx-type.t-' + (badgeOf(ep)).toLowerCase(), { text: badgeOf(ep) }),
 				el('label.field-label', { 'for': id }, [
-					el('span', { text: (ep.name || ep.id) + ' · ' + (isDis(ep) ? 'exercise' : 'federation') }),
+					el('span', { text: (ep.name || ep.id) + ' · ' + noun(ep) }),
 					el('span.req', { text: 'required' })
 				])
 			]),
@@ -166,7 +178,7 @@
 	}
 
 	function badgeOf(ep) {
-		var m = { 'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO', dis6: 'DIS6', dis7: 'DIS7', cdis: 'C-DIS', talk: 'TALK' };
+		var m = { 'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO', dis6: 'DIS6', dis7: 'DIS7', cdis: 'C-DIS', talk: 'TALK', j2j: 'J2J' };
 		return m[ep.standard] || String(ep.standard || '?').toUpperCase();
 	}
 

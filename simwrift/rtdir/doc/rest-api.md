@@ -28,6 +28,7 @@ API state: SimWeaver Rift, October 2026.
 10. [Limits](#10-limits)
 11. [Quick start with curl](#11-quick-start-with-curl)
 12. [Infra](#12-infra-0920)
+13. [J2J](#13-j2j-0100)
 
 ---
 
@@ -115,6 +116,7 @@ discovered, updated or removed, or an interaction received.
 | `GET` | [`/api/infra/items/{key}`](#123-get-apiinfraitemskey) | The live detail of one |
 | `POST` | [`/api/infra/items/{key}/refresh`](#124-post-apiinfraitemskeyrefresh) | HLA: ask the MOM for fresh values now |
 | `POST` | [`/api/infra/items/{key}/declarations`](#125-post-apiinfraitemskeydeclarations) | HLA: ask the MOM for a federate's publications and subscriptions |
+| `GET` / `POST` | [`/api/j2j/…`](#13-j2j-0100) | The J2J network of Junction servers (J2J page): see [j2j-rest-api.md](j2j-rest-api.md) |
 
 ---
 
@@ -148,7 +150,8 @@ Version and resource use of the server process. Cheap to call; the Web UI polls 
       "enabled": true, "target": "logs.example.org:6514", "protocol": "tls", "format": "rfc5424",
       "level": "INFO", "connected": true, "connectedsince": "2026-10-21T06:00:01.020Z",
       "sent": 1520, "queued": 0, "dropped": 0
-    }
+    },
+    "j2j": { "state": "running" }
   }
 }
 ```
@@ -163,6 +166,7 @@ Version and resource use of the server process. Cheap to call; the Web UI polls 
 | `threads` | Live threads in the server process |
 | `datasources` | Running datasources |
 | `syslog` | 0.9.22. `{"enabled": false}` without syslog. Otherwise its settings (`target`, `protocol`, `format`, `level`; install guide 2.7) and state: `connected` (UDP: once the address is known), `connectedsince`, messages `sent`, `queued` (waiting for the syslog server) and `dropped` (the queue was full), and after a problem `lasterror` / `lasterrortime` |
+| `j2j` | 0.10.0. `{"state": "off"}`, `"running"` or `"error"`: the J2J network (install guide 2.8, [j2j-rest-api.md](j2j-rest-api.md)) |
 
 Any `cpu` or `memory` value is `null` when the Java runtime cannot tell.
 
@@ -1110,6 +1114,15 @@ HLA: asks the MOM for every federate's values now. 202 `{"success": true}`; 404 
 ### 12.5 `POST /api/infra/items/{key}/declarations`
 
 Body `{"federate": "<handle hex>"}`. Sends `HLArequestPublications` and `HLArequestSubscriptions` for that federate; the RTI's reports fill its `declarations` in the item (a moment later). 202 `{"success": true}`; 400 `BAD_REQUEST` (no or a malformed handle), 404 `ITEM_UNKNOWN`, 409 `MOM_REQUEST_FAILED` (no such federate, the RTI's MOM has no such requests, or the RTI refused).
+
+---
+
+## 13. J2J (0.10.0)
+
+The calls of the J2J page — the members of this server's J2J network, how each is reached, the
+network diagram, a ping, reloading the member list, a new key text — and the SSE topic `j2j` are
+described in [j2j-rest-api.md](j2j-rest-api.md). `GET /api/serverinfo` has
+`"j2j": {"state": "off|running|error"}`.
 
 ---
 

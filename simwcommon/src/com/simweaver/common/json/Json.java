@@ -305,6 +305,11 @@ public final class Json {
             return this;
         }
 
+        /** @return the value put for {@code key}, or null (0.10.0) */
+        public Object get(String key) {
+            return members.get(key);
+        }
+
         public boolean has(String key) {
             return members.containsKey(key);
         }

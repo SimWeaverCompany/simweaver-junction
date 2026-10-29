@@ -51,6 +51,8 @@ html.light {
 .jx-type.t-fedpro { color: var(--jx-fedpro); }
 .jx-type.t-dis6, .jx-type.t-dis7 { color: var(--blue); }
 .jx-type.t-talk   { color: var(--jx-talk); }
+.jx-type.t-j2j    { color: #b56cf0; }                 /* J2J sessions: purple, as on the J2J page */
+html.light .jx-type.t-j2j { color: #8a3fc6; }
 .jx-type.t-router, .jx-type.t-iem { color: var(--amber); }
 
 .jx-chip {
@@ -198,6 +200,7 @@ html.light {
 .jx-ep-msg { grid-column: 1 / -1; color: var(--err); font-size: 11px; }
 .jx-ep-actions { grid-column: 2 / 3; grid-row: 1 / span 3; display: flex; align-items: center; }
 .jx-inspect.opened { border-color: var(--accent-soft); color: var(--accent); }
+a.btn.jx-inspect { display: inline-block; font-family: var(--mono); border: 1px solid var(--rule-strong); border-radius: 2px; background: var(--bg-input); padding: 5px 9px; }   /* the J2J page link of a J2J endpoint */
 
 .jx-gw-foot { padding: 8px 12px; border-top: 1px dashed var(--rule-strong); display: flex; flex-direction: column; gap: 6px; }
 .jx-gw-stats { display: flex; gap: 6px; flex-wrap: wrap; font-family: var(--mono); }

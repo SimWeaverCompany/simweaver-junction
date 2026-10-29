@@ -32,6 +32,7 @@ syslog.enabled=false
 #syslog.tls.truststore=etc/syslog-ca.p12
 #syslog.tls.truststorepassword=changeit
 
+
 # ---------------------------------------------------------------- map view
 # false removes the map from the Web UI and the API
 map.enabled=true

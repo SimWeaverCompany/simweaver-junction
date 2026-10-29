@@ -76,6 +76,9 @@ public final class TargetProbe {
         if (t.isDis()) {
             return exercises(cfg);
         }
+        if (t.isJ2j()) {
+            return sessions();
+        }
         if (t == EndpointType.TALK && federation != null && !federation.trim().isEmpty()) {
             return talkChannels(cfg, runtimeDir, federation.trim(), lsd);
         }
@@ -100,6 +103,20 @@ public final class TargetProbe {
                 s.disconnect();
             }
         }
+    }
+
+    /** J2J: the sessions known in the network, with their model and members (0.10.0). */
+    private static Result sessions() {
+        com.simweaver.j2j.J2jService j = com.simweaver.j2j.J2jService.global();
+        if (j == null || !"running".equals(j.state())) {
+            return new Result("session", Collections.emptyList(), "J2J does not run on this server");
+        }
+        List<Object> l = new ArrayList<Object>();
+        for (Map<String, Object> s : j.sessions().sessions()) {
+            List<?> members = (List<?>) s.get("members");
+            l.add(Json.object().put("id", s.get("name")).put("model", s.get("model")).put("members", members == null ? 0 : members.size()));
+        }
+        return new Result("session", l, null);
     }
 
     private static ConnectSettings settings(EndpointConfig cfg, String lsd) {

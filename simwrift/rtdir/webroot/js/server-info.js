@@ -3,6 +3,7 @@
    GET /api/serverinfo every 5 s (paused while the tab is hidden):
    version, process CPU (% of the machine) and heap memory, with the
    details in the tooltip. Hidden when the server has no such endpoint.
+   Also shows the J2J button (#nav-j2j) while J2J is configured.
    ============================================================ */
 
 (function (window, document) {
@@ -110,6 +111,7 @@
 		this.mem.set(mb(mem.heapused), heapPct);
 		this.host.classList.remove('stale');
 		this.host.hidden = false;
+		showJ2j(i.j2j);
 		this.host.title = [
 			(i.name || 'Server') + ' ' + (i.version || ''),
 			'CPU ' + pct(cpu.process) + ' of ' + (cpu.cores || '?') + ' cores' +
@@ -123,6 +125,17 @@
 			syslogLine(i.syslog)
 		].filter(Boolean).join('\n');
 	};
+
+	/* 0.10.0: the J2J button in the top bar is shown only while J2J is configured (running or error) */
+	function showJ2j(j) {
+		var nav = document.getElementById('nav-j2j');
+		if (!nav) return;
+		var state = j && j.state ? j.state : 'off';
+		nav.hidden = state === 'off';
+		nav.classList.toggle('nav-warn', state === 'error');
+		nav.title = state === 'error' ? 'SimWeaver J2J - J2J did not start: see the J2J page'
+			: 'SimWeaver J2J - the network of Junction servers';
+	}
 
 	/* 0.9.22: "Syslog udp 10.0.0.9:514 (RFC 5424): 1520 sent" / "... not reachable: <error>, 12 queued" */
 	function syslogLine(s) {

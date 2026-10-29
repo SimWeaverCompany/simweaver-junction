@@ -359,7 +359,8 @@ public final class JunctionManager {
             String other = seen.put(k, e.getId());
             if (other != null) {
                 return "Endpoints " + other + " and " + e.getId() + " are on the same "
-                        + (e.getType().isDis() ? "DIS network and exercise" : "federation") + " (" + eff.get(e.getId())
+                        + (e.getType().isDis() ? "DIS network and exercise" : e.getType().isJ2j() ? "J2J session" : "federation")
+                        + " (" + eff.get(e.getId())
                         + "): traffic would loop";
             }
         }
@@ -376,6 +377,9 @@ public final class JunctionManager {
         EndpointType t = e.getType();
         if (t != null && t.isDis()) {
             return "dis|" + e.getDisInterface().trim().toLowerCase(Locale.ROOT) + "|" + e.getDisPort() + "|" + target;
+        }
+        if (t != null && t.isJ2j()) {
+            return "j2j|" + target;
         }
         return "hla|" + (e.isHla4() ? "4" : "3") + "|" + (lsd == null ? e.getLsd() : lsd).trim() + "|" + e.getRtiAddress().trim() + "|"
                 + e.getRtiJar().trim() + "|" + target;

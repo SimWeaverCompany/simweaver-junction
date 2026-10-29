@@ -534,9 +534,14 @@ final class TalkBridge implements IemRouter.Extension {
 
     // ================================================================== Extension: setup
 
+    /** A Talk federation, or (0.10.0) a J2J object session carrying the Talk model: a side with channels. */
+    private static boolean isTalkSide(Endpoint e) {
+        return e.type() == EndpointType.TALK || e.type() == EndpointType.J2J;
+    }
+
     @Override
     public void declare(Endpoint e, ModelTools tools, Interest publish, Interest subscribe) {
-        if (e.type() == EndpointType.TALK) {
+        if (isTalkSide(e)) {
             Side s = new Side(e, tools);
             if (messagesOnly) {
                 // talk.mode=messages: the channel objects at most, read-only (talk.trackchannels),
@@ -610,7 +615,7 @@ final class TalkBridge implements IemRouter.Extension {
         this.router = r;
         long now = System.currentTimeMillis();
         for (Endpoint e : endpoints) {
-            if (e.type() == EndpointType.TALK) {
+            if (isTalkSide(e)) {
                 TalkSide ts = new TalkSide(e, tools.get(e.id()));
                 ts.joinedAt = now;
                 talk.put(e, ts);

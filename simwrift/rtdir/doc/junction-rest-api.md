@@ -11,7 +11,7 @@ The 0.9.0 path `/api/junktion/...` is still answered the same way. The SSE topic
 
 Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the envelope `{"success":false,"error":{"code":"...","message":"..."}}`. Live updates come over Rift's SSE stream (section 7).
 
-API state: Junction 0.9.22, October 2026.
+API state: Junction 0.10.1, October 2026.
 
 ---
 
@@ -103,7 +103,7 @@ An HLA endpoint with `endpoint.hla.foms=dynamic` (FOM from the federation) has `
 
 An endpoint whose target setting contains group variables also has `targettemplate`, the setting as written (`"GROUPVAR2-COMMS"`), while `defaulttarget` has the variables replaced by their defaults. The page's Discover for variables uses it.
 
-DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress`. C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). Talk routers have `talkmode` (`full` / `messages`), `talktrackchannels`, `talkmessages`, `talkmatch`, `talkchannels`, `talkmirrorclients`, `talkradiomap`, `talkradioendpoint`, `talkradioentityid`, `talksamplerate`, `talkchannelmap`, `talkchanneluuidmap`.
+DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress`. C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). J2J endpoints (0.10.0, `"standard": "j2j"`) add `"isj2j": true`, `j2jsession` (also `defaulttarget`), `j2jdis`, `j2jexid` and `j2jtransport` (`auto` / `reliable`). Talk routers have `talkmode` (`full` / `messages`), `talktrackchannels`, `talkmessages`, `talkmatch`, `talkchannels`, `talkmirrorclients`, `talkradiomap`, `talkradioendpoint`, `talkradioentityid`, `talksamplerate`, `talkchannelmap`, `talkchanneluuidmap`.
 
 ### 2.3 Compatibility
 
@@ -126,12 +126,13 @@ Lists are capped at 300 entries; the counts are complete. `members.valuerules` a
 
 ### 2.4 Targets
 
-`GET /junction/configs/{cfgid}/endpoints/{epid}/targets` asks the endpoint's RTI for its federations, listens 1.5 s on a DIS network, or (Talk, with `?federation=`) joins briefly and lists the channels:
+`GET /junction/configs/{cfgid}/endpoints/{epid}/targets` asks the endpoint's RTI for its federations, listens 1.5 s on a DIS network, or (Talk, with `?federation=`) joins briefly and lists the channels; a J2J endpoint lists the sessions of the J2J network:
 
 ```json
 {"endpoint":"blue","result":{"kind":"federation","targets":["Blue","FederationX-blue"]},"default":"Blue"}
 {"endpoint":"dis","result":{"kind":"exercise","targets":[{"id":"1","pdus":412}]},"default":"1"}
 {"endpoint":"site1","result":{"kind":"channel","targets":[{"id":"Battalion","type":"VoiceChannel"}]},"default":"TalkSite1"}
+{"endpoint":"j2j","result":{"kind":"session","targets":[{"id":"exercise-pdu","model":"DIS 7, exercise 1","members":3}]},"default":"exercise-pdu"}
 ```
 
 `result.error` is set when the probe failed (RTI missing, port in use, …).
@@ -185,7 +186,7 @@ POST /junction/gateways
 
 `targets`, `vars`, `instance` and `lsds` are optional.
 
-- `targets` gives an endpoint's federation (HLA, Talk) or exercise id (DIS, 0-255). Missing ones use the configuration's default, and a target may contain group variable tokens.
+- `targets` gives an endpoint's federation (HLA, Talk), exercise id (DIS, 0-255) or session (J2J). Missing ones use the configuration's default, and a target may contain group variable tokens.
 - The call returns when every endpoint has joined or opened, so HLA joins can take a while.
 - The reply includes `warning` when another running gateway already uses one of the targets.
 - `lsds` gives an HLA endpoint the LSD (1516-2025: the RTI configuration name) to connect with: one of the configured choices (`endpoint.hla.lsd=default;crc2`) or any other text, `""` for the RTI's default. Missing endpoints use the configured default, the first choice. Group variable tokens in it are replaced. Send only what differs from the default, so a group variable in the setting keeps working.
@@ -242,6 +243,8 @@ POST /junction/gateways
 | `dynamicfom` | HLA endpoints: the FOM is taken from the federation |
 | `providesanswered` / `providesforwarded` | Provide requests answered from the gateway's cache / passed on to the object's origin because the cache had no value of some requested attribute (0.9.19; at most once per attribute and object per `router.provide.forwardintervalms`, never to a DIS origin) |
 | `fomnotice` | Only when there is something to say, e.g. a dynamic endpoint's federation FDD changed after the start (a federate joined with more modules): restart the gateway to take in the new classes |
+
+J2J endpoints (0.10.0) have `j2j`: `session`, `model` (e.g. `"DIS 7, exercise 1"`), `transport`, `members` (the other members: `node`, `gateway`, `instance`, `endpoint`, `model`, `state` `active` / `lost` / `mismatch`, `statemessage`, `local`, `since`), `sent`, `received`, `copies` (sent to other servers), `notsent` (no route, or the reliable buffer full) and `loopsdropped` (received from the session shortly before, not sent back). A J2J endpoint whose server does not run J2J fails to open with `CONNECT_FAILED`.
 
 DIS and C-DIS endpoints (0.9.18) also have `dis`: `disversion`, `exercise`, `sendexercise`, `destination`, `echoes` (own PDUs dropped), `otherexercise`, `malformed`, the objects heard and sent; with the PDU relay `relayedin` / `relayedout`. A C-DIS endpoint adds `"protocol": "C-DIS"`, `cdissettings` (as `cdis` in 2.2), `cdisobjects` (objects the decoder keeps state for) and the codec's counters:
 

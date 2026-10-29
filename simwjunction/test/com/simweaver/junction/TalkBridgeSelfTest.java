@@ -652,7 +652,7 @@ public final class TalkBridgeSelfTest {
 
     // ------------------------------------------------------------------ helpers
 
-    private static Map<String, HValue> map(Object... kv) {
+    static Map<String, HValue> map(Object... kv) {
         Map<String, HValue> m = new LinkedHashMap<String, HValue>();
         for (int i = 0; i < kv.length; i += 2) {
             m.put((String) kv[i], (HValue) kv[i + 1]);
@@ -752,7 +752,7 @@ public final class TalkBridgeSelfTest {
         mg.stop();
     }
 
-    private static byte[] uuid(int fill) {
+    static byte[] uuid(int fill) {
         byte[] b = new byte[16];
         Arrays.fill(b, (byte) fill);
         b[15] = 1;
@@ -808,7 +808,7 @@ public final class TalkBridgeSelfTest {
 
     // ------------------------------------------------------------------ a Talk test federate
 
-    private static final class Fed implements RtiSessionListener {
+    static final class Fed implements RtiSessionListener {
         final RtiSession s;
         final String name;
         final BlockingQueue<String[]> q = new LinkedBlockingQueue<String[]>();

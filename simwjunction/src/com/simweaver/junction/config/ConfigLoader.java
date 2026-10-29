@@ -258,7 +258,8 @@ public final class ConfigLoader {
             }
             EndpointConfig ec = new EndpointConfig(epId, ep, source, runtimeDir);
             // the target as written, for the page's Discover of variable values (GROUPVAR1-Talk + Alpha-Talk -> Alpha)
-            String tkey = ec.getType() != null && ec.getType().isDis() ? "dis.exid" : "hla.federation";
+            String tkey = ec.getType() != null && ec.getType().isDis() ? "dis.exid"
+                    : ec.getType() == EndpointType.J2J ? "j2j.session" : "hla.federation";
             String tmpl = kitRaw == null ? null : kitRaw.getString("endpoint." + tkey, null);
             String inline = raw.getString("junction.endpoint." + epId + "." + tkey, null);
             if (inline != null) {
@@ -299,8 +300,11 @@ public final class ConfigLoader {
         if (router.getKind() == RouterConfig.Kind.TALK) {
             int talk = 0;
             for (EndpointConfig e : endpoints.values()) {
-                if (e.getType() == EndpointType.TALK) {
-                    talk++;
+                if (e.getType() == EndpointType.TALK || e.getType() == EndpointType.J2J) {
+                    talk++;                                       // 0.10.0: a J2J session can be a Talk side
+                }
+                if (e.getType() == EndpointType.J2J && !e.isJ2jFomsGiven()) {
+                    problems.add("a J2J endpoint (" + e.getId() + ") in a Talk gateway needs the Talk FOM files in endpoint.hla.foms");
                 }
             }
             if (talk < 2 && router.getTalkRadioEndpoint().isEmpty()) {
@@ -312,13 +316,18 @@ public final class ConfigLoader {
         }
         if (router.getKind() == RouterConfig.Kind.PDU) {
             for (EndpointConfig e : endpoints.values()) {
-                if (e.getType() != null && !e.getType().isDis()) {
-                    problems.add("a PDU relay (router.kind=pdu) takes DIS 6, DIS 7 and C-DIS endpoints only; "
+                if (e.getType() != null && !e.getType().isPduPort()) {
+                    problems.add("a PDU relay (router.kind=pdu) takes DIS 6, DIS 7, C-DIS and J2J endpoints only; "
                             + e.getId() + " is " + e.getType().label());
                 }
             }
             if (endpoints.size() < 2) {
                 problems.add("a PDU relay needs two endpoints");
+            }
+        }
+        for (EndpointConfig e : endpoints.values()) {
+            if (e.getType() == EndpointType.J2J) {
+                e.setJ2jObjects(router.getKind() != RouterConfig.Kind.PDU);   // 0.10.0: objects in IEM / Talk gateways
             }
         }
         String group = p.getString("junction.group", rp.getString("router.group", "")).trim();

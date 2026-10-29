@@ -45,6 +45,10 @@ public final class EndpointFactory {
         if (cfg.getType().isDis()) {
             return new DisEndpoint(cfg, t, gatewayId);
         }
+        if (cfg.getType().isJ2j()) {
+            return cfg.isJ2jObjects() ? new com.simweaver.junction.endpoint.j2j.J2jObjectEndpoint(cfg, t, gatewayId)
+                    : new com.simweaver.junction.endpoint.j2j.J2jEndpoint(cfg, t, gatewayId);
+        }
         throw new EndpointException(EndpointException.CONFIG_INVALID, "endpoint " + cfg.getId() + ": " + cfg.getType() + " not supported", null);
     }
 

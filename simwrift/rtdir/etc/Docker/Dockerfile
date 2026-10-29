@@ -11,5 +11,5 @@ RUN sed -i 's/\r$//' run.sh && chmod 755 run.sh \
  && useradd --system --home-dir /opt/simweaver-rift simweaver && chown -R simweaver /opt/simweaver-rift
 USER simweaver
 ENV RTI_JAR=/opt/rti/lib/prti1516e.jar
-EXPOSE 8843
+EXPOSE 8843 8844 8844/udp
 ENTRYPOINT ["./run.sh"]

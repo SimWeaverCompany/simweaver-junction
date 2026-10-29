@@ -9,6 +9,7 @@ gateways, the Infra page and the Config assistant. From a browser you can:
   them on a map;
 - follow the interactions live, with rates per class;
 - see every exercise and federation the server has contact with (**Infra**);
+- see the J2J network of SimWeaver servers this server belongs to (**J2J**, when configured);
 - start and watch Junction gateways, and write configuration files with the Config assistant.
 
 The server serves the Web UI itself. Clients need only a current Microsoft Edge or Google Chrome
@@ -40,7 +41,8 @@ certificate installed as trusted on the client machines.
 ### Top bar (all pages)
 
 - **SimWeaver logo** and the page's name; the buttons next to it switch between **Rift datasources**,
-  **Junction gateways**, **Infra** and the **Config assistant**.
+  **Junction gateways**, **Infra**, **J2J** (only while this server is configured for a J2J network;
+  red when J2J did not start) and the **Config assistant**.
 - **Zulu clock:** the time in UTC, with the date-time group.
 - **LINK lamp:** *LINK UP* while the server answers, *LINK LOST* when it cannot be reached.
   The page keeps retrying by itself.
@@ -250,6 +252,33 @@ configure.
 - The MOM is asked every few seconds while a federation is open, and about once a minute
   otherwise (installation guide, 2.6).
 
+### J2J page
+
+The top bar's **J2J** opens `j2j.html`: the J2J network of SimWeaver servers this server
+belongs to (installation guide, 2.8). Everything on it updates live.
+
+- **Network:** this server's id, the ports it listens on, the network key's id and fingerprint
+  (compare fingerprints with the other sites, never the key), whether the members' lists agree,
+  and how many members are reached directly, through others, or not. **⟳ Reload member list**
+  reads `etc/j2j/network.settings` and `network.key` again (a list with problems is not applied
+  while J2J runs). **New key text** makes a random key to copy to every member; it is not installed.
+  When J2J did not start, a red box says why.
+- **01 Network:** a diagram of the servers, grouped by site, and every link the members report:
+  green when up (with its ping), grey dashed while being dialled, red dotted when refused. This
+  server has an amber frame; members reached through others are blue. Click a server for its row.
+- **02 Members:** one row per member: its state, where it is reached, how (`TCP`, `TCP + UDP`,
+  `TLS 443`, or *routed*; the lock means encrypted), the ping with its last minute, and the
+  gateways using it. Ping colours: green, amber over 150 ms, red over 400 ms. **Click a row** for
+  the addresses tried, the channels, the route, the traffic per class, the member's own status
+  (version, uptime, CPU, memory, gateways), its clock offset, and **⌁ Ping**, which measures the
+  path hop by hop.
+- **03 Sessions:** gateways on different servers sharing DIS PDUs or HLA objects through a session
+  (Junction's `j2j` endpoint): each session with its model and members, *lost* when a member's server cannot be
+  reached, *other model* when it uses another DIS version or exercise. **01 Network** can show a
+  session instead of the links: its gateways on the servers, joined by purple lines.
+- **04 Events:** the J2J log events (links up and down, routes, refused connections, member list
+  warnings), newest first; **Warnings** shows only the problems.
+
 ---
 
 ## Troubleshooting
@@ -266,6 +295,9 @@ configure.
 | An object shows *No attribute values received yet* | The federate that owns it has not sent any attribute updates yet |
 | The server readout is missing from the top bar | The window is narrower than 640 px, or the server is older and has no `/api/serverinfo` |
 | The Infra page lists nothing | Nothing is running: Infra shows only what the running datasources and gateways have contact with. Or the server has `infra.enabled=false` |
+| The **J2J** button is missing | J2J is off: `etc/j2j/network.settings` lists no members (installation guide, 2.8) |
+| A J2J member stays *refused* | It has another network key or network id, or this server is not in its member list. The event says which |
+| A J2J member says *list differs* | Its `network.settings` is not the same as this server's. Give every member the same file and reload |
 | An HLA federation on the Infra page says *no MOM* | The RTI did not let the federate subscribe its MOM classes. The federates are then known only by the traffic they send |
 
 ---
@@ -314,8 +346,8 @@ show up in the datasource list, marked *JUNCTION*. See [junction.md](junction.md
 ## For integrators
 
 Everything the Web UI shows comes from the server's REST API and its live event stream, open to
-other tools as well: [rest-api.md](rest-api.md) (Rift and Infra) and
-[junction-rest-api.md](junction-rest-api.md) (Junction).
+other tools as well: [rest-api.md](rest-api.md) (Rift and Infra),
+[junction-rest-api.md](junction-rest-api.md) (Junction) and [j2j-rest-api.md](j2j-rest-api.md) (J2J).
 
 ---
 

@@ -1,0 +1,20 @@
+# J2J network (0.10.0): the members of the network of SimWeaver servers this server belongs to.
+# The same file on every member. No members (as delivered) = J2J is off, nothing listens.
+# Install guide, 2.8. The network key goes in etc/j2j/network.key (keep it secret; the J2J page
+# makes one: New key text), this server's id in etc/server.root.settings: j2j.node.id=<id>.
+#
+#network.id=exercise-net
+#network.name=Exercise network North
+#
+#member.sto-1.name=Stockholm lab
+#member.sto-1.addresses=10.10.0.5:8844; 192.0.2.10:8844
+#member.sto-1.fallback=gw.sto.example.org:443
+#member.sto-1.site=North
+#
+# member.got-2.name=Gothenburg
+# member.got-2.addresses=10.20.0.7
+# member.got-2.site=West
+#
+# no addresses: behind NAT or a strict firewall, it dials out
+# member.mlm-3.name=Malmo
+# member.mlm-3.site=South

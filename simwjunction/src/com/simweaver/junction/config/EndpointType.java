@@ -24,7 +24,12 @@ public enum EndpointType {
      */
     CDIS("cdis", "C-DIS (SISO-STD-023-2024)", false, false),
     /** A Talk federation (HLA, by default 1516-2010). Setting: {@code talk}. */
-    TALK("talk", "Talk (HLA)", true, false);
+    TALK("talk", "Talk (HLA)", true, false),
+    /**
+     * A session of the J2J network (0.10.0): gateways on other SimWeaver servers sharing DIS PDUs
+     * as they are, for the PDU relay ({@code router.kind=pdu}). Setting: {@code j2j}.
+     */
+    J2J("j2j", "J2J session", false, false);
 
     private final String setting;
     private final String label;
@@ -56,6 +61,16 @@ public enum EndpointType {
     /** @return true for DIS (C-DIS included: a DIS 7 endpoint with C-DIS on the network) */
     public boolean isDis() {
         return this == DIS6 || this == DIS7 || this == CDIS;
+    }
+
+    /** @return true for a J2J session endpoint */
+    public boolean isJ2j() {
+        return this == J2J;
+    }
+
+    /** @return true for the kinds a PDU relay takes: DIS 6, DIS 7, C-DIS and J2J sessions */
+    public boolean isPduPort() {
+        return isDis() || this == J2J;
     }
 
     /** @return true for C-DIS */
@@ -100,6 +115,8 @@ public enum EndpointType {
             case "talk":
             case "pitchtalk":
                 return TALK;
+            case "j2j":
+                return J2J;
             default:
                 return null;
         }

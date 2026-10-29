@@ -64,7 +64,8 @@ public final class ServerInfo {
      *             "processcommitted", "physicaltotal", "physicalfree"},   bytes; null when unknown
      *  "threads": n, "datasources": n,
      *  "syslog": {"enabled": false} | {"enabled": true, "target", "protocol", "format", "level", "connected",
-     *             "connectedsince", "sent", "queued", "dropped", "lasterror", "lasterrortime"}}
+     *             "connectedsince", "sent", "queued", "dropped", "lasterror", "lasterrortime"},
+     *  "j2j": {"state": "off" | "running" | "error"}}
      * </pre>
      */
     Map<String, Object> toMap(int datasourceCount) {
@@ -99,6 +100,8 @@ public final class ServerInfo {
         m.put("threads", ManagementFactory.getThreadMXBean().getThreadCount());
         m.put("datasources", datasourceCount);
         m.put("syslog", com.simweaver.common.logging.LogSetup.syslogStatus());      // 0.9.22
+        com.simweaver.j2j.J2jService j2j = com.simweaver.j2j.J2jService.global();     // 0.10.0: the top bar shows J2J when configured
+        m.put("j2j", java.util.Collections.singletonMap("state", j2j == null ? "off" : j2j.state()));
         return m;
     }
 

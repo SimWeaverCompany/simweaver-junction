@@ -85,12 +85,12 @@ h1, h2, h3 { margin: 0; font-weight: inherit; font-size: inherit; }
 }
 .brand:hover { color: var(--fg); }
 .brand-mark { width: 36px; height: 36px; flex: 0 0 auto; }
-/* the SimWeaver logo (img/simweaver-logo.png, the knot of favicon.ico) */
-.brand-logo { display: block; object-fit: contain; transition: transform 0.2s ease, filter 0.2s ease; }
-.brand:hover .brand-logo { transform: rotate(-8deg) scale(1.06); filter: drop-shadow(0 0 5px rgba(247, 178, 48, 0.45)); }
-/* light theme: the deeper-toned variant, the original's yellow is too faint on the desert background */
-html.light .brand-logo { content: url("../img/simweaver-logo-light.png"); }
-html.light .brand:hover .brand-logo { filter: drop-shadow(0 0 4px rgba(200, 120, 0, 0.35)); }
+/* the SimWeaver logo (0.10.1): img/simweaver-logo.png, the mark of img/simweaver-mark.svg (the master; with the
+   name: img/simweaver-logo.svg) on its own 4:3 area, so it is wider than the 36 px square of the other marks */
+.brand-logo { display: block; width: 48px; height: 36px; object-fit: contain; transition: transform 0.2s ease, filter 0.2s ease; }
+.brand:hover .brand-logo { transform: rotate(-8deg) scale(1.06); filter: drop-shadow(0 0 5px rgba(80, 175, 255, 0.5)); }
+/* light theme: the same logo, a deeper glow */
+html.light .brand:hover .brand-logo { filter: drop-shadow(0 0 4px rgba(10, 125, 245, 0.35)); }
 @media (prefers-reduced-motion: reduce) { .brand-logo { transition: none; } .brand:hover .brand-logo { transform: none; } }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand .mark {
@@ -1359,6 +1359,7 @@ button.chip:hover { background: var(--blue); color: var(--bg-deep); }
 }
 .app-nav-link:hover { color: var(--accent-hi); border-color: var(--rule-strong); }
 .app-nav-link.current { color: var(--bg-deep); background: var(--accent); border-color: var(--accent); font-weight: 700; }
+.app-nav-link.nav-warn, .app-nav-link.nav-warn:visited { color: var(--err); border-color: var(--err); }   /* J2J did not start */
 @media (max-width: 760px) {
   .app-nav { order: 3; width: 100%; margin-left: 0; }
   .app-nav-link { flex: 1 1 0; min-width: 0; text-align: center; }

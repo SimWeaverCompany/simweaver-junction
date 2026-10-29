@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SimWeaver J2J</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/j2j.css">
+	<script src="js/theme.js"></script>
+</head>
+<body class="jj-page">
+
+<header class="topbar">
+	<a class="brand" href="j2j.html" title="SimWeaver J2J - the network of Junction servers">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="48" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>J2J</b></span>
+			<span class="sub">Junction network</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<a class="app-nav-link" href="index.html" title="SimWeaver Rift - datasources">Rift datasources</a>
+		<a class="app-nav-link" href="junction.html" title="SimWeaver Junction - gateways">Junction gateways</a>
+		<a class="app-nav-link" href="infra.html" title="SimWeaver Infra - the DIS exercises and HLA federations Rift and Junction have contact with">Infra</a>
+		<span class="app-nav-link current" aria-current="page">J2J</span>
+		<a class="app-nav-link" href="config-assistant.html" title="SimWeaver Config Assistant - write configuration files">Config assistant</a>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page" id="jj-main">
+
+	<div id="jj-loading" class="state state-loading">Reading the J2J state&hellip;</div>
+	<div id="jj-fault" hidden></div>
+
+	<!-- J2J is off: how to switch it on -->
+	<section id="jj-off" class="panel" hidden aria-labelledby="jj-off-title">
+		<div class="panel-head">
+			<span class="idx">J2J</span>
+			<h2 id="jj-off-title" class="title">J2J network is off</h2>
+			<span class="jj-badge jj-st-off" style="margin-left:auto">&#9675; Off</span>
+		</div>
+		<div class="panel-body jj-off-body">
+			<p>This server is not part of a J2J network: <span class="mono">etc/j2j/network.settings</span> lists no members.
+				The J2J button is hidden in the top bar of the other pages until J2J is configured.</p>
+			<ol>
+				<li>List every member of the network in <span class="mono">etc/j2j/network.settings</span>: the same file on every server.</li>
+				<li>Put the network key in <span class="mono">etc/j2j/network.key</span> on every server (<em>New key text</em> below makes one).</li>
+				<li>Set this server's id: <span class="mono">j2j.node.id=</span> in <span class="mono">etc/server.root.settings</span>.</li>
+				<li>Reload the member list here, or restart the server.</li>
+			</ol>
+			<pre class="jj-pre">network.id=exercise-net
+network.name=Exercise network North
+member.sto-1.name=Stockholm lab
+member.sto-1.addresses=10.10.0.5:8844
+member.got-2.name=Gothenburg
+member.got-2.addresses=10.20.0.7</pre>
+			<div class="jj-actions">
+				<button type="button" class="btn" data-act="reload">&#10227; Reload member list</button>
+				<button type="button" class="btn" data-act="newkey">New key text</button>
+				<span class="dim mono">Install guide, 2.8 J2J network</span>
+			</div>
+		</div>
+	</section>
+
+	<!-- the network: this server, key, member list, listeners -->
+	<section id="jj-net" class="panel" hidden aria-labelledby="jj-net-title">
+		<div class="panel-head">
+			<span class="idx">J2J</span>
+			<h2 id="jj-net-title" class="title">Network</h2>
+			<span id="jj-net-name" class="jj-net-name"></span>
+			<span id="jj-net-badge" class="jj-badge" style="margin-left:auto"></span>
+		</div>
+		<div class="jj-facts">
+			<div class="jj-fact"><span class="jj-k">This server</span><span id="jj-self"></span></div>
+			<div class="jj-fact"><span class="jj-k">Listens</span><span id="jj-listen" class="mono"></span></div>
+			<div class="jj-fact"><span class="jj-k">Network key</span><span id="jj-keyinfo" class="mono"></span></div>
+			<div class="jj-fact"><span class="jj-k">Member list</span><span id="jj-listinfo" class="mono"></span></div>
+			<div class="jj-fact" id="jj-counts-fact"><span class="jj-k">Members</span><span id="jj-counts" class="mono"></span></div>
+			<div class="jj-actions jj-net-actions">
+				<button type="button" class="btn" data-act="reload">&#10227; Reload member list</button>
+				<button type="button" class="btn" data-act="newkey">New key text</button>
+			</div>
+		</div>
+		<div id="jj-problems" class="jj-alert" role="alert" hidden></div>
+	</section>
+
+	<!-- a new key text (POST /api/j2j/key/new): shown, never installed -->
+	<section id="jj-key" class="panel" hidden aria-labelledby="jj-key-title">
+		<div class="panel-head">
+			<span class="idx">KEY</span>
+			<h2 id="jj-key-title" class="title">New network key text</h2>
+			<span class="meta">
+				<button type="button" class="btn" id="jj-key-copy">Copy</button>
+				<button type="button" class="btn" id="jj-key-close">Close</button>
+			</span>
+		</div>
+		<div class="panel-body jj-key-body">
+			<code id="jj-key-line" class="jj-key-line"></code>
+			<span class="jj-key-hint">Fingerprint <span id="jj-key-fp" class="mono"></span>. Not installed: add the line to
+				<span class="mono">etc/j2j/network.key</span> on every member, make it the preferred key
+				(<span class="mono">preferred=</span>), then remove the old one. The key in use is never shown, only its id and fingerprint.</span>
+		</div>
+	</section>
+
+	<!-- 01 the network diagram -->
+	<section id="jj-diagram" class="panel" hidden aria-labelledby="jj-diagram-title">
+		<div class="panel-head">
+			<span class="idx">01</span>
+			<h2 id="jj-diagram-title" class="title">Network</h2>
+			<span class="jj-sub">every link in the network, from the members' link-state updates</span>
+			<span id="jj-overlays" class="jj-overlays" role="group" aria-label="Show"></span>
+		</div>
+		<div class="jj-net-scroll">
+			<div id="jj-netbox" class="jj-netbox"></div>
+		</div>
+		<div class="jj-legend">
+			<span class="jj-lg"><svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" class="jj-l-up"/></svg>J2J link up</span>
+			<span class="jj-lg"><svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" class="jj-l-wait"/></svg>configured, not connected</span>
+			<span class="jj-lg"><svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" class="jj-l-refused"/></svg>refused</span>
+			<span class="jj-lg"><svg width="26" height="8" aria-hidden="true"><path d="M0 6 Q13 0 26 6" class="jj-l-session"/></svg>session</span>
+			<span class="jj-lg"><span class="jj-sw jj-sw-self" aria-hidden="true"></span>this server</span>
+			<span class="jj-lg"><span class="jj-sw jj-n-direct" aria-hidden="true"></span>direct</span>
+			<span class="jj-lg"><span class="jj-sw jj-n-routed" aria-hidden="true"></span>routed</span>
+			<span class="jj-lg"><span class="jj-sw jj-n-down" aria-hidden="true"></span>not reachable</span>
+			<span class="jj-lg">Click a server for its details &middot; ping: green, amber over 150 ms, red over 400 ms</span>
+		</div>
+	</section>
+
+	<!-- 02 members -->
+	<section id="jj-members" class="panel" hidden aria-labelledby="jj-members-title">
+		<div class="panel-head">
+			<span class="idx">02</span>
+			<h2 id="jj-members-title" class="title">Members</h2>
+			<span id="jj-member-count" class="jj-sub"></span>
+			<span class="meta">
+				<label for="jj-filter" class="jj-k">Filter</label>
+				<input id="jj-filter" type="search" placeholder="id, name or address" autocomplete="off">
+			</span>
+		</div>
+		<div class="jj-mt-scroll">
+			<div class="jj-mt-head" aria-hidden="true">
+				<span></span><span>State</span><span>Member</span><span>Reached at</span><span>How</span><span>Ping</span><span>Used by</span>
+			</div>
+			<div id="jj-member-rows"></div>
+			<div id="jj-nomatch" class="jj-empty" hidden>No member matches the filter.</div>
+		</div>
+	</section>
+
+	<div id="jj-lower" class="jj-lower" hidden>
+		<!-- 03 sessions -->
+		<section class="panel jj-sessions" aria-labelledby="jj-sessions-title">
+			<div class="panel-head">
+				<span class="idx">03</span>
+				<h2 id="jj-sessions-title" class="title">Sessions</h2>
+				<span id="jj-session-count" class="meta"></span>
+			</div>
+			<div id="jj-session-list"></div>
+		</section>
+		<!-- 04 events -->
+		<section class="panel jj-events" aria-labelledby="jj-events-title">
+			<div class="panel-head">
+				<span class="idx">04</span>
+				<h2 id="jj-events-title" class="title">Events</h2>
+				<span class="meta" role="group" aria-label="Level">
+					<button type="button" class="btn on" id="jj-ev-all" aria-pressed="true">All</button>
+					<button type="button" class="btn" id="jj-ev-warn" aria-pressed="false">Warnings</button>
+				</span>
+			</div>
+			<div id="jj-event-list" class="jj-event-list" aria-live="polite"></div>
+		</section>
+	</div>
+
+</main>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // J2J</span>
+	<span class="license">By SimWeaver - released under the BSD 3-Clause License</span>
+	<span class="dim">Junction to Junction network</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/j2j-api.js"></script>
+<script src="js/j2j.js"></script>
+</body>
+</html>

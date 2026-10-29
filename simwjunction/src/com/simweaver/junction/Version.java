@@ -6,7 +6,7 @@ public final class Version {
     /** Product name. */
     public static final String PRODUCT_NAME = "SimWeaver Junction";
 
-    private static final String VERSION = "0.9.22";
+    private static final String VERSION = "0.10.0";
 
     private Version() {
     }

@@ -135,7 +135,7 @@ docker run -d --name simweaver-rift --network host \
 - **Network:** `--network host` is the simplest for HLA, because RTIs often open connections
   in both directions between the federate and the CRC/LSD. With Docker's default network,
   publish the server port instead (`-p 8843:8843`, with the port from
-  `etc/server.root.settings`) and make sure the RTI can reach the container.
+  `etc/server.root.settings`) and make sure the RTI can reach the container. With J2J (2.8), publish its port too, TCP and UDP (`-p 8844:8844 -p 8844:8844/udp`).
   **DIS needs `--network host`**, because broadcast and multicast PDUs do not cross Docker's
   default network.
 - **Configuration and logs:** to keep them outside the container, mount `etc/` and the log
@@ -172,6 +172,7 @@ All configuration files are plain text in Java properties format: `key = value`,
 | `etc/datasources/*.datasource.settings` | One datasource configuration per file | Each time the configuration list is shown |
 | `etc/listprofiles.properties` | Optional: which attributes the object list shows | At startup |
 | `maps/raster/<map>/<map>.tif` | Optional: background maps of the map view | At startup |
+| `etc/j2j/network.settings`, `etc/j2j/network.key` | Optional: the J2J network of Junction servers (2.8) | At startup, and on *Reload member list* |
 
 ### 2.1 Server settings: `etc/server.root.settings`
 
@@ -208,6 +209,8 @@ Server-wide settings. Restart the server after changing this file.
 | `map.overlays` | | Shapefiles drawn over the map (2.5), `;`-separated `.shp` files or `.zip` packages |
 | `map.overlays.dir` | `maps/overlays` | Every `.shp` and `.zip` package in this folder (and its sub folders) is an overlay too |
 | `map.overlay.<id>.*` | | The style and labels of an overlay (2.5) |
+| `j2j.node.id` | | This server's id in the J2J member list (2.8). J2J itself is switched on by the member list, not here |
+| `j2j.*` (more) | | J2J ports, the last resort on 443, timers: see 2.8 |
 
 The server uses **HTTPS only**, so it needs a key store with its certificate. `keystore-gen-line.txt` has a `keytool` command that makes a self-signed one.
 
@@ -544,6 +547,108 @@ syslog.tls.truststorepassword=changeit
 syslog.level=NOTICE
 ```
 
+### 2.8 J2J network (0.10.0)
+
+**J2J** (Junction to Junction) connects SimWeaver servers into one network: each server keeps encrypted links to the others, traffic finds its way through the servers that can reach each other, and the **J2J** page (`j2j.html`) shows every member, how it is reached and how well. Junction gateways on different servers share traffic through it in *sessions*: a gateway joins one with a `j2j` endpoint ([junction.md](junction.md), *J2J sessions*) — DIS PDUs as they are, or the objects and interactions of an HLA object model (RPR, NETN, Talk …).
+
+J2J is **off** until `etc/j2j/network.settings` lists members. While it is off nothing listens and the **J2J** button is hidden in the top bar.
+
+**Switching it on** — on every server of the network:
+
+1. Put **the same** `etc/j2j/network.settings` on every server: the whole network, also the servers it cannot reach itself.
+2. Put **the same** network key in `etc/j2j/network.key` (the J2J page makes one: *New key text*).
+3. Set this server's own id in `etc/server.root.settings`: `j2j.node.id=sto-1`.
+4. Restart the server, or open the J2J page and press **Reload member list**.
+
+```
+# etc/j2j/network.settings - the same file on every member; no members = J2J off
+network.id=exercise-net
+network.name=Exercise network North
+
+member.sto-1.name=Stockholm lab
+member.sto-1.addresses=10.10.0.5:8844; 192.0.2.10:8844
+member.sto-1.fallback=gw.sto.example.org:443
+member.sto-1.site=North
+
+member.got-2.name=Gothenburg
+member.got-2.addresses=10.20.0.7
+member.got-2.site=West
+
+# no addresses: behind NAT or a strict firewall, it dials out
+member.mlm-3.name=Malmo
+member.mlm-3.site=South
+```
+
+| Key | Meaning |
+|---|---|
+| `network.id` | The network's id (required). Servers of another network are refused |
+| `network.name` | A name for the page |
+| `member.<id>.name` | A name for the page. The `<id>` (1-32 of `a-z`, `0-9`, `-`) is fixed: it is how the servers know each other |
+| `member.<id>.addresses` | Where it listens, tried in order, `;`-separated `host` or `host:port` (port `8844` when not given). None: nobody dials it; it dials the others |
+| `member.<id>.fallback` | The last resort, `host:443`: J2J inside TLS, for sites where only HTTPS gets through |
+| `member.<id>.site` | Optional: groups servers in the network diagram |
+| `member.<id>.connect` | `false`: no server dials it (known to be out of reach); it is reached when it dials, or through others |
+
+```
+# etc/j2j/network.key - the same on every member; keep it secret (readable by the server's account only)
+k1=3q2+7wQ0yk1o2J6m2b1pZ7C5mQ0jY8c9aYd6Hc1yJ0E=
+```
+
+- A key is `<key id>=<32 random octets in base64>`. The page shows only its id and a fingerprint (8 hex digits): compare fingerprints over the phone, never the key.
+- **Changing the key without a stop:** add the new key as a second line on every server; then add `preferred=k2` on every server (new links use it); then remove the old line. Reload the member list after each step.
+
+**Server settings** (`etc/server.root.settings`, read at start-up):
+
+| Key | Default | Meaning |
+|---|---|---|
+| `j2j.node.id` | | This server's id in the member list (required when the list has members) |
+| `j2j.port` | `8844` | TCP and UDP port of the links |
+| `j2j.bind` | all addresses | Listen on this address only |
+| `j2j.udp` | `true` | Also use UDP for best-effort traffic; `false`: TCP only |
+| `j2j.fallback.port` | `443` | Port of the TLS last-resort listener; `0`: none. On Linux a port below 1024 needs the right to bind it (e.g. `setcap cap_net_bind_service=+ep` on `java`, or a firewall redirect from 443 to a high port) |
+| `j2j.fallback.keystore` / `j2j.fallback.keystorepwd` | the web server's key store | Certificate of the TLS listener. It is not checked by the other side: the J2J handshake inside authenticates |
+| `j2j.fallback.proxy` | | `host:port` of an HTTP proxy: the last resort is dialled through it with `CONNECT` |
+| `j2j.fallback.retryseconds` | `60` | On the last resort, the primary addresses are tried again this often |
+| `j2j.deadseconds` | `5` | A link that has not been heard from for this long is down (2-120) |
+| `j2j.rekeyminutes` | `60` | A link gets fresh keys this often, without a break (at most 60) |
+| `j2j.session.lostseconds` | `10` | A session member whose server has had no route for this long is *lost* |
+
+**What a member's state means** (the J2J page, *Members*):
+
+| State | Meaning |
+|---|---|
+| *direct* | A link to it is up; *How* says on what: `TCP`, `TCP + UDP`, `TLS 443` |
+| *routed* | No link of its own, but reachable through other members (*via*) |
+| *waiting* | Not reachable now; the next try is shown. A member never reached is tried less and less often, up to every 5 minutes |
+| *refused* | The handshake was refused: another network key or network id, or this server is not in its list |
+| *waits for it* | No addresses (or `connect=false`): it has to dial this server |
+| *not started* | J2J did not start here: the page says why |
+
+- **Ports and firewalls.** Each server listens on TCP and UDP `j2j.port`. It is enough that one side of a pair can be dialled: a server behind NAT is listed without addresses and dials out. UDP is optional; without it best-effort traffic goes over TCP.
+- **Who is in.** Only the members of the list who hold the key get in. Every refused attempt (wrong key, not in the list, another network) is logged as `j2j.handshake.refused`, at most once per address and minute with a count.
+- **Same list everywhere.** Each server tells the others a hash of its member list; the page warns when a member's list differs (*list differs*), so the file can be rolled out one server at a time.
+- **Time.** Run NTP on every server. Times on the links are UTC; the page shows each member's clock offset.
+- **What is shared.** Each server tells the others its version, start time, CPU, memory and number of gateways (the member's details on the page). Nothing on one server can control another.
+- **Mistakes.** A problem in the files (an unknown setting, a malformed address, `j2j.node.id` not in the list, no key) stops J2J, not the server: the start-up banner (`J2J: NOT STARTED: …`) and the page say what. *Reload member list* does not apply a list with problems while J2J runs; the running list stays.
+
+Log events (2.7):
+
+| Event | Level | Fields |
+|---|---|---|
+| `j2j.started` / `j2j.config.invalid` | NOTICE / WARNING | `network`, `node`, `members`, `port` / `problems` |
+| `j2j.members.reloaded` | NOTICE | `state` |
+| `j2j.link.up` / `j2j.link.down` | NOTICE / WARNING | `member`, `address`, `direction`, `channel` / `reason`, `uptimeseconds` |
+| `j2j.node.reachable` / `j2j.node.unreachable` / `j2j.route.changed` | NOTICE / WARNING / NOTICE | `member`, `via`, `hops`, `cost` |
+| `j2j.channel.fallback` / `j2j.channel.primary` | NOTICE | `member`, `address`, `proxy`: moved to the last resort on 443 / back to a primary address |
+| `j2j.handshake.refused` | WARNING | `from`, `address`, `reason`, `side` (`ours`: we refused; `theirs`: they refused us), `count` |
+| `j2j.members.mismatch` | WARNING | `member`, `theirs`, `ours`: its member list differs |
+| `j2j.session.joined` / `j2j.session.left` | NOTICE | `session`, `member` (the server; none for this one's), `gateway`, `endpoint`, `model` |
+| `j2j.session.memberlost` / `j2j.session.memberback` | WARNING / NOTICE | `session`, `member`, `gateway`: its server has had no route for `j2j.session.lostseconds` / is back |
+| `j2j.session.modelmismatch` | WARNING | `session`, `member`, `gateway`, `theirs`, `ours`: another DIS version or exercise; no PDUs between them |
+| `j2j.listen.failed` / `j2j.fallback.failed` / `j2j.udp.failed` | WARNING | `port`: it could not be opened (J2J runs without it; the page shows it) |
+
+The protocol on the links is described in [j2j-wire-protocol.md](j2j-wire-protocol.md), the REST calls of the J2J page in [j2j-rest-api.md](j2j-rest-api.md).
+
 ---
 
 ## 3. Security
@@ -551,6 +656,8 @@ syslog.level=NOTICE
 The REST API and the Web UI have **no login**. Anyone who can reach the server's port can
 start and remove datasources and read everything they receive. Restrict access to the port
 with a firewall or network segmentation.
+
+J2J (2.8) links are encrypted and authenticated with the network key (AES-256-GCM, keys from an X25519 exchange, so recorded traffic stays secret even if the key leaks later). Whoever holds `etc/j2j/network.key` and is in the member list is trusted as a member: keep the file readable by the server's account only, and make a new key when someone leaves. The J2J port must be reachable by the other members only.
 
 Syslog over UDP or TCP is not encrypted, and UDP messages can be lost without notice. Use `syslog.protocol=tls` when the log crosses networks you do not trust (2.7). The `by=` of an event is the client's address as the server sees it: with no login it says *from where*, not *who*.
 

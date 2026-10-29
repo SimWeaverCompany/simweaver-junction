@@ -26,6 +26,17 @@ syslog.enabled=false
 #syslog.tls.truststore=etc/syslog-ca.p12
 #syslog.tls.truststorepassword=changeit
 
+# ---------------------------------------------------------------- J2J network (0.10.0)
+# Off until etc/j2j/network.settings lists members. Full list: install guide, 2.8.
+# this server's id in etc/j2j/network.settings
+#j2j.node.id=sto-1
+# TCP and UDP port of the links
+#j2j.port=8844
+# the TLS last resort; 0 = none (a port below 1024 needs the right to bind it on Linux)
+#j2j.fallback.port=443
+#j2j.fallback.proxy=proxy.example.org:8080
+#j2j.session.lostseconds=10
+
 # ---------------------------------------------------------------- Junction gateways
 junction.enabled=true
 junction.dir=etc/junctions

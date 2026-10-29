@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.9.22. Java 11, no libraries apart from the HLA RTIs.
+Version 0.10.1. Java 11, no libraries apart from the HLA RTIs.
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -32,6 +32,7 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
 9. [DIS endpoints](#9-dis-endpoints)
    - [C-DIS endpoints](#c-dis-endpoints)
    - [The PDU relay](#the-pdu-relay)
+   - [J2J sessions](#j2j-sessions-0100)
 10. [RTI libraries per endpoint](#10-rti-libraries-per-endpoint)
 11. [The page](#11-the-page)
 12. [Limits and things to verify](#12-limits-and-things-to-verify)
@@ -44,8 +45,8 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
 | Term | Meaning |
 |---|---|
 | **Gateway** (junction) | Two or more **endpoints** and one **router**, from one `*.junction.settings` file. Started from the page or the REST API; several can run at once. |
-| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), or a Talk federation. Has a **target** chosen at start: federation name or DIS exercise id. |
-| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `talk`: Talk channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7 and C-DIS endpoints (section 9). |
+| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), a Talk federation, or (0.10.0) a session of the J2J network shared with gateways on other SimWeaver servers. Has a **target** chosen at start: federation name, DIS exercise id or J2J session. |
+| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `talk`: Talk channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7, C-DIS and J2J endpoints (section 9). |
 | **Kit** | A reusable endpoint (`endpoints/*.endpoint.settings`) or router (`routers/*.router.settings`) that gateway files refer to and override. |
 | **Group** | Gateways with the same `junction.group`, started and stopped together, with **group variables** (`GROUPVAR1` …) filled in at the start. |
 
@@ -152,7 +153,7 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | Key | Default | Meaning |
 |---|---|---|
 | `endpoint.name` | the id | Shown on the page |
-| `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `talk` |
+| `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `talk`, `j2j` |
 | **HLA** | | |
 | `endpoint.hla.foms` | DIS: RPR v2; Talk: `dynamic` | `;`-separated files or folders; relative names are looked up in `endpoint.hla.fomrootdir`. `dynamic`: the FOM is taken from the federation (see below) |
 | `endpoint.hla.createfoms` | | `dynamic` only: FOM files to create the federation with when it is not running (see below). Empty: the federation must be running |
@@ -172,6 +173,7 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | `endpoint.talk.hlastandard` | `ieee1516-2010` | Talk endpoints: which HLA API |
 | **DIS** | | see section 9 |
 | **C-DIS** | | `endpoint.cdis.*`, see *C-DIS endpoints* in section 9 |
+| **J2J** | | `endpoint.j2j.*`, see *J2J sessions* in section 9 |
 | **Filters** | | |
 | `endpoint.filter.in.*` / `endpoint.filter.out.*` | all | Per-endpoint class filters (same keys as the router's `objects.allow` …): what this endpoint contributes / receives |
 
@@ -656,10 +658,70 @@ The gateway page shows the update mode and how much of the DIS volume was sent (
 | `router.kind` | `iem` | `pdu` for the relay |
 | `router.pdu.types` | all | `;`-separated PDU type numbers to pass, e.g. `1;2;3;25;26;27` |
 
-- Only DIS 6, DIS 7 and C-DIS endpoints (a configuration with others is invalid).
+- Only DIS 6, DIS 7, C-DIS and J2J endpoints (a configuration with others is invalid).
 - An endpoint receives only its exercise (`0`: all), as always, and drops what its own sender sent, so relayed PDUs do not come back.
 - The class filters, names, value rules and RPR conversion of the IEM router do not apply.
 - The page shows the PDUs relayed; the status has them per direction and per PDU type.
+
+### J2J sessions (0.10.0)
+
+A **J2J endpoint** (`endpoint.standard=j2j`) joins a *session* of the J2J network, the network of SimWeaver servers (install guide 2.8). Every gateway on any server of the network that joins the same session shares its traffic with the others. What a session carries depends on the gateway's router:
+
+| Gateway | Session | What the members share |
+|---|---|---|
+| PDU relay (`router.kind=pdu`) | PDU session | DIS PDUs as they are: a DIS network at one site and a C-DIS or DIS 6 network at another become one exercise. Sample `DIS7<->J2J` (`dis7-j2j`), kit `j2j-pdu` |
+| IEM (`router.kind=iem`) | object session | The objects and interactions of an object model (RPR v2, RPR v3, NETN …): to the router the J2J endpoint is like a federation, so filters, names, value rules and RPR v2 ⇄ v3 conversion work as between federations. Sample `HLA3<->J2J` (`hla3-j2j`), kit `j2j-rpr2` |
+| Talk (`router.kind=talk`) | object session (Talk model) | Talk: the J2J endpoint is a Talk side like a Talk federation, so channels are matched by name and clients mirrored as between two Talk federations |
+
+The samples are in `etc/junctions.dist`.
+
+**PDU sessions**
+
+```
+# endpoints/j2j-pdu.endpoint.settings
+endpoint.standard=j2j
+endpoint.j2j.session=exercise-pdu
+endpoint.j2j.dis=7
+endpoint.j2j.exid=1
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `endpoint.j2j.session` | — | The session: 1-64 letters, digits, `.`, `_` and `-`. It is the default target: the start dialog can name another (*Discover* lists the sessions of the network) |
+| `endpoint.j2j.dis` | `7` | The DIS version of the PDUs in the session (6 or 7) |
+| `endpoint.j2j.exid` | `1` | Their exercise (1-255) |
+| `endpoint.j2j.transport` | `auto` | `auto`: Entity State (and Entity State Update) best effort, only the newest of an entity is sent when the link is busy; every other PDU reliable and in order. `reliable`: every PDU reliable |
+
+- **What goes into the session** is rewritten to the session's DIS version and exercise, as a relay does; each member's DIS endpoints write their own on the way out. So the networks behind the members may use different exercises and versions (DIS 6 at one site, DIS 7 at another).
+- **The members must agree** on the session's DIS version and exercise. A member with others gets no PDUs from the rest, and they none from it: the J2J page and the gateway show *other model*, and `j2j.session.modelmismatch` is logged.
+- **J2J must run** on the server: otherwise the endpoint does not open (*J2J does not run on this server*). J2J being reloaded (members changed) does not stop the gateway; the session goes on when J2J is back.
+- **Members that cannot be reached** for `j2j.session.lostseconds` (server setting, default 10) are *lost*: `j2j.session.memberlost`. Nothing has to be deleted: their entities time out in the receivers, as on DIS. They come back by themselves (`j2j.session.memberback`).
+- **Loops.** Two gateways that bridge the same DIS network into the same session would hand each other's PDUs back and forth: a J2J endpoint does not send back a PDU it received from the session within the last 10 seconds (its version and exercise aside). The gateway's status counts them (*looped back, not sent*). Still, give each DIS network one gateway in a session.
+- **Delivery.** A PDU goes once to every server with a member of the session, along the network's routes (also through servers that are not members); each server hands it to its members. Two gateways of one server in the same session get each other's PDUs directly.
+- **On the page** a J2J endpoint shows its session: the model, the other members, and what was sent and received. The J2J page lists every session with its members.
+
+**Object sessions** (IEM and Talk gateways)
+
+```
+# endpoints/j2j-rpr2.endpoint.settings
+endpoint.standard=j2j
+endpoint.j2j.session=exercise-rpr2
+endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `endpoint.j2j.session` | — | The session, as above |
+| `endpoint.hla.foms` | RPR FOM v2.0 | The session's model: FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`). Not `dynamic`. In a Talk gateway the Talk FOM files are required (they are not delivered) |
+| `endpoint.j2j.transport` | `auto` | `auto`: each attribute and interaction as its FOM transportation says (`HLAbestEffort`: best effort, the newest value wins on a busy link; else reliable and in order). `reliable`: everything reliable |
+
+- **The members must have the same model**: its fingerprint (the qualified names of every class, attribute, interaction and parameter, with the datatypes) is the session's *model*, e.g. `HLA objects 3f9a01c2 (RPR_FOM_V2)`. A member with another one shows *other model* and shares nothing. Convert inside the gateway (an RPR v3 federation with a J2J RPR v2 endpoint uses the RPR conversion) rather than in the session.
+- **Objects:** an object created in the session by one gateway is discovered by every other member's gateway under its name, with its values; updates, deletes and interactions follow. A gateway never sends an object back into the session that came from it (the router's split horizon).
+- **Late joiners and returns:** a gateway that joins, or whose server comes back after being lost, gets every member's objects with their last values (a snapshot).
+- **Lost and leaving members:** when a member leaves (its gateway stops) or its server has had no route for `j2j.session.lostseconds`, the other members delete its objects, so they leave the federations and DIS networks behind them; when it comes back they are discovered again (with the same names).
+- **Provide requests** for an object of another member are asked of the gateway that owns it.
+- **One gateway per federation and session:** two gateways that both bridge the same federation into one session would each send the other's copies back in. (A PDU session filters such loops; an object session does not.)
+- **Talk:** the J2J endpoint is a Talk side: the session works like a Talk federation in between. With `talk.createmissingchannels=true` the first message on a channel the session lacks creates it there (as in a federation), and every other member's gateway maps it by name to its own federation's channel. Lobby messages pass.
 
 ---
 
@@ -739,5 +801,9 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.junction.LsdSelfTest` | LSD choices: the setting's form, group variables in it, the default, another choice, a typed value, the RTI default, mistakes; the test RTI refuses one LSD to show which one an endpoint connects with; group starts with LSDs per gateway; Inspect with the endpoint's LSD |
 | `com.simweaver.common.dis.cdis.CdisSelfTest` | C-DIS (SISO-STD-023-2024): bit packing, every VARINT size and its boundaries, custom floats, the header bit by bit, markings, world coordinates; all 22 PDU types DIS 7 → C-DIS → DIS 7 byte for byte at C-DIS precision (EE with shared lists, IFF layers 1 to 5, transmitter with a beam antenna pattern, variable datums, VP records); arbitrary entity states within precision, clamping; partial updates of all five stateful PDUs (unchanged, changed, full update period, last update, a field falling out of use, waiting for a full update, timeouts); datagrams with several bit-packed PDUs and unknown ones; errors; bit vectors of the independent dis-rs implementation |
 | `com.simweaver.junction.CdisBridgeSelfTest` | C-DIS endpoints: the settings and their mistakes; HLA ⇄ C-DIS over UDP with full and with partial updates (location within C-DIS precision, heartbeats as partial updates, C-DIS entities discovered in HLA, the counters); the PDU relay DIS 7 ⇄ C-DIS ⇄ DIS 6 (PDUs the same after relaying both ways, version rewrite, exercise filter, a type C-DIS does not have) |
+| `com.simweaver.junction.J2jPduSelfTest` | J2J endpoints: the settings and their mistakes, J2J off, two gateways on two J2J servers in one session (DIS 7 exercise 3 ⇄ session DIS 7 exercise 1 ⇄ DIS 6 exercise 4: Entity State and Comment both ways, version and exercise rewritten, the PDU status cleared for DIS 6), another exercise not taken, the gateway status, leaving |
+| `com.simweaver.junction.J2jObjectSelfTest` | J2J object sessions: the settings and their mistakes; HLA federations on two J2J servers through a session (an aircraft with its values, updates, a WeaponFire, a gateway joining later getting the snapshot, a provide request, deleting, a lost server and its return, a leaving member) |
+| `com.simweaver.junction.J2jTalkSelfTest` | Talk over J2J: two Talk federations on two servers, mirrored clients, a channel created in the session and mapped by name both ways, the lobby (needs the tester's Talk FOM; skips without) |
+| `com.simweaver.j2j.J2jSessionSelfTest` | PDU sessions on three J2J servers (one reached through another): members, model agreement, reliable PDUs all and in order over two hops, Entity State best effort with the newest arriving, local members, the loop filter, the J2J page's view, a lost member and its return, a reload, leaving |
 | `com.simweaver.rift.datasources.CdisDatasourceSelfTest` | The Rift C-DIS datasource: settings, a full update and partial updates over UDP into the database, another exercise, a broken datagram |
 | `com.simweaver.junction.router.ValueMapSelfTest` | Value rules: the settings and their mistakes, RPR v2 and v3 models, nested values, enumerations, routes as is and v2 ⇄ v3, interaction parameters, and a DIS ⇄ HLA gateway that replaces entity and munition types both ways |

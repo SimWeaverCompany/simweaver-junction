@@ -286,7 +286,9 @@ public final class Gateway implements Json.Writable {
         try {
             Map<String, ModelTools> tools = new LinkedHashMap<String, ModelTools>();
             for (Endpoint e : endpoints) {
-                tools.put(e.id(), new ModelTools(e.model(), e.config().getReferenceTypes()));
+                if (e.model() != null) {                         // a J2J session has none (PDU relay)
+                    tools.put(e.id(), new ModelTools(e.model(), e.config().getReferenceTypes()));
+                }
             }
             r.start(endpoints, tools);
         } catch (EndpointException e) {
@@ -401,6 +403,13 @@ public final class Gateway implements Json.Writable {
             if (e instanceof com.simweaver.junction.endpoint.dis.DisEndpoint) {
                 // 0.9.18: DIS diagnostics, with the C-DIS settings and counters of a C-DIS endpoint
                 j.put("dis", ((com.simweaver.junction.endpoint.dis.DisEndpoint) e).diagnostics());
+            }
+            if (e instanceof com.simweaver.junction.endpoint.j2j.J2jEndpoint) {
+                // 0.10.0: the J2J session, its other members and counters
+                j.put("j2j", ((com.simweaver.junction.endpoint.j2j.J2jEndpoint) e).diagnostics());
+            }
+            if (e instanceof com.simweaver.junction.endpoint.j2j.J2jObjectEndpoint) {
+                j.put("j2j", ((com.simweaver.junction.endpoint.j2j.J2jObjectEndpoint) e).diagnostics());
             }
             long lastIn = e.stats().lastIn();
             long lastOut = e.stats().lastOut();
