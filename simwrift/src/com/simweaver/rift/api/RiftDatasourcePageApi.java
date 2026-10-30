@@ -253,13 +253,19 @@ public final class RiftDatasourcePageApi {
         return false;
     }
 
-    /** Case-insensitive search in label, instance name and the list-view attribute texts. */
+    /** Case-insensitive search in label, instance name and the list-view attribute texts (and entity type names). */
     private static boolean textMatch(RiftInstance o, String lower, RiftJson json) {
         if (contains(RiftJson.labelOf(o), lower) || contains(o.getInstanceName(), lower)) return true;
         Map<String, ? extends RiftMemberView> attrs = o.attributes();
         for (String name : json.listAttributes(o)) {
             RiftMemberView a = attrs.get(name);
             if (a != null && a.value() != null && contains(a.value().text(), lower)) return true;
+            Map<String, Object> et = a == null || a.value() == null ? null : RiftJson.entityType(a.value(), false);
+            if (et != null) {                                    // 0.11.1: the entity type in words, and its country
+                for (String k : new String[] {"text", "context", "country", "countryname"}) {
+                    if (et.get(k) instanceof String && contains((String) et.get(k), lower)) return true;
+                }
+            }
         }
         return false;
     }

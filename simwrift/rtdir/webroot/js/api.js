@@ -36,6 +36,10 @@
 		            "memory":{"heapused","heapmax",...},"threads","datasources",
 		            "syslog":{"enabled",...}}}   (top bar) */
 		serverInfo:        function () { return BASE + '/api/serverinfo'; },
+		/* 0.11.0, API authentication: GET -> {"auth":{"enabled","name","via","expires"}} (401 when signed out);
+		   POST {"token"} signs this browser in (session cookie), DELETE signs it out */
+		authWhoami:        function () { return BASE + '/api/auth/whoami'; },
+		authSession:       function () { return BASE + '/api/auth/session'; },
 		/* GET  -> {"datasourceconfigs":[{...}]} */
 		datasourceConfigs: function () { return BASE + '/api/datasourceconfigs'; },
 		/* GET  -> {"datasources":[{"id":..,"name":".."}]}
@@ -176,6 +180,9 @@
 			return response.text().then(function (text) {
 				var httpText = 'Server answered HTTP ' + response.status +
 					(response.statusText ? ' ' + response.statusText : '');
+				if (response.status === 401 && url.indexOf('/api/auth/') < 0) {
+					toLogin();                  // 0.11.0: signed out (or never signed in): the login page
+				}
 				if (!response.ok) {
 					var info = errorInfoFromText(text);
 					throw new ApiError((info && info.message) || httpText, response.status, url,
@@ -251,6 +258,18 @@
 		return function close() { source.close(); };
 	}
 
+	/**
+	 * 0.11.0: to the login page, which brings the browser back here once it is signed in.
+	 * Only once per page, and never from the login page itself.
+	 */
+	var leaving = false;
+	function toLogin() {
+		if (leaving || /(^|\/)login\.html$/.test(window.location.pathname)) { return; }
+		leaving = true;
+		var here = window.location.pathname + window.location.search + window.location.hash;
+		window.location.replace('login.html?next=' + encodeURIComponent(here));
+	}
+
 	function getJson(url, options) { return request('GET', url, undefined, options); }
 	function postJson(url, body, options) { return request('POST', url, body, options); }
 
@@ -264,6 +283,7 @@
 		postJson: postJson,
 		subscribe: subscribe,
 		onLinkChange: function (fn) { linkListeners.push(fn); },
+		toLogin: toLogin,
 
 		/** @returns {Promise<Array<Object>>} full config objects */
 		fetchDatasourceConfigs: function () {

@@ -1,0 +1,24 @@
+SISO-REF-010.xml: Enumerations for Simulation Interoperability
+================================================================
+
+Reprinted with permission from SISO Inc.
+
+SISO-REF-010.xml in this folder is SISO-REF-010-v37 (2026-05-25), published by the Simulation
+Interoperability Standards Organization (SISO) at
+http://www.sisostds.org/doclib/doclib.cfm?SISO_RID_1003262
+
+Copyright (c) 2026 by the Simulation Interoperability Standards Organization, Inc.
+7901 4th St N, Suite 300-4043, St. Petersburg, FL 33702. All rights reserved.
+
+It is distributed unchanged, under the licence in its own <copyright> element: "SISO hereby grants
+a general, royalty-free license to copy, distribute, display, and make derivative works from this
+material, for all purposes, provided that any use of the material contains the following
+attribution: 'Reprinted with permission from SISO Inc.'" Read that element for the whole text.
+
+The BSD 3-Clause License of SimWeaver Junction does not cover this file.
+
+What SimWeaver does with it: the Rift object view names entity types with it (for example
+1.1.205.2.1.5.0 -> "SWE CV9040A, Armored Fighting Vehicle"). It is read once when the server
+starts. To use a newer release, replace the file with SISO's (same name), or point
+enumerations.siso.file in etc/server.root.settings at it, and restart. Without the file, entity
+types are shown as numbers only.

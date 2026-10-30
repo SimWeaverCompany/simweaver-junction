@@ -1211,6 +1211,20 @@ label.check input { accent-color: var(--accent); margin: 0; }
 .v-text.k-integer, .v-text.k-float { color: var(--blue); font-variant-numeric: tabular-nums; }
 .v-text.k-bytes { color: var(--fg-dim); }
 .v-units { color: var(--fg-faint); font-size: 0.9em; }
+/* 0.11.1: an entity type in words (SISO-REF-010): country code, name, broader name */
+.etype { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.etype-cc {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; line-height: 15px;
+  padding: 0 4px; border: 1px solid var(--rule-strong); border-radius: 2px; color: var(--fg-dim); flex: 0 0 auto;
+}
+.etype-text { color: var(--fg); min-width: 0; }
+.etype-ctx { color: var(--fg-faint); min-width: 0; }
+.etype-ctx::before { content: '\00B7  '; }
+.etype.partial .etype-text { color: var(--fg-dim); }
+.etype.compact { max-width: 28ch; }
+.etype.compact .etype-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--fg-dim); }
+.vt-etype { margin-top: 2px; font-size: 12px; }
+.vt-etype .etype { flex-wrap: wrap; }
 .v-flag { font-size: 9px; letter-spacing: 0.1em; padding: 0 3px; border: 1px solid var(--rule-strong); color: var(--fg-faint); }
 .v-flag.err { color: var(--err); border-color: var(--err); }
 .v-inline.has-error .v-text { color: var(--err); }

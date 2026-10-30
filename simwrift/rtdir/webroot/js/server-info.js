@@ -3,7 +3,8 @@
    GET /api/serverinfo every 5 s (paused while the tab is hidden):
    version, process CPU (% of the machine) and heap memory, with the
    details in the tooltip. Hidden when the server has no such endpoint.
-   Also shows the J2J button (#nav-j2j) while J2J is configured.
+   Also shows the J2J button (#nav-j2j) while J2J is configured, and (0.11.0)
+   "Sign out" while API authentication is on.
    ============================================================ */
 
 (function (window, document) {
@@ -150,9 +151,28 @@
 		return line;
 	}
 
+	/* 0.11.0: with API authentication on, "Sign out" next to the theme button (the token's name in its tooltip) */
+	function showSignOut() {
+		var theme = document.getElementById('btn-theme');
+		if (!theme || !Rift.api.endpoints.authWhoami) return;
+		Rift.api.getJson(Rift.api.endpoints.authWhoami(), { timeoutMs: 4000 }).then(function (reply) {
+			var a = reply && reply.auth;
+			if (!a || !a.enabled || a.via !== 'session' || document.getElementById('btn-signout')) return;
+			var btn = el('button.ghost', { id: 'btn-signout', type: 'button', text: '\u238B Sign out',
+				title: 'Signed in with the API token ' + a.name + (a.expires ? '\nUntil ' + a.expires.replace('T', ' ').replace(/\.\d+Z$|Z$/, 'Z') : '') });
+			btn.addEventListener('click', function () {
+				btn.disabled = true;
+				Rift.api.request('DELETE', Rift.api.endpoints.authSession()).then(done, done);
+				function done() { window.location.replace('login.html'); }
+			});
+			theme.parentNode.insertBefore(btn, theme.nextSibling);
+		}, function () { /* 401: api.js goes to the login page; an older server: no button */ });
+	}
+
 	var host = document.getElementById('server-info');
 	if (host && Rift.api && Rift.api.endpoints.serverInfo) {
 		Rift.serverInfo = new ServerInfo(host);
 		Rift.serverInfo.start();
 	}
+	if (Rift.api) showSignOut();
 })(window, document);

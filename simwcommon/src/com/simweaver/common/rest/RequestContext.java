@@ -22,9 +22,23 @@ public final class RequestContext {
      * @param forwardedFor  the request's X-Forwarded-For header as the client sent it, or null
      */
     static void enter(String remoteAddress, String forwardedFor) {
+        enter(remoteAddress, forwardedFor, null);
+    }
+
+    /**
+     * Sets the actor for the current thread.
+     *
+     * @param remoteAddress the client's address (IP)
+     * @param forwardedFor  the request's X-Forwarded-For header as the client sent it, or null
+     * @param credential    who API authentication let in (0.11.0), e.g. {@code token ops-dashboard}, or null
+     */
+    static void enter(String remoteAddress, String forwardedFor, String credential) {
         String a = remoteAddress == null || remoteAddress.isEmpty() ? "unknown client" : remoteAddress;
         if (forwardedFor != null && !forwardedFor.trim().isEmpty()) {
             a = a + " (forwarded for " + clean(forwardedFor) + ")";
+        }
+        if (credential != null && !credential.isEmpty()) {
+            a = a + " (" + clean(credential) + ")";
         }
         ACTOR.set(a);
     }

@@ -92,7 +92,8 @@ public class XrRequestHandler implements HttpHandler {
             XrResultPair resultPair;
             java.net.InetSocketAddress remote = exchange.getRemoteAddress();
             RequestContext.enter(remote == null || remote.getAddress() == null ? null : remote.getAddress().getHostAddress(),
-                    exchange.getRequestHeaders().getFirst("X-Forwarded-For"));       // 0.9.22: who asked, for the log
+                    exchange.getRequestHeaders().getFirst("X-Forwarded-For"),        // 0.9.22: who asked, for the log
+                    credential(exchange));                                            // 0.11.0: with which token
             try {
                 resultPair = apiCallHandler.handleCallToJson(
                         requestMethod, requestUri, apiRoute, queryMap, requestBody);
@@ -115,6 +116,11 @@ public class XrRequestHandler implements HttpHandler {
         }
     }
 
+
+    /** @return who API authentication let in, or null */
+    private static String credential(HttpExchange exchange) {
+        return com.simweaver.common.rest.auth.ApiAuth.current();     // set by the filter, on this thread
+    }
 
     private static boolean requestHasBody(HttpExchange exchange) {
         String contentLength = exchange.getRequestHeaders().getFirst("Content-Length");

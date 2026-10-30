@@ -206,6 +206,8 @@ public final class RiftJson {
         String kind = v.kind();
         n.put("kind", kind);
         n.put("text", v.text() != null ? v.text() : "");
+        Map<String, Object> et = entityType(v, full);            // 0.11.1: the entity type in words (SISO-REF-010)
+        if (et != null) n.put("entitytype", et);
         Object s = safeScalar(v.scalar());
         if (s != null) n.put("value", s);
         if ("ENUM".equals(kind)) n.put("enum", v.enumName());
@@ -237,6 +239,55 @@ public final class RiftJson {
             n.put("truncated", Boolean.TRUE);
         }
         return n;
+    }
+
+    private static final String[] ENTITY_TYPE_FIELDS = {"EntityKind", "Domain", "CountryCode", "Category", "Subcategory", "Specific", "Extra"};
+
+    /**
+     * 0.11.1: for an RPR EntityTypeStruct (a record with the seven fields, any FOM), what
+     * SISO-REF-010 calls it: {"text", "context", "country" (ISO alpha-3), "countryname",
+     * "matched", "complete", "source", and in full nodes "path": [{"level","value","name"}]};
+     * null without the enumerations file or when it names nothing.
+     */
+    static Map<String, Object> entityType(ValueNode v, boolean full) {
+        com.simweaver.common.siso.SisoEnumerations e = com.simweaver.common.siso.SisoEnumerations.global();
+        if (e == null || !"RECORD".equals(v.kind())) return null;
+        List<ValueNode.Named> fields = v.fields();
+        if (fields.size() < ENTITY_TYPE_FIELDS.length) return null;
+        int[] x = new int[ENTITY_TYPE_FIELDS.length];
+        int found = 0;
+        for (ValueNode.Named f : fields) {
+            if (f == null || f.node == null || isPadding(f.node)) continue;
+            int i = java.util.Arrays.asList(ENTITY_TYPE_FIELDS).indexOf(f.name);
+            if (i < 0) return null;                              // another record
+            Object s = f.node.scalar();
+            if (!(s instanceof Number)) return null;
+            x[i] = ((Number) s).intValue();
+            found |= 1 << i;
+        }
+        if (found != (1 << ENTITY_TYPE_FIELDS.length) - 1) return null;
+        com.simweaver.common.siso.SisoEnumerations.EntityTypeInfo info = e.describe(x[0], x[1], x[2], x[3], x[4], x[5], x[6]);
+        if (info.text().isEmpty()) return null;
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("text", info.text());
+        if (info.context() != null) m.put("context", info.context());
+        if (info.countryCode() != null) m.put("country", info.countryCode());
+        if (info.countryName() != null) m.put("countryname", info.countryName());
+        m.put("matched", info.matched());
+        m.put("complete", info.complete());
+        m.put("source", e.title());
+        if (full) {
+            List<Object> path = new ArrayList<>();
+            for (String[] p : info.path()) {
+                Map<String, Object> l = new LinkedHashMap<>();
+                l.put("level", p[0]);
+                l.put("value", Integer.parseInt(p[1]));
+                l.put("name", p[2]);
+                path.add(l);
+            }
+            m.put("path", path);
+        }
+        return m;
     }
 
     private List<Object> named(List<ValueNode.Named> list) {

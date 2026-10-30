@@ -24,6 +24,36 @@ import java.util.logging.Logger;
 
 public class Server {
 
+    /**
+     * 0.11.1: reads {@code enumerations.siso.file} (etc/enumerations/SISO-REF-010.xml; empty = none)
+     * and prints a start-up line. Without it the entity types are shown as numbers only.
+     */
+    static void loadEnumerations(SimwProperties cfg) {
+        String name = cfg.getString("enumerations.siso.file", "etc/enumerations/SISO-REF-010.xml").trim();
+        if (name.isEmpty()) {
+            com.simweaver.common.siso.SisoEnumerations.setGlobal(null, "off (enumerations.siso.file is empty)");
+            System.out.println("Enumerations:  off (enumerations.siso.file is empty)");
+            return;
+        }
+        java.nio.file.Path file = Paths.get(name);
+        if (!java.nio.file.Files.exists(file)) {
+            com.simweaver.common.siso.SisoEnumerations.setGlobal(null, name + " not found");
+            System.out.println("Enumerations:  none (" + name + " not found): entity types are shown as numbers");
+            return;
+        }
+        try {
+            long t0 = System.nanoTime();
+            com.simweaver.common.siso.SisoEnumerations e = com.simweaver.common.siso.SisoEnumerations.load(file);
+            com.simweaver.common.siso.SisoEnumerations.setGlobal(e, null);
+            System.out.println("Enumerations:  " + e.title() + " (" + e.date() + "), " + e.entityTypeCount() + " entity types, "
+                    + (System.nanoTime() - t0) / 1_000_000 + " ms. Reprinted with permission from SISO Inc.");
+        } catch (IOException | RuntimeException ex) {
+            com.simweaver.common.siso.SisoEnumerations.setGlobal(null, name + ": " + ex.getMessage());
+            System.out.println("Enumerations:  NOT READ, " + name + ": " + ex.getMessage());
+            Logger.getLogger(Server.class.getName()).warning("SISO enumerations " + name + " could not be read: " + ex.getMessage());
+        }
+    }
+
     public static void main(String[] args){
 
         // 0.9.22: before anything logs (the log stays open while the server stops)
@@ -37,6 +67,12 @@ public class Server {
             e.printStackTrace();
         }
         new SimwArgs().withConfigKeys("config").parseInto(cfg, args);
+
+        // 0.11.0: run.sh --new-token=<name> makes an API token and stops (the server does not start)
+        if (cfg.isSet("new-token")) {
+            System.exit(com.simweaver.common.rest.auth.ApiAuth.newTokenCommand(cfg,
+                    Paths.get("").toAbsolutePath().normalize(), System.out, System.err));
+        }
 
         // Logging
         String mainLogDir = cfg.getString("logdir","logs");
@@ -62,6 +98,10 @@ public class Server {
         System.out.println();
         System.out.println("Log directory: "+mainLogDir);
         System.out.println("Web port:      "+webPort);
+        // 0.11.0: token authentication of /api (off unless api.auth.enabled=true)
+        final com.simweaver.common.rest.auth.ApiAuth apiAuth = com.simweaver.common.rest.auth.ApiAuth.fromSettings(cfg,
+                Paths.get("").toAbsolutePath().normalize(), "/api");
+        System.out.println("API auth:      " + apiAuth.describe());
         for (String line : syslogLines) {
             System.out.println("Syslog:        " + line);
         }
@@ -69,6 +109,9 @@ public class Server {
 
         System.out.println("Starting services...");
         System.out.println();
+
+        // 0.11.1: SISO-REF-010 (the DIS / RPR enumerations), to name entity types in the object view
+        loadEnumerations(cfg);
 
         // 0.9.20: the Infra view (DIS exercises and HLA federations Rift and Junction have contact with)
         com.simweaver.common.infra.InfraRegistry.global().configure(cfg);
@@ -124,7 +167,10 @@ public class Server {
             apiRequestEntryPoint.mount("j2j", j2jApi);
             java.util.Map<String, com.sun.net.httpserver.HttpHandler> extra = new java.util.LinkedHashMap<>();
             extra.put("/api/maps", new MapHttpHandler(maps, "/api/maps"));        // NEW: binary tiles
-            XrServer.run(webPort,apiRequestEntryPoint,webRoot,"/","/api",keyStorePath,keyStorePass,eventHub,extra);
+            extra.put("/api/auth", apiAuth.handler());                            // 0.11.0: sign in / out, whoami
+            apiAuth.logStart();
+            XrServer.run(webPort,apiRequestEntryPoint,webRoot,"/","/api",keyStorePath,keyStorePass,eventHub,extra,
+                    apiAuth.filter());
             maps.prewarm(3);                                                       // the world view, in the background
         } catch (Exception e) {
             System.out.println("There was an issue starting the web server:");

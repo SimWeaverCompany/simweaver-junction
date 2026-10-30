@@ -29,6 +29,7 @@ API state: SimWeaver Rift, October 2026.
 11. [Quick start with curl](#11-quick-start-with-curl)
 12. [Infra](#12-infra-0920)
 13. [J2J](#13-j2j-0100)
+14. [Authentication](#14-authentication-0110)
 
 ---
 
@@ -44,8 +45,10 @@ https://<server>:<port>/api
   or (for testing only) skip verification, e.g. `curl -k`.
 - **Same origin as the Web UI.** No CORS headers are sent, so browser pages on other origins
   cannot call the API directly.
-- **No authentication.** Anyone who can reach the port can start and remove datasources.
-  Limit network access to the server accordingly.
+- **Authentication (0.11.0).** Off by default: then anyone who can reach the port can start and
+  remove datasources, so limit network access to the server. With `api.auth.enabled=true` every
+  call under `/api` (also `/api/events` and `/api/maps`) needs `Authorization: Bearer <token>`
+  (or the Web UI's session cookie): see [14](#14-authentication-0110).
 
 ### Requests and replies
 
@@ -740,10 +743,42 @@ Decoded values are trees of value nodes:
 | `ref` | optional | The node refers to other objects (7.5) |
 | `error` | optional | Why decoding failed. The node may be partly decoded; `text` and the attribute's `valueRaw` are still there |
 | `warnings` | full, optional | `["…"]`, notes from decoding |
+| `entitytype` | optional | 0.11.1: an entity type in words, see below |
+
+**Entity types in words (0.11.1).** A node of an entity type (a record with the fields
+`EntityKind`, `Domain`, `CountryCode`, `Category`, `Subcategory`, `Specific` and `Extra`, such as RPR's
+`EntityTypeStruct`, in HLA and DIS datasources alike) has `entitytype` with what SISO-REF-010
+calls it, when the server has the file (installation guide, 2.10) and the type's kind is not 0:
+
+```json
+"entitytype": {
+  "text": "CV9040A", "context": "Armored Fighting Vehicle",
+  "country": "SWE", "countryname": "Sweden",
+  "matched": "specific", "complete": true, "source": "SISO-REF-010-v37",
+  "path": [ { "level": "kind", "value": 1, "name": "Platform" },
+            { "level": "domain", "value": 1, "name": "Land" },
+            { "level": "country", "value": 205, "name": "Sweden" },
+            { "level": "category", "value": 2, "name": "Armored Fighting Vehicle" },
+            { "level": "subcategory", "value": 1, "name": "Combat Vehicle 90 (CV90)" },
+            { "level": "specific", "value": 5, "name": "CV9040A" } ]
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `text` | The most specific name the file has: the extra (with its specific), specific or subcategory; else the category; else the domain and kind, e.g. `"Land platform"` |
+| `context` | The broader name that goes with it: the category, or the domain and kind; absent when there is none |
+| `country` / `countryname` | The country's ISO 3166 alpha-3 code and name; absent for country 0 or a code the file does not have |
+| `matched` | The deepest level named: `kind`, `domain`, `country`, `category`, `subcategory`, `specific` or `extra` |
+| `complete` | `false` when a non-zero level is not in the file (then `text` is the nearest broader name) |
+| `source` | The file's title |
+| `path` | Full nodes only: every level the file names, `{level, value, name}` |
+
+`GET …/objects?q=` also finds objects by these names and by the country.
 
 **Shallow and full nodes.**
-- **Shallow nodes** have only `kind`, `text`, `value`, `enum`, `units`, `ref`, `error` and
-  `truncated`. They are used in list views, interaction lists and interaction events.
+- **Shallow nodes** have only `kind`, `text`, `value`, `enum`, `units`, `ref`, `error`,
+  `truncated` and `entitytype` (without its `path`). They are used in list views, interaction lists and interaction events.
 - **Full nodes** have the whole tree. They are used in the full view, in object patches and
   in `GET …/interactions/{interactionid}`.
 
@@ -988,6 +1023,9 @@ and the HTTP status.
 | Status | Code | Meaning |
 |---|---|---|
 | `400` | `BAD_REQUEST` | Invalid parameter or body; `message` says which |
+| `401` | `AUTH_REQUIRED` | API authentication is on and the call has no valid token or session (14) |
+| `403` | `ORIGIN_REFUSED` | A change with the session cookie from another site's page (14) |
+| `429` | `TOO_MANY_ATTEMPTS` | Too many wrong tokens from this address; try again after `Retry-After` seconds (14) |
 | `400` | `INVALID_REQUEST` | `POST /api/datasources`: `configid` is not an integer |
 | `404` | `NOT_FOUND` | No such API path |
 | `404` | `CONFIG_NOT_FOUND` | Unknown configuration id |
@@ -1025,6 +1063,9 @@ The event stream (`/api/events`) answers its own errors (`400`, `405`) with a pl
 
 ```sh
 H=https://localhost:8843/api
+
+# With API authentication on (14), every call needs the token:
+#   T="Authorization: Bearer swt_..."; curl -k -H "$T" $H/datasourceconfigs
 
 # What can be started?
 curl -k $H/datasourceconfigs
@@ -1123,6 +1164,56 @@ The calls of the J2J page — the members of this server's J2J network, how each
 network diagram, a ping, reloading the member list, a new key text — and the SSE topic `j2j` are
 described in [j2j-rest-api.md](j2j-rest-api.md). `GET /api/serverinfo` has
 `"j2j": {"state": "off|running|error"}`.
+
+---
+
+## 14. Authentication (0.11.0)
+
+Off unless the server has `api.auth.enabled=true` (installation guide, 2.9). Then every call under
+`/api` needs one of:
+
+- **A token** in the header, for programs (RFC 6750):
+  `Authorization: Bearer swt_VHuYdfV1XddBP5F2VOzsBSGNGTKyOoKLX3FGXwwC_-g`. Tokens are made on the
+  server with `run.sh --new-token=<name>`; there is one access level, so a token may do everything.
+- **The session cookie** `simweaver_session`, for the Web UI: set by signing in (14.2), sent by the
+  browser with every request under `/api`, the event stream and map tiles included. With the cookie, a
+  call that changes something (not `GET` / `HEAD`) must carry this server's own `Origin`
+  (`https://<host>:<port>`, or one of `api.auth.origins`), else `403 ORIGIN_REFUSED`; programs that
+  send neither `Origin` nor `Sec-Fetch-Site` are not affected.
+
+Without either, or with a token the server does not know (or that has expired), the answer is
+`401 AUTH_REQUIRED` with `WWW-Authenticate: Bearer realm="SimWeaver"` (and `error="invalid_token"`
+when a token was sent). After 10 wrong tokens within a minute from one address, calls with a token
+from it, and sign-ins, get `429 TOO_MANY_ATTEMPTS` with `Retry-After: 60`; sessions already signed in
+carry on. The web pages themselves (`/`, `*.html`, scripts) need no token.
+
+`/api/auth` itself is always reachable:
+
+### 14.1 `GET /api/auth/whoami`
+
+```json
+{ "auth": { "enabled": true, "name": "ops-wall", "via": "bearer" } }
+{ "auth": { "enabled": true, "name": "ops-ui", "via": "session", "expires": "2026-10-30T02:18:36.319Z" } }
+{ "auth": { "enabled": false } }
+```
+
+`name` is the token's name, `via` how it came (`bearer` or `session`), `expires` when the session
+ends. `401 AUTH_REQUIRED` when authentication is on and the call has neither.
+
+### 14.2 `POST /api/auth/session`
+
+Body `{"token": "swt_…"}`: signs a browser in (the login page). `200` with the same body as whoami
+and `Set-Cookie: simweaver_session=…; Path=/api; Max-Age=43200; HttpOnly; Secure; SameSite=Strict`
+(`Max-Age` from `api.auth.sessionhours`). `400 BAD_REQUEST` (no `token`), `401 TOKEN_INVALID`,
+`403 ORIGIN_REFUSED` (from another site's page), `409 AUTH_OFF` (authentication is off: nothing to
+sign in to), `429 TOO_MANY_ATTEMPTS`.
+
+A session ends after `api.auth.sessionhours`, when its token is revoked or expires, at a restart of
+the server, or with 14.3.
+
+### 14.3 `DELETE /api/auth/session`
+
+Signs the browser out: `204` and the cookie cleared.
 
 ---
 

@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.10.1 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.11.1 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ---
 
@@ -21,7 +21,8 @@ Version 0.10.1 · BSD 3-Clause License · © 2026 Simweaver AB
   configuration.
 - **Objects.** Browse the object instances by class, with fully decoded attribute values. RPR FOM
   v2 and v3, NETN and your own FOM modules are supported, or the FOM is taken from the
-  federation itself.
+  federation itself. Entity types are named in words (*SWE CV9040A · Armored Fighting
+  Vehicle*) from SISO-REF-010.
 - **Interactions.** Follow them live, with rates per class. Link 16 messages are decoded down to
   the network header and the J-word framing.
 - **Map view.** See the entities on a map:
@@ -72,6 +73,13 @@ Version 0.10.1 · BSD 3-Clause License · © 2026 Simweaver AB
   several sites become one exercise.
 - **The J2J page:** the members, how each is reached, ping, a diagram of the network and its
   sessions, and the J2J events. The protocol is documented for other implementations.
+
+**API tokens** (0.11.0, off unless configured)
+
+- With `api.auth.enabled=true`, every REST call, live stream and map tile needs an **API token**
+  (`Authorization: Bearer swt_…`), and the web UI signs in once on a login page with it.
+- Tokens are made on the server (`run.sh --new-token=<name>`); the server keeps only their
+  hashes, and deleting a token's lines from its file revokes it at once.
 
 **Infra: what the server has contact with** (0.9.20)
 
@@ -173,9 +181,9 @@ All in `simwrift/rtdir/doc/`:
 
 | File | Contents |
 |---|---|
-| `simweaver-rift-install-and-config.md` | Installation, server settings, datasources, maps and overlays, logging, the J2J network |
+| `simweaver-rift-install-and-config.md` | Installation, server settings, datasources, maps and overlays, logging, the J2J network, API tokens |
 | `web-ui.md` | The web UI: datasources, objects, interactions, the map view, Infra, J2J |
-| `rest-api.md` | Rift's REST API and SSE events |
+| `rest-api.md` | Rift's REST API and SSE events, and how to authenticate |
 | `junction.md` | Junction: gateways, endpoints, routers, value rules, Talk, groups, RPR v2 ⇄ v3, DIS, J2J sessions |
 | `junction-rest-api.md` | Junction's REST API |
 | `j2j-rest-api.md` | The REST API of the J2J page |
@@ -194,3 +202,8 @@ the [Contributor License Agreement](CLA.md) before a contribution can be merged.
 
 The HLA RTI is not part of SimWeaver Junction. It is licensed by its vendor and installed
 separately.
+
+`simwrift/rtdir/etc/enumerations/SISO-REF-010.xml` is SISO's *Enumerations for Simulation
+Interoperability*, © SISO Inc., distributed unchanged under the licence in the file. Reprinted with
+permission from SISO Inc. It is not covered by the BSD 3-Clause License; see
+`etc/enumerations/NOTICE.txt`.

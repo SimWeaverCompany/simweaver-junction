@@ -7,6 +7,7 @@
                                         expandable tree (<details>) of fields /
                                         items / derived, for the full view
    Rift.valueView.chips(ref)            object chips for a ref
+   Rift.valueView.entityType(et, compact) an entity type in words (0.11.1, SISO-REF-010)
    Rift.valueView.onSelect = fn(target) set by the page: called when a chip is clicked
    ============================================================ */
 
@@ -62,7 +63,7 @@
 	 * @param {Object} node
 	 * @param {number} [maxChips] chips shown before "+N" (lists use 3)
 	 */
-	function inline(node, maxChips) {
+	function inline(node, maxChips, noEntityType) {
 		node = node || {};
 		var text = nodeText(node);
 		var wrap = el('span.v-inline' + (node.error ? '.has-error' : ''), { title: node.error ? 'Decode error: ' + node.error : null });
@@ -77,7 +78,30 @@
 		if (node.truncated) { wrap.appendChild(el('span.v-flag', { text: 'cut', title: 'Value truncated by the server' })); }
 		if (node.error) { wrap.appendChild(el('span.v-flag.err', { text: 'ERR' })); }
 		if (node.ref) { wrap.appendChild(chips(node.ref, maxChips)); }
+		if (node.entitytype && !noEntityType) { wrap.appendChild(entityType(node.entitytype, true)); }
 		return wrap;
+	}
+
+	/**
+	 * 0.11.1: an entity type in words (the server's node.entitytype, from SISO-REF-010): the
+	 * country code, the most specific name and (unless compact) the broader one. The tooltip
+	 * has the whole chain.
+	 */
+	function entityType(et, compact) {
+		if (!et || !et.text) { return null; }
+		var tip = [];
+		if (et.path && et.path.length) {
+			tip.push(et.path.map(function (p) { return p.name; }).join(' \u203A '));
+		} else {
+			tip.push((et.countryname ? et.countryname + ' \u00B7 ' : '') + et.text + (et.context ? ' \u00B7 ' + et.context : ''));
+		}
+		if (!et.complete) { tip.push('Only partly in ' + (et.source || 'SISO-REF-010') + ': the deeper levels are not listed there'); }
+		tip.push('Names from ' + (et.source || 'SISO-REF-010') + ', reprinted with permission from SISO Inc.');
+		return el('span.etype' + (compact ? '.compact' : '') + (et.complete ? '' : '.partial'), { title: tip.join('\n') }, [
+			et.country ? el('span.etype-cc', { text: et.country, 'aria-label': et.countryname || et.country }) : null,
+			el('span.etype-text', { text: (et.complete ? '' : '\u2248 ') + et.text }),
+			!compact && et.context ? el('span.etype-ctx', { text: et.context }) : null
+		]);
 	}
 
 	function hasChildren(node) {
@@ -94,14 +118,16 @@
 		var head = el('span.vt-head', null, [
 			name !== null && name !== undefined ? el('span.vt-name', { text: name }) : null,
 			node.type ? el('span.vt-type', { text: node.type }) : null,
-			inline(node)
+			inline(node, undefined, true)
 		]);
+		// 0.11.1: an entity type gets its name on the line below the numbers
+		var et = node.entitytype ? el('div.vt-etype', null, entityType(node.entitytype, false)) : null;
 		if (!hasChildren(node)) {
-			return el('div.vt-leaf', null, [head, node.error ? el('div.vt-error', { text: node.error }) : null]);
+			return el('div.vt-leaf', null, [head, et, node.error ? el('div.vt-error', { text: node.error }) : null]);
 		}
 		var details = el('details.vt-node', { 'data-path': path });
 		if (openPaths && openPaths.has(path)) { details.open = true; }
-		details.appendChild(el('summary', null, head));
+		details.appendChild(el('summary', null, [head, et]));
 		var body = el('div.vt-body');
 		(node.fields || []).forEach(function (f) {
 			body.appendChild(tree(f, f.name, path + '.' + f.name, openPaths));
@@ -151,6 +177,7 @@
 
 	view.text = nodeText;
 	view.inline = inline;
+	view.entityType = entityType;
 	view.tree = tree;
 	view.chips = chips;
 	view.openPathsIn = openPathsIn;

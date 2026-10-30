@@ -7,7 +7,8 @@ J2J is set up in the install guide, section 2.8; the protocol between the server
 
 The calls follow the conventions of the Rift API ([rest-api.md](rest-api.md)): HTTPS on the web
 port, JSON in UTF-8 with lower-case keys, times in UTC ISO 8601, and the error envelope
-`{"success": false, "error": {"code", "message"}}` with a real HTTP status.
+`{"success": false, "error": {"code", "message"}}` with a real HTTP status. With API authentication on
+(0.11.0) they need a token like every call under `/api` ([rest-api.md](rest-api.md), 14).
 
 The API only reads, with three actions that stay on this server: ping a member, read the member
 list again, and make a key text. Nothing in it controls another server.

@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.10.1. Java 11, no libraries apart from the HLA RTIs.
+Version 0.11.1. Java 11, no libraries apart from the HLA RTIs.
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`

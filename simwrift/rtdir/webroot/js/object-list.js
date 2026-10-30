@@ -100,6 +100,10 @@
 		if (!f.q) { return true; }
 		var q = f.q.toLowerCase();
 		var hay = [o.label, o.instancename].concat((o.attributes || []).map(function (a) { return vv.text(a.value); }));
+		(o.attributes || []).forEach(function (a) {         // 0.11.1: the entity type's name and country too
+			var et = a.value && a.value.entitytype;
+			if (et) { hay.push(et.text, et.context, et.country, et.countryname); }
+		});
 		return hay.some(function (t) { return t && String(t).toLowerCase().indexOf(q) !== -1; });
 	};
 

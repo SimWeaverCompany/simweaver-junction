@@ -59,19 +59,35 @@ public class XrServer {
                            String keystorePass, XrSseHub eventHub,
                            java.util.Map<String, com.sun.net.httpserver.HttpHandler> extraContexts) throws Exception {
         start(port, apiCallHandler, webFilesDir, filesRoute, apiRoute,
-                keystorePath, keystorePass, eventHub, extraContexts);
+                keystorePath, keystorePass, eventHub, extraContexts, null);
+    }
+
+    /**
+     * As above, with a filter (0.11.0: API authentication) in front of every context under
+     * {@code apiRoute}: the API, its SSE events and every extra context whose path starts with it.
+     *
+     * @param apiFilter may be null
+     */
+    public static void run(int port, ApiCallHandler apiCallHandler, String webFilesDir,
+                           String filesRoute, String apiRoute, String keystorePath,
+                           String keystorePass, XrSseHub eventHub,
+                           java.util.Map<String, com.sun.net.httpserver.HttpHandler> extraContexts,
+                           com.sun.net.httpserver.Filter apiFilter) throws Exception {
+        start(port, apiCallHandler, webFilesDir, filesRoute, apiRoute,
+                keystorePath, keystorePass, eventHub, extraContexts, apiFilter);
     }
 
     private static void start(int port, ApiCallHandler apiCallHandler, String webFilesDir,
                               String filesRoute, String apiRoute, String keystorePath,
                               String keystorePass, XrSseHub eventHub) throws Exception {
-        start(port, apiCallHandler, webFilesDir, filesRoute, apiRoute, keystorePath, keystorePass, eventHub, null);
+        start(port, apiCallHandler, webFilesDir, filesRoute, apiRoute, keystorePath, keystorePass, eventHub, null, null);
     }
 
     private static void start(int port, ApiCallHandler apiCallHandler, String webFilesDir,
                               String filesRoute, String apiRoute, String keystorePath,
                               String keystorePass, XrSseHub eventHub,
-                              java.util.Map<String, com.sun.net.httpserver.HttpHandler> extraContexts) throws Exception {
+                              java.util.Map<String, com.sun.net.httpserver.HttpHandler> extraContexts,
+                              com.sun.net.httpserver.Filter apiFilter) throws Exception {
         // 1. Server instance creation
         HttpsServer server = HttpsServer.create(new InetSocketAddress(port), 0);
 
@@ -96,14 +112,24 @@ public class XrServer {
 
         // 3. Define routes. HttpServer selects the longest matching context,
         // so /api/events takes precedence over the general /api context.
-        server.createContext(apiRoute, new XrRequestHandler(apiCallHandler, apiRoute));
+        java.util.List<com.sun.net.httpserver.HttpContext> api = new java.util.ArrayList<>();
+        api.add(server.createContext(apiRoute, new XrRequestHandler(apiCallHandler, apiRoute)));
         if (eventHub != null) {
-            server.createContext(normalizeRoute(apiRoute) + "/events", eventHub);
+            api.add(server.createContext(normalizeRoute(apiRoute) + "/events", eventHub));
         }
         server.createContext(filesRoute, new XrFileHandler(webFilesDir, filesRoute));
         if (extraContexts != null) {
+            String prefix = normalizeRoute(apiRoute);
             for (java.util.Map.Entry<String, com.sun.net.httpserver.HttpHandler> e : extraContexts.entrySet()) {
-                server.createContext(e.getKey(), e.getValue());
+                com.sun.net.httpserver.HttpContext c = server.createContext(e.getKey(), e.getValue());
+                if (e.getKey().equals(prefix) || e.getKey().startsWith(prefix + "/")) {
+                    api.add(c);
+                }
+            }
+        }
+        if (apiFilter != null) {                    // 0.11.0: every context under the API's route
+            for (com.sun.net.httpserver.HttpContext c : api) {
+                c.getFilters().add(apiFilter);
             }
         }
 

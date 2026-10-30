@@ -37,6 +37,20 @@ syslog.enabled=false
 #j2j.fallback.proxy=proxy.example.org:8080
 #j2j.session.lostseconds=10
 
+# ---------------------------------------------------------------- entity type names (0.11.1)
+# SISO-REF-010 (SISO's enumerations): names entity types in the object view; empty = numbers only
+#enumerations.siso.file=etc/enumerations/SISO-REF-010.xml
+
+# ---------------------------------------------------------------- API authentication (0.11.0)
+# Off by default. On: every /api call needs a token (Authorization: Bearer swt_...), and the
+# Web UI signs in once with it. Make tokens with  run.sh --new-token=<name>  (install guide, 2.9).
+#api.auth.enabled=true
+#api.auth.tokens=etc/auth/api-tokens.settings
+# how long a browser stays signed in
+#api.auth.sessionhours=12
+# behind a reverse proxy with another address: its origin, so the pages may change things
+#api.auth.origins=https://rift.example.org
+
 # ---------------------------------------------------------------- Junction gateways
 junction.enabled=true
 junction.dir=etc/junctions

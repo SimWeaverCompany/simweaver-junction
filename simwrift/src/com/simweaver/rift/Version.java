@@ -2,7 +2,7 @@ package com.simweaver.rift;
 
 public class Version {
     public static final int VERSION_MAJOR = 0;
-    public static final int VERSION_MINOR = 10;
+    public static final int VERSION_MINOR = 11;
     public static final int VERSION_REVISION = 1;
     public static final String VERSION_TAG = "";
     public static final String PRODUCT_NAME = "SimWeaver Junction & Rift Server";

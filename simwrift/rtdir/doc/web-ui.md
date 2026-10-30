@@ -30,6 +30,13 @@ The server is ready when its console shows *We are good to go!*. It uses HTTPS o
 self-signed certificate the browser warns on the first visit. Accept the warning, or have the
 certificate installed as trusted on the client machines.
 
+**Signing in (0.11.0).** When the server has API authentication on (installation guide, 2.9), the
+pages open the **login page** first. Paste the API token you were given (it starts with `swt_`;
+*Show the token* lets you check it) and press **Sign in**: you come back to the page you asked for.
+The browser stays signed in for 12 hours (the server's `api.auth.sessionhours`), until **Sign out**,
+until the token is revoked, or until the server restarts; then the login page comes again. Without
+API authentication there is no login page.
+
 > Links to a datasource page (`datasource.html?id=…`) can be bookmarked and shared. They work
 > for as long as that datasource is running. Links to an Infra breakout tab keep working across
 > restarts.
@@ -53,6 +60,8 @@ certificate installed as trusted on the client machines.
   narrow screens.
 - **Day / Night:** switches between the dark and the light theme. The browser remembers the
   choice.
+- **Sign out** (0.11.0, only with API authentication on): ends this browser's sign-in and opens the
+  login page. Its tooltip names the token you signed in with and until when.
 
 > **After updating the web files** on the server, reload the page once with **Ctrl+F5**, so that
 > the browser does not keep using its cached scripts.
@@ -116,7 +125,9 @@ Click **Config** to see the configuration it runs with. Below the header are thr
 - Type in the filter box to find a class by name.
 
 **Object instances** (middle)
-- **Search** looks in the label, the instance name and the shown attributes.
+- **Search** looks in the label, the instance name and the shown attributes, and (0.11.1) in
+  the entity type's name and country: `cv90`, `sweden` or `swe` find the objects of that type
+  or country.
 - **Sort** by label, class, last update or newest.
 - Tick **+ related** to add the objects that refer to the shown ones. For example, it adds
   the radios hosted on the selected aircraft.
@@ -130,6 +141,13 @@ Click **Config** to see the configuration it runs with. Below the header are thr
     - Derived values (latitude, longitude, heading, speeds) are shown with the RPR `Spatial`
       attribute.
     - `DRSpatial` is the dead-reckoned position "now", updated about once per second.
+    - **Entity types in words** (0.11.1): below the numbers of an entity type (`EntityType`,
+      `AlternateEntityType`, a munition type …) its name from SISO-REF-010, with the country's
+      code before it, e.g. `SWE  CV9040A · Armored Fighting Vehicle`. When the file does not
+      list the type down to its last number, the nearest broader name is shown, marked ≈
+      (*≈ Combat Vehicle 90 (CV90)*). Hover over it for the whole chain, from the kind to the
+      variant. The list rows show the short form. Without the file (installation guide, 2.10)
+      only the numbers are shown.
   - **HEX** shows the raw bytes of an attribute.
   - **References** lists the objects this one points to, and **Referenced by** the objects
     that point to it.
@@ -298,6 +316,9 @@ belongs to (installation guide, 2.8). Everything on it updates live.
 | The **J2J** button is missing | J2J is off: `etc/j2j/network.settings` lists no members (installation guide, 2.8) |
 | A J2J member stays *refused* | It has another network key or network id, or this server is not in its member list. The event says which |
 | A J2J member says *list differs* | Its `network.settings` is not the same as this server's. Give every member the same file and reload |
+| The login page says *That token is not valid on this server* | The token was not copied whole, was revoked, has expired, or was made for another server. Ask for a new one |
+| The login page says *Too many wrong tokens* | Ten wrong tokens came from this computer (or its network address) within a minute. Wait a minute |
+| The login page comes back while you work | The sign-in ended: after 12 hours, the token was revoked, or the server restarted. Sign in again |
 | An HLA federation on the Infra page says *no MOM* | The RTI did not let the federate subscribe its MOM classes. The federates are then known only by the traffic they send |
 
 ---

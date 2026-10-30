@@ -173,6 +173,8 @@ All configuration files are plain text in Java properties format: `key = value`,
 | `etc/listprofiles.properties` | Optional: which attributes the object list shows | At startup |
 | `maps/raster/<map>/<map>.tif` | Optional: background maps of the map view | At startup |
 | `etc/j2j/network.settings`, `etc/j2j/network.key` | Optional: the J2J network of Junction servers (2.8) | At startup, and on *Reload member list* |
+| `etc/auth/api-tokens.settings` | Optional: the API tokens, when API authentication is on (2.9) | At startup, and again within a second of each change |
+| `etc/enumerations/SISO-REF-010.xml` | Optional: SISO's enumerations, to name entity types in the object view (2.10) | At startup |
 
 ### 2.1 Server settings: `etc/server.root.settings`
 
@@ -211,6 +213,11 @@ Server-wide settings. Restart the server after changing this file.
 | `map.overlay.<id>.*` | | The style and labels of an overlay (2.5) |
 | `j2j.node.id` | | This server's id in the J2J member list (2.8). J2J itself is switched on by the member list, not here |
 | `j2j.*` (more) | | J2J ports, the last resort on 443, timers: see 2.8 |
+| `enumerations.siso.file` | `etc/enumerations/SISO-REF-010.xml` | SISO-REF-010, to name entity types (2.10); empty: none |
+| `api.auth.enabled` | `false` | Require an API token for `/api` and a sign-in for the Web UI (2.9) |
+| `api.auth.tokens` | `etc/auth/api-tokens.settings` | The token file (2.9) |
+| `api.auth.sessionhours` | `12` | How long a browser stays signed in (2.9) |
+| `api.auth.origins` | | More origins whose pages may change things with a signed-in browser, `;`-separated, e.g. a reverse proxy's `https://rift.example.org` (2.9) |
 
 The server uses **HTTPS only**, so it needs a key store with its certificate. `keystore-gen-line.txt` has a `keytool` command that makes a self-signed one.
 
@@ -649,17 +656,99 @@ Log events (2.7):
 
 The protocol on the links is described in [j2j-wire-protocol.md](j2j-wire-protocol.md), the REST calls of the J2J page in [j2j-rest-api.md](j2j-rest-api.md).
 
+### 2.9 API authentication (0.11.0)
+
+With **API authentication** on, every call under `/api` needs an **API token**: the REST API, its live events (`/api/events`) and the map tiles (`/api/maps`). Programs send the token in a header; people using the Web UI paste it once on the login page. It is **off** by default (`api.auth.enabled=false`), and then everything works as before.
+
+There is one access level: a valid token may do everything the API offers. The web pages themselves (HTML, scripts, pictures) are not protected; they hold no data.
+
+**Switching it on:**
+
+1. Make a token on the server, in the installation folder (the server need not be stopped):
+
+   ```
+   ./run.sh --new-token=ops-wall          (Linux)
+   run.bat --new-token=ops-wall           (Windows)
+   ```
+
+   It prints the new token, e.g. `swt_VHuYdfV1XddBP5F2VOzsBSGNGTKyOoKLX3FGXwwC_-g`, and adds its *hash* to `etc/auth/api-tokens.settings`. **Copy it at once**: it is stored nowhere and cannot be shown again. The command makes the token and stops; it does not start the server.
+
+   Run it as the account the server runs as, so the server can read the file: as a systemd service (1b) `sudo -u simweaver ./run.sh --new-token=ops-wall`; in Docker (1c) `docker exec simweaver-rift ./run.sh --new-token=ops-wall` (with `etc` on a volume, so the file outlives the container).
+2. Set `api.auth.enabled=true` in `etc/server.root.settings` and restart. The start-up lines say `API auth: on, 1 token in …`.
+
+Run the command once per token. A token keeps working, across restarts, until its lines are deleted from the file or its expiry date (if it has one) has passed. Give each user or program its own token, so the log tells them apart and one can be revoked without the others.
+
+| Option | Meaning |
+|---|---|
+| `--new-token=<name>` | The token's name: letters, digits, `.`, `_`, `-` (at most 64), first a letter or digit. It is what the log shows. `--new-token <name>` works too |
+| `--expires=2027-06-30` | Optional: the last day the token is valid (UTC). Without it, it is valid until revoked |
+| `--description="Ops wall screen"` | Optional: a note in the file |
+
+**The token file** holds only the SHA-256 of each token, so a copy of the file does not let anyone in. The command makes it readable by its owner only (on Linux); keep it that way.
+
+```
+# etc/auth/api-tokens.settings
+token.ops-wall.hash=sha256:6b0ab245fdb43c633d096ee2ba83b9fdbea2ac0a18fd44646d40665f9a7adbd1
+token.ops-wall.created=2026-10-29T14:18:09Z
+token.ops-wall.expires=2027-06-30
+token.ops-wall.description=Ops wall screen
+```
+
+**Revoking a token:** delete its lines (`token.<name>.*`) from the file. The server reads the file again within a second of a change: from then on the token is refused, and browsers signed in with it are signed out. A token that has been lost cannot be shown again either: make a new one and delete the old one's lines.
+
+**Programs** send the token in the `Authorization` header (RFC 6750):
+
+```
+curl -H "Authorization: Bearer swt_VHuY…" https://rift:8843/api/junction/gateways
+```
+
+Without a token, or with a wrong one, the answer is `401` with `WWW-Authenticate: Bearer realm="SimWeaver"`. `GET /api/auth/whoami` tells a program which token it is using ([rest-api.md](rest-api.md), 14).
+
+**The Web UI** opens the login page (`login.html`) when it is not signed in. The token pasted there signs the browser in for `api.auth.sessionhours` (12): the server answers with a session cookie that the page's scripts cannot read, sent only to `/api`. **Sign out** in the top bar ends it (its tooltip names the token). A restart of the server signs every browser out. With the session cookie, a change (anything but reading) is accepted only from this server's own pages, so another web site cannot make a signed-in browser do something; behind a reverse proxy with another address, add the proxy's address to `api.auth.origins`.
+
+**Wrong tokens:** an address that sends 10 wrong tokens within a minute gets `429 Too Many Requests` for the rest of that minute, also for a correct token. Browsers already signed in from that address carry on. Each refusal is logged as `api.auth.refused`, once per address and minute, with a count of the others.
+
+**Log events** (2.7):
+
+| Event | Level | Fields |
+|---|---|---|
+| `api.auth.on` | NOTICE | `tokens`, `file`: at start, when API authentication is on |
+| `api.auth.tokens.invalid` | WARNING | `problem`: a line of the token file that is ignored (a bad hash, name or date) |
+| `api.auth.refused` | WARNING | `address`, `reason` (no token, a wrong token, an ended session, a change from another site), `count` |
+| `api.auth.signedin` / `api.auth.signedout` | NOTICE | `token`: a browser signed in / out with it |
+
+With authentication on, the `by=` of every event names the token as well as the address, e.g. `by="10.0.0.5 (token ops-wall)"`.
+
+**Not covered:** J2J links (2.8) have their own network key and port; the syslog connection (2.7) is outgoing.
+
+### 2.10 Entity type names: SISO-REF-010 (0.11.1)
+
+The object view shows an entity type in words below its numbers, with the country's ISO code before it:
+
+```
+EntityType   1.1.205.2.1.5.0
+             SWE  CV9040A · Armored Fighting Vehicle
+```
+
+The names come from **SISO-REF-010** (*Enumerations for Simulation Interoperability*), delivered as `etc/enumerations/SISO-REF-010.xml` (release v37, 2026-05-25). It is read once at start; the start-up lines say `Enumerations: SISO-REF-010-v37 (2026-05-25), 27370 entity types`. They work for HLA and DIS datasources alike, for every value of the entity type form (`EntityType`, `AlternateEntityType`, a munition type in a `WeaponFire` …), and the object search finds objects by them.
+
+When the file does not list a type down to its last number, the nearest broader name is shown, marked with ≈: an unknown specific gives the subcategory (*≈ Combat Vehicle 90 (CV90)*), an unknown category the domain and kind (*≈ Air platform*). Hover over the name for the whole chain. Kind 0 (*Other*) is not named.
+
+**A newer release:** SISO publishes new releases a few times a year. Put SISO's `SISO-REF-010.xml` in place of the delivered one (or set `enumerations.siso.file` to another file) and restart. The schema (`.xsd`) is not needed. Without the file, or with `enumerations.siso.file=` empty, entity types are shown as numbers only.
+
+**Licence:** SISO-REF-010 is © SISO Inc. and distributed unchanged under the licence in its own `<copyright>` element, with the attribution *Reprinted with permission from SISO Inc.* (`etc/enumerations/NOTICE.txt`). The BSD 3-Clause License of SimWeaver does not cover it.
+
 ---
 
 ## 3. Security
 
-The REST API and the Web UI have **no login**. Anyone who can reach the server's port can
-start and remove datasources and read everything they receive. Restrict access to the port
-with a firewall or network segmentation.
+Without API authentication (2.9, off by default) the REST API and the Web UI have **no login**: anyone who can reach the server's port can start and remove datasources and gateways and read everything they receive. Switch it on with `api.auth.enabled=true`, and restrict access to the port with a firewall or network segmentation either way.
+
+With API authentication on, a token is a password: anyone who holds it can do everything the API offers. Give each user or program its own, keep them out of scripts that others can read, and revoke one by deleting its lines as soon as it may have leaked. The server keeps only their hashes. Traffic is always HTTPS, so tokens and session cookies never cross the network in clear text; with a self-signed certificate, check its fingerprint once on each client, or an attacker in between could read them.
 
 J2J (2.8) links are encrypted and authenticated with the network key (AES-256-GCM, keys from an X25519 exchange, so recorded traffic stays secret even if the key leaks later). Whoever holds `etc/j2j/network.key` and is in the member list is trusted as a member: keep the file readable by the server's account only, and make a new key when someone leaves. The J2J port must be reachable by the other members only.
 
-Syslog over UDP or TCP is not encrypted, and UDP messages can be lost without notice. Use `syslog.protocol=tls` when the log crosses networks you do not trust (2.7). The `by=` of an event is the client's address as the server sees it: with no login it says *from where*, not *who*.
+Syslog over UDP or TCP is not encrypted, and UDP messages can be lost without notice. Use `syslog.protocol=tls` when the log crosses networks you do not trust (2.7). The `by=` of an event is the client's address as the server sees it: without API authentication it says *from where*, not *who*; with it, also which token.
 
 ---
 
