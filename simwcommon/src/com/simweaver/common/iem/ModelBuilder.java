@@ -657,13 +657,37 @@ final class ModelBuilder {
         }
         RawDataType f = node.first;
         String prefix = here + ": datatype '" + d.name + "' conflicts with its definition at " + node.firstWhere + ": ";
+        // A datatype of the built-in standard MIM restated differently (RTIs put their own copy of the MIM in the
+        // FDD, e.g. HLAtoken with cardinality 0, HLAunsignedInteger8 Little endian): a warning, the standard
+        // definition is kept. Between the user's own modules a conflict stays an error.
+        int errorsBefore = errors.size();
+        mergeDataTypeChecks(d, f, node, mod, rm, here, prefix);
+        if (node.firstWhere.startsWith(StandardMim.LABEL) && errors.size() > errorsBefore) {
+            List<String> moved = new ArrayList<String>(errors.subList(errorsBefore, errors.size()));
+            errors.subList(errorsBefore, errors.size()).clear();
+            for (String e : moved) {
+                warnings.add(e + "; the standard MIM definition is kept");
+            }
+        }
+        if (!node.modules.contains(mod)) {
+            node.modules.add(mod);
+        }
+        if (node.semantics == null) {
+            node.semantics = emptyToNull(d.semantics);
+        }
+    }
+
+    private void mergeDataTypeChecks(RawDataType d, RawDataType f, DtNode node, FomModule mod, RawModule rm,
+                                     String here, String prefix) {
         if (f.category != d.category) {
             errors.add(prefix + "defined as " + d.category + " here and as " + f.category + " there");
             return;
         }
         switch (d.category) {
             case BASIC:
-                if (!same(f.size, d.size, true) || !same(f.endian, d.endian, false)) {
+                // the byte order of a single octet means nothing: 8-bit types match whatever their endian says
+                boolean oneOctet = "8".equals(trimmed(f.size)) && "8".equals(trimmed(d.size));
+                if (!same(f.size, d.size, true) || (!oneOctet && !same(f.endian, d.endian, false))) {
                     errors.add(prefix + "size/endian " + d.size + "/" + d.endian + " vs " + f.size + "/" + f.endian);
                 }
                 break;
@@ -720,12 +744,10 @@ final class ModelBuilder {
                 }
                 break;
         }
-        if (!node.modules.contains(mod)) {
-            node.modules.add(mod);
-        }
-        if (node.semantics == null) {
-            node.semantics = emptyToNull(d.semantics);
-        }
+    }
+
+    private static String trimmed(String s) {
+        return s == null ? null : s.trim();
     }
 
     private static Map<String, String> withoutSemantics(Map<String, String> m) {

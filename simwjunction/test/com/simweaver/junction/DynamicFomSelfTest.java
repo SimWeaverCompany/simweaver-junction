@@ -141,6 +141,53 @@ public final class DynamicFomSelfTest {
         check("the format note: only when the format is not the API's",
                 DynamicFom.formatNote(as2025, false).equals(", written in the IEEE 1516-2025 format")
                         && DynamicFom.formatNote(as2025, true).isEmpty() && DynamicFom.formatNote(merged, false).isEmpty());
+
+        // 0.11.1 fix: an RTI's FDD restates the standard MIM a little differently (seen with a real RTI:
+        // HLAunsignedInteger8 Little endian, HLAtoken with cardinality 0): read, the standard definitions kept
+        String mimCopy = "<basicData><name>HLAunsignedInteger8</name><size>8</size><interpretation>u8</interpretation>"
+                + "<endian>Little</endian><encoding>8-bit unsigned integer</encoding></basicData>";
+        String tokenCopy = "<arrayData><name>HLAtoken</name><dataType>HLAbyte</dataType><cardinality>0</cardinality>"
+                + "<encoding>HLAvariableArray</encoding><semantics>Token</semantics></arrayData>";
+        String rti25 = as2025.replaceFirst("<basicDataRepresentations>", "<basicDataRepresentations>" + mimCopy)
+                .replaceFirst("<arrayDataTypes>", "<arrayDataTypes>" + tokenCopy);
+        InformationExchangeModel r25 = null;
+        try {
+            r25 = DynamicFom.toModel(rti25, false);
+        } catch (Exception e) {
+            System.out.println("   " + e.getMessage());
+        }
+        check("an RTI's 1516-2025 FDD with its own MIM copy (HLAunsignedInteger8 Little, HLAtoken cardinality 0) is read",
+                r25 != null && r25.getObjectClass(AIRCRAFT) != null);
+        String warned = r25 == null ? "" : r25.getWarnings().toString();
+        check("HLAtoken: a warning, the standard MIM definition kept; HLAunsignedInteger8: nothing (one octet has no byte order) "
+                + warned, warned.contains("'HLAtoken'") && warned.contains("standard MIM definition is kept")
+                && !warned.contains("'HLAunsignedInteger8'"));
+        String rti10 = merged.replaceFirst("<arrayDataTypes>", "<arrayDataTypes>" + tokenCopy);
+        boolean read10;
+        try {
+            read10 = DynamicFom.toModel(rti10, false).getObjectClass(AIRCRAFT) != null;
+        } catch (Exception e) {
+            read10 = false;
+            System.out.println("   " + e.getMessage());
+        }
+        check("the same in a 1516-2010 FDD", read10);
+        // between the user's own modules a conflicting datatype is still an error
+        String conflicting = "<?xml version=\"1.0\"?><objectModel xmlns=\"" + ns10 + "\"><modelIdentification><name>Other</name>"
+                + "<type>FOM</type><version>1</version></modelIdentification><dataTypes><arrayDataTypes>"
+                + "<arrayData><name>EntityIdentifierStructLengthlessArray</name><dataType>HLAbyte</dataType><cardinality>4</cardinality>"
+                + "<encoding>HLAfixedArray</encoding></arrayData></arrayDataTypes></dataTypes></objectModel>";
+        String firstDef = "<?xml version=\"1.0\"?><objectModel xmlns=\"" + ns10 + "\"><modelIdentification><name>Mine</name>"
+                + "<type>FOM</type><version>1</version></modelIdentification><dataTypes><arrayDataTypes>"
+                + "<arrayData><name>EntityIdentifierStructLengthlessArray</name><dataType>HLAbyte</dataType><cardinality>Dynamic</cardinality>"
+                + "<encoding>HLAvariableArray</encoding></arrayData></arrayDataTypes></dataTypes></objectModel>";
+        boolean stillError;
+        try {
+            InformationExchangeModel.fromHlaEvolved(Arrays.asList(firstDef, conflicting));
+            stillError = false;
+        } catch (Exception e) {
+            stillError = e.getMessage().contains("conflicts with its definition");
+        }
+        check("two of the user's own modules that disagree on a datatype: still an error", stillError);
     }
 
     /** The module identification renamed, as in a merged FDD. */

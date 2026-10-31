@@ -13,7 +13,7 @@ Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the env
 
 With API authentication on (0.11.0) every call needs `Authorization: Bearer <token>`, as all of `/api` does ([rest-api.md](rest-api.md), 14).
 
-API state: Junction 0.11.1, October 2026.
+API state: Junction 0.11.2, October 2026.
 
 ---
 
