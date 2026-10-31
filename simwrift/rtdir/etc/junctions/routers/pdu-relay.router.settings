@@ -1,0 +1,6 @@
+# Router kit PDU-relay: DIS PDUs passed as they are between DIS 6, DIS 7 and C-DIS endpoints, not
+# through the RPR model. Each PDU heard on one endpoint goes to the others with their protocol
+# version and exercise; a C-DIS endpoint encodes and decodes.
+router.kind=pdu
+# only these PDU types (numbers; empty = all), e.g. entities, fire, detonation and radio:
+# router.pdu.types=1;2;3;25;26;27

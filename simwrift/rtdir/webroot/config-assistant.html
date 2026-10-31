@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SimWeaver Config Assistant</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/config-assistant.css">
+	<script src="js/theme.js"></script>
+</head>
+<body class="ca-page">
+
+<header class="topbar">
+	<a class="brand" href="config-assistant.html" title="SimWeaver Config Assistant">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="48" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Config</b></span>
+			<span class="sub">Configuration Assistant</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<a class="app-nav-link" href="index.html" title="SimWeaver Rift - datasources">Rift datasources</a>
+		<a class="app-nav-link" href="junction.html" title="SimWeaver Junction - gateways">Junction gateways</a>
+		<a class="app-nav-link" href="infra.html" title="SimWeaver Infra - the DIS exercises and HLA federations Rift and Junction have contact with">Infra</a>
+		<a class="app-nav-link" id="nav-j2j" href="j2j.html" title="SimWeaver J2J - the network of Junction servers" hidden>J2J</a>
+		<span class="app-nav-link current" aria-current="page">Config assistant</span>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page">
+
+	<section class="panel" aria-labelledby="ca-title">
+		<div class="panel-head">
+			<span class="idx">00</span>
+			<h2 id="ca-title" class="title">Config Assistant</h2>
+			<span class="meta">
+				<button id="ca-reset" type="button" class="btn" title="Clear this section">&#8634; Start over</button>
+			</span>
+		</div>
+		<div class="panel-body">
+			<p class="ca-lead">Answer the questions below and the assistant writes the configuration files for you, with their
+				names and where they go on the server. <b>Nothing is sent to the server</b>: copy or download each file and
+				put it in place yourself. What you fill in is remembered in this browser.</p>
+			<div class="ca-switch" role="group" aria-label="What to configure">
+				<button id="ca-sw-rift" type="button" aria-pressed="true">
+					<span class="k">Rift</span>
+					<span class="d">Datasources that show an HLA federation or a DIS network; server settings; object list columns.</span>
+				</button>
+				<button id="ca-sw-junction" type="button" aria-pressed="false">
+					<span class="k">Junction gateways</span>
+					<span class="d">Gateways between federations and networks: endpoints, routers, kits, and groups of gateways.</span>
+				</button>
+			</div>
+			<div id="ca-server" class="ca-server">Asking the server what it has&hellip;</div>
+		</div>
+	</section>
+
+	<div class="ca-layout">
+		<div id="ca-form" class="ca-form"></div>
+
+		<section class="panel ca-out" aria-labelledby="ca-files-title">
+			<div class="panel-head">
+				<span class="idx">&#8681;</span>
+				<h2 id="ca-files-title" class="title">Files to create</h2>
+				<span class="meta">
+					<span id="ca-files-meta"></span>
+					<button id="ca-download-all" type="button" class="btn" title="Download every file">Download all</button>
+				</span>
+			</div>
+			<div class="panel-body">
+				<div id="ca-files" aria-live="polite"></div>
+			</div>
+		</section>
+	</div>
+
+</main>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // CONFIG ASSISTANT</span>
+	<span class="license">By SimWeaver - released under the BSD 3-Clause License</span>
+	<span class="dim">Rift &middot; Junction</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/browser-data.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/confirm.js"></script>
+<script src="js/junction-api.js"></script>
+<script src="js/config-assistant-core.js"></script>
+<script src="js/config-assistant-rift.js"></script>
+<script src="js/config-assistant-junction.js"></script>
+<script src="js/config-assistant.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Endpoint kit Talk: a Talk federation. No Talk FOM is delivered with SimWeaver: the endpoint
+# takes the Talk FOM from the running federation (the FDD the RTI reports), so nothing needs to be
+# installed when the Talk federation is already running.
+endpoint.name=Talk
+endpoint.standard=talk
+endpoint.hla.lsd=default
+# the Talk federation's name, as your Talk installation runs it
+endpoint.hla.federation=Talk
+# To let the endpoint create the federation when it is not running, put your own copy of the
+# Talk FOM modules in etc/fom/ieee1516-2010 and name them here (;-separated):
+# endpoint.hla.createfoms=<your Talk FOM module>.xml;<another module>.xml
+# Or always use your FOM files instead of the federation's FDD:
+# endpoint.hla.foms=<your Talk FOM module>.xml;<another module>.xml
+# endpoint.talk.hlastandard=ieee1516-2010
+# endpoint.hla.rtijar=

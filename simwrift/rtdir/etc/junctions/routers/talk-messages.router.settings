@@ -1,0 +1,21 @@
+# Router kit Talk-Messages: Talk in messages-only mode. Only the Talk message interactions
+# (audio, radio, text, image) are exchanged: no MasterConfiguration, channel, client, user,
+# equipment or permission object is mirrored. Channel UUIDs are rewritten to the receiving
+# federation's channel of the same name.
+router.kind=talk
+talk.mode=messages
+# the message kinds bridged: audio, radio, text, image
+talk.messages=audio;radio;text;image
+# the channels bridged (names, * and ? as wildcards; none = the lobby only)
+talk.channels=*
+# the channel objects are watched read-only (UUID, name), so channels match by name and
+# talk.channelmap works; false = no channel objects at all, UUIDs pass unchanged or mapped below
+talk.trackchannels=true
+# channel X out there is channel Y in endpoint "home" (and back); a mapped channel the receiver
+# lacks is registered there under that name (talk.createmappedchannels, on by default):
+# talk.channelmap.home=Net Alpha>Bravo Net
+# explicit UUID pairs (32 hex digits or 8-4-4-4-12), checked first, both ways:
+# talk.channeluuidmap=0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0>00112233-4455-6677-8899-aabbccddeeff
+# radio bridge: by channel name (common name, before talk.channelmap.<endpoint>), or by UUID
+# talk.radio.endpoint=radio
+# talk.radio.map.Net\ Alpha=251000000     (a space in a key is written \ + space)

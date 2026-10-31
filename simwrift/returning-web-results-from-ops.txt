@@ -1,0 +1,33 @@
+For example:
+HTTP 201 Created
+
+{
+  "success": true,
+  "datasource": {
+    "configid": "config-123",
+    "federation": "MyFederation"
+  }
+}
+
+
+Failure responses
+I'd use the standard HTTP status codes rather than returning 200 OK for every outcome.
+HTTP status	When to use it	Example error code
+
+400 Bad Request	Missing fields, invalid JSON or invalid values	INVALID_REQUEST
+404 Not Found	The specified configuration doesn't exist	CONFIG_NOT_FOUND
+409 Conflict	A datasource already exists or the requested state conflicts with the current state	DATASOURCE_EXISTS
+422 Unprocessable Content	The request is structurally valid but federation/configuration validation fails	INVALID_FEDERATION
+500 Internal Server Error	Unexpected backend failure	INTERNAL_ERROR
+
+Example failure response:
+HTTP 400 Bad Request
+
+
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field: federation"
+  }
+}

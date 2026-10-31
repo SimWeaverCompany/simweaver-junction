@@ -1,0 +1,13 @@
+# Endpoint kit J2J-RPR2 (0.10.0): a session of the J2J network carrying the objects and interactions
+# of the RPR FOM v2.0, for an IEM gateway. Gateways on other SimWeaver servers that join the same
+# session share their federations' (or DIS networks') objects with this one. Needs J2J on this
+# server (etc/j2j/network.settings, install guide 2.8).
+endpoint.name=J2J RPR v2 session
+endpoint.standard=j2j
+# the session (the default target): 1-64 letters, digits, '.', '_' and '-'; the same name on every member
+endpoint.j2j.session=exercise-rpr2
+# the session's model: every member must have the same (relative names: etc/fom/ieee1516-2010)
+endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
+# auto: attributes and interactions as their FOM transportation says (HLAbestEffort: the newest wins
+# on a busy link); reliable: everything reliable and in order
+endpoint.j2j.transport=auto

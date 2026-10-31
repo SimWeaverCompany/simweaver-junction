@@ -1,0 +1,8 @@
+# Gateway HLA4<->CDIS: an HLA 4 RPR v2 federation and a C-DIS network.
+junction.name=HLA4<->CDIS
+junction.description=HLA 4 RPR v2 federation (Link 16 included) bridged to C-DIS (SISO-STD-023-2024) on port 3100
+junction.endpoints=hla;cdis
+junction.endpoint.hla=endpoints/hla4-rpr2.endpoint.settings
+junction.endpoint.cdis=endpoints/cdis.endpoint.settings
+junction.router=routers/hla4-all.router.settings
+junction.autostart=false

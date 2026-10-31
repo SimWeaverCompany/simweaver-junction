@@ -1,0 +1,11 @@
+# Gateway HLA3<->HLA3 dynamic-FOM: two running HLA Evolved federations, both FOMs taken from the
+# federations (endpoint.hla.foms=dynamic): no FOM files needed, any RPR, NETN or custom FOM.
+junction.name=HLA3<->HLA3 dynamic-FOM
+junction.description=Joins two running federations and bridges what their FDDs have in common
+junction.endpoints=blue;red
+junction.endpoint.blue=endpoints/hla3-dynamic-fom.endpoint.settings
+junction.endpoint.blue.hla.federation=Blue
+junction.endpoint.red=endpoints/hla3-dynamic-fom.endpoint.settings
+junction.endpoint.red.hla.federation=Red
+junction.router=routers/hla3-all.router.settings
+junction.autostart=false

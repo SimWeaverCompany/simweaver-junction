@@ -1,0 +1,137 @@
+# SimWeaver Rift 0.9.10 - server settings (etc/server.root.settings)
+# Read at start-up: restart Rift after a change. Relative paths are relative to the
+# installation (runtime) folder. Full list: doc/simweaver-rift-install-and-config.md, 2.1.
+
+# ---------------------------------------------------------------- web server
+webserver.port=8843
+webserver.root=webroot
+webserver.keystore.path=keystore.jks
+# change this to your key store's password
+webserver.keystore.pwd=password
+logdir=./log
+
+# ---------------------------------------------------------------- Junction gateways
+junction.enabled=true
+junction.dir=etc/junctions
+# list each gateway endpoint as a datasource configuration too
+junction.datasourceconfigs=true
+
+# ---------------------------------------------------------------- syslog (0.9.22)
+# Also send the log to a syslog server. Full list: doc/simweaver-rift-install-and-config.md, 2.7.
+syslog.enabled=false
+#syslog.host=logs.example.org
+# udp (default, port 514), tcp (514) or tls (6514)
+#syslog.protocol=udp
+#syslog.port=514
+# rfc5424 (default) or rfc3164 (the older BSD format)
+#syslog.format=rfc5424
+#syslog.facility=local0
+# lowest level sent: SEVERE WARNING NOTICE (events and problems only) INFO CONFIG FINE
+#syslog.level=INFO
+# tls: the CA of the syslog server's certificate, if Java's own CAs do not have it
+#syslog.tls.truststore=etc/syslog-ca.p12
+#syslog.tls.truststorepassword=changeit
+
+
+# ---------------------------------------------------------------- map view
+# false removes the map from the Web UI and the API
+map.enabled=true
+# background maps: one sub folder per map, maps/raster/<map>/<map>.tif
+map.dir=maps/raster
+# the default map; without it, map.default, else the first map found
+map.file=maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif
+map.default=HYP_HR_SR_W_DR
+map.cache.dir=maps/cache
+map.cache.memorymb=48
+map.threads=2
+map.jpegquality=0.85
+# colour where the raster has no data (and the background without a map)
+map.background=#9db7c9
+
+# ---------------------------------------------------------------- overlays
+# Every .zip package and .shp under this folder is an overlay; nothing needs listing.
+# An overlay's id is the .shp name inside the zip (ne_10m_airports.zip -> ne_10m_airports).
+# Settings for a layer you don't have are simply unused.
+map.overlays.dir=maps/overlays
+
+# Optional: draw order. Listed layers come first (underneath), the rest follow by file name.
+# A listed file that is missing is reported as a problem, so list only files you have.
+#map.overlays=maps/overlays/ne_10m_lakes.zip; maps/overlays/ne_10m_rivers_lake_centerlines.zip; maps/overlays/ne_10m_coastline.zip
+
+# Coastline
+map.overlay.ne_10m_coastline.name=Coastline
+map.overlay.ne_10m_coastline.color=#1f4e79
+map.overlay.ne_10m_coastline.width=0.9
+
+# Country borders
+map.overlay.ne_10m_admin_0_boundary_lines_land.name=Borders
+map.overlay.ne_10m_admin_0_boundary_lines_land.color=#7d3c98cc
+map.overlay.ne_10m_admin_0_boundary_lines_land.width=1.4
+
+# State / county borders
+map.overlay.ne_10m_admin_1_states_provinces_lines.name=Regions
+map.overlay.ne_10m_admin_1_states_provinces_lines.color=#a569bd99
+map.overlay.ne_10m_admin_1_states_provinces_lines.width=0.8
+map.overlay.ne_10m_admin_1_states_provinces_lines.minzoom=4
+
+# Towns (simple version); biggest population wins where labels would overlap
+map.overlay.ne_10m_populated_places_simple.name=Towns
+map.overlay.ne_10m_populated_places_simple.color=#4a2c2a
+map.overlay.ne_10m_populated_places_simple.pointfill=#ffffff
+map.overlay.ne_10m_populated_places_simple.point=2.5
+map.overlay.ne_10m_populated_places_simple.label=name
+map.overlay.ne_10m_populated_places_simple.labelrank=pop_max
+map.overlay.ne_10m_populated_places_simple.labelminzoom=4
+
+# Towns (full version); has Swedish names as well: label=name_sv
+map.overlay.ne_10m_populated_places.name=Towns
+map.overlay.ne_10m_populated_places.color=#4a2c2a
+map.overlay.ne_10m_populated_places.pointfill=#ffffff
+map.overlay.ne_10m_populated_places.point=2.5
+map.overlay.ne_10m_populated_places.label=name
+map.overlay.ne_10m_populated_places.labelrank=pop_max
+map.overlay.ne_10m_populated_places.labelminzoom=4
+
+# Airports; scalerank 1 is the most important (asc), Swedish names: label=name_sv
+map.overlay.ne_10m_airports.name=Airports
+map.overlay.ne_10m_airports.color=#b03a2e
+map.overlay.ne_10m_airports.point=3.5
+map.overlay.ne_10m_airports.minzoom=5
+map.overlay.ne_10m_airports.label=name
+map.overlay.ne_10m_airports.labelrank=scalerank
+map.overlay.ne_10m_airports.labelorder=asc
+map.overlay.ne_10m_airports.labelminzoom=7
+map.overlay.ne_10m_airports.labelcolor=#7b241c
+
+# Ports
+map.overlay.ne_10m_ports.name=Ports
+map.overlay.ne_10m_ports.color=#1a5276
+map.overlay.ne_10m_ports.point=3
+map.overlay.ne_10m_ports.minzoom=5
+map.overlay.ne_10m_ports.label=name
+map.overlay.ne_10m_ports.labelrank=scalerank
+map.overlay.ne_10m_ports.labelorder=asc
+map.overlay.ne_10m_ports.labelminzoom=8
+map.overlay.ne_10m_ports.labelcolor=#1a5276
+
+# Roads (off until the user turns them on)
+map.overlay.ne_10m_roads.name=Roads
+map.overlay.ne_10m_roads.color=#d35400cc
+map.overlay.ne_10m_roads.width=1.0
+map.overlay.ne_10m_roads.minzoom=5
+map.overlay.ne_10m_roads.visible=false
+
+# Rivers and lakes
+map.overlay.ne_10m_rivers_lake_centerlines.name=Rivers
+map.overlay.ne_10m_rivers_lake_centerlines.color=#2e86c1
+map.overlay.ne_10m_rivers_lake_centerlines.width=0.8
+map.overlay.ne_10m_rivers_lake_centerlines.minzoom=4
+map.overlay.ne_10m_lakes.name=Lakes
+map.overlay.ne_10m_lakes.color=#2e86c1
+map.overlay.ne_10m_lakes.width=0.6
+map.overlay.ne_10m_lakes.fill=#5dade266
+map.overlay.ne_10m_lakes.label=name
+map.overlay.ne_10m_lakes.labelrank=scalerank
+map.overlay.ne_10m_lakes.labelorder=asc
+map.overlay.ne_10m_lakes.labelminzoom=7
+map.overlay.ne_10m_lakes.labelcolor=#1b4f72

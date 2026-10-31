@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Datasource &middot; SimWeaver Rift</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/map.css">
+	<script src="js/theme.js"></script>
+</head>
+<body class="ds-page">
+
+<header class="topbar">
+	<a class="brand" href="index.html" title="SimWeaver Rift - overview">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="48" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Rift</b></span>
+			<span class="sub">Datasource Control</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<a class="app-nav-link" href="index.html">Rift datasources</a>
+		<a class="app-nav-link" href="junction.html" title="SimWeaver Junction - gateways">Junction gateways</a>
+		<a class="app-nav-link" href="infra.html" title="SimWeaver Infra - the DIS exercises and HLA federations Rift and Junction have contact with">Infra</a>
+		<a class="app-nav-link" id="nav-j2j" href="j2j.html" title="SimWeaver J2J - the network of Junction servers" hidden>J2J</a>
+		<a class="app-nav-link" href="config-assistant.html" title="SimWeaver Config Assistant - write configuration files">Config assistant</a>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page page-ds">
+
+	<nav class="crumbs" aria-label="Breadcrumb">
+		<a href="index.html">&lsaquo; Overview</a>
+		<span class="sep">/</span>
+		<span>Running datasources</span>
+		<span class="sep">/</span>
+		<span id="crumb-name" class="current">&hellip;</span>
+	</nav>
+
+	<!-- Header: name, state, facts, collapsible config snapshot -->
+	<section class="panel ds-head" aria-labelledby="ds-title">
+		<div class="panel-head">
+			<span class="idx">DS</span>
+			<h1 id="ds-title" class="ds-name">&hellip;</h1>
+			<span id="ds-state" class="ds-state">&mdash;</span>
+			<span id="ds-facts" class="ds-facts"></span>
+			<span class="meta">
+				<span id="ds-stream" class="ds-stream" title="Live update stream"><span class="lamp off" aria-hidden="true"></span><span class="ds-stream-text">STREAM &mdash;</span></span>
+				<button id="btn-reload-ds" type="button" class="btn">&#10227; Reload</button>
+				<button id="btn-remove-ds" type="button" class="btn btn-danger" hidden>&#10005; Remove</button>
+			</span>
+		</div>
+		<div id="ds-msg"></div>
+		<details id="ds-config" class="ds-config" hidden>
+			<summary><span class="ds-config-label">Config</span> <span id="ds-config-summary"></span></summary>
+			<div id="ds-config-body" class="ds-config-body"></div>
+		</details>
+	</section>
+
+	<!-- Content: classes | objects | interactions -->
+	<div class="ds-grid">
+
+		<section class="panel pane pane-tree" aria-labelledby="tree-title">
+			<div class="panel-head">
+				<span class="idx">01</span>
+				<h2 id="tree-title" class="title">Classes</h2>
+				<span class="meta"><span id="tree-meta"></span>
+					<button id="tree-clear" type="button" class="btn" hidden title="Show all classes">&#10005; All</button></span>
+			</div>
+			<div class="pane-tools">
+				<input id="tree-filter" type="search" placeholder="Filter classes" aria-label="Filter classes" autocomplete="off" spellcheck="false">
+			</div>
+			<div id="tree-box" class="pane-scroll ct-wrap"></div>
+		</section>
+
+		<section class="panel pane pane-objects" aria-labelledby="obj-title">
+			<div class="panel-head">
+				<span class="idx">02</span>
+				<h2 id="obj-title" class="title">Object instances</h2>
+				<span class="meta"><span id="obj-meta"></span>
+					<span id="obj-view" class="ds-viewseg" role="group" aria-label="Show as" hidden>
+						<button id="obj-view-list" type="button" class="btn" aria-pressed="true" title="The object list">&#9776; List</button>
+						<button id="obj-view-map" type="button" class="btn" aria-pressed="false" title="The same objects on a map">&#9673; Map</button>
+					</span>
+					<a id="obj-map-tab" class="btn" href="map.html" target="_blank" rel="noopener" hidden title="The map in a new tab (same filter)">&#10697; Map tab</a>
+				</span>
+			</div>
+			<div class="pane-tools">
+				<input id="obj-search" type="search" placeholder="Search name, label, values" aria-label="Search objects" autocomplete="off" spellcheck="false">
+				<select id="obj-sort" aria-label="Sort">
+					<option value="label">Sort: label</option>
+					<option value="class">Sort: class</option>
+					<option value="lastupdated">Sort: last update</option>
+					<option value="discovered">Sort: newest</option>
+				</select>
+				<label class="check" title="Also list objects that reference the matched ones (e.g. the radios on a selected aircraft)">
+					<input id="obj-related" type="checkbox"> + related
+				</label>
+			</div>
+			<button id="obj-banner" type="button" class="pane-banner" hidden></button>
+			<div id="obj-scroller" class="pane-scroll">
+				<div id="obj-pinned" class="obj-pinned" hidden></div>
+				<div id="obj-box"></div>
+			</div>
+			<div id="obj-map" class="pane-map" hidden></div>
+		</section>
+
+		<section class="panel pane pane-log" aria-labelledby="ix-title">
+			<div class="panel-head">
+				<span class="idx">03</span>
+				<h2 id="ix-title" class="title">Interactions</h2>
+				<span class="meta"><span id="ix-meta"></span>
+					<button id="ix-pause" type="button" class="btn" aria-pressed="false">&#10074;&#10074; Pause</button></span>
+			</div>
+			<div id="ix-ticker" class="ix-ticker" aria-label="Interaction rates"></div>
+			<div class="pane-tools ix-tools">
+				<div id="ix-focus" class="ix-focus" hidden></div>
+				<button id="ix-clear" type="button" class="btn" hidden>&#10005; Clear filters</button>
+			</div>
+			<button id="ix-banner" type="button" class="pane-banner" hidden></button>
+			<div id="ix-scroller" class="pane-scroll">
+				<ul id="ix-tape" class="ix-tape" aria-live="off"></ul>
+			</div>
+		</section>
+
+	</div>
+</main>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // RIFT</span>
+	<span class="license">By SimWeaver - released under the BSD 3-Clause License</span>
+	<span class="dim">HLA &middot; DIS datasource gateway</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/browser-data.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/confirm.js"></script>
+<script src="js/remove-datasource.js"></script>
+<script src="js/config-card.js"></script>
+<script src="js/value-view.js"></script>
+<script src="js/live-stream.js"></script>
+<script src="js/class-tree.js"></script>
+<script src="js/object-list.js"></script>
+<script src="js/map-view.js"></script>
+<script src="js/interaction-log.js"></script>
+<script src="js/datasource.js"></script>
+</body>
+</html>

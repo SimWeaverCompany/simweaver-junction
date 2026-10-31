@@ -1,0 +1,238 @@
+/* ============================================================
+   SimWeaver J2J page (0.10.0) - on top of rift.css.
+   Diagram colours as in the J2J slides: green servers and links,
+   purple sessions, grey site separators.
+   ============================================================ */
+
+:root {
+  --jj-link-up:    #3fa34d;
+  --jj-link-wait:  #8e9d8b;
+  --jj-session:    #b56cf0;
+  --jj-session-bg: #3a1d52;
+  --jj-session-fg: #f1e4ff;
+  --jj-sep:        #4d5a50;
+  --jj-n-direct:   #2a6a24;
+  --jj-n-routed:   #1f5a7a;
+  --jj-n-down:     #3a4440;
+  --jj-n-border:   #1d3b12;
+  --jj-n-fg:       #f4fbef;
+  --jj-red:        #ff7b7e;
+  --jj-grey:       #a9b7a5;
+}
+html.light {
+  --jj-link-up:    #2e7d32;
+  --jj-link-wait:  #7a7f6b;
+  --jj-session:    #8a3fc6;
+  --jj-session-bg: #efe3fb;
+  --jj-session-fg: #4a1a72;
+  --jj-sep:        #b0a78d;
+  --jj-n-direct:   #2e6b1f;
+  --jj-n-routed:   #1f5a8a;
+  --jj-n-down:     #6b706a;
+  --jj-n-border:   #1d3b12;
+  --jj-n-fg:       #ffffff;
+  --jj-red:        #b3261e;
+  --jj-grey:       #4c5544;
+}
+
+.mono { font-family: var(--mono); }
+.jj-small { font-size: 11.5px; }
+.jj-k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-dim); }
+.jj-sub { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--fg-dim); }
+.jj-ok { color: var(--ok); }
+.jj-blue { color: var(--blue); }
+.jj-warn { color: var(--amber); }
+.jj-accent { color: var(--accent); }
+.jj-selfid { color: var(--amber); }
+.jj-empty { padding: 14px; color: var(--fg-dim); }
+.btn.on { color: var(--bg-deep); background: var(--accent); border-color: var(--accent); font-weight: 700; }
+
+/* ping and state colours */
+.jj-p-green { color: var(--ok); stroke: var(--ok); fill: var(--ok); }
+.jj-p-amber { color: var(--amber); stroke: var(--amber); fill: var(--amber); }
+.jj-p-red   { color: var(--jj-red); stroke: var(--jj-red); fill: var(--jj-red); }
+.jj-p-none  { color: var(--jj-grey); stroke: var(--jj-grey); fill: var(--jj-grey); }
+svg text.jj-ltext, svg text.jj-site { stroke: none; }
+.jj-spark.jj-p-green polyline, .jj-spark.jj-p-amber polyline, .jj-spark.jj-p-red polyline { stroke: currentColor; fill: none; }
+
+.jj-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 2px 7px; border: 1px solid; border-radius: 2px; white-space: nowrap;
+}
+.jj-st-self   { color: var(--jj-grey); }
+.jj-st-direct { color: var(--ok); }
+.jj-st-routed { color: var(--blue); }
+.jj-st-wait   { color: var(--amber); }
+.jj-st-bad    { color: var(--jj-red); }
+.jj-st-off    { color: var(--jj-grey); }
+
+/* ---------- off ---------- */
+.jj-off-body { display: flex; flex-direction: column; gap: 14px; max-width: 880px; }
+.jj-off-body p, .jj-off-body ol { margin: 0; }
+.jj-off-body ol { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.jj-pre {
+  margin: 0; padding: 12px 14px; overflow-x: auto;
+  font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+  background: var(--bg-input); border: 1px solid var(--rule); border-radius: 2px;
+}
+.jj-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.jj-actions .btn { min-height: 30px; padding: 5px 10px; }
+
+/* ---------- the network header ---------- */
+.jj-net-name { color: var(--fg-dim); font-size: 12.5px; }
+.jj-facts { padding: 14px; display: flex; flex-wrap: wrap; gap: 18px 36px; align-items: flex-start; }
+.jj-fact { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+.jj-fact .mono { font-size: 12px; }
+.jj-net-actions { margin-left: auto; align-self: center; }
+.jj-alert {
+  margin: 0 14px 14px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid var(--err); border-radius: 2px; background: rgba(236, 75, 79, 0.08);
+}
+.jj-alert-warn { border-color: var(--amber); background: rgba(227, 168, 59, 0.07); }
+.jj-alert-tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; color: var(--jj-red); }
+.jj-alert-warn .jj-alert-tag { color: var(--amber); }
+
+/* ---------- key ---------- */
+.jj-key-body { display: flex; flex-direction: column; gap: 10px; }
+.jj-key-line {
+  display: block; padding: 10px 12px; overflow-wrap: anywhere;
+  font-family: var(--mono); font-size: 12.5px; color: var(--amber);
+  background: var(--bg-input); border: 1px solid var(--rule-strong); border-radius: 2px;
+}
+.jj-key-hint { color: var(--fg-dim); }
+
+/* ---------- diagram ---------- */
+.jj-overlays { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.jj-net-scroll { overflow-x: auto; padding: 8px 14px 4px; }
+.jj-netbox { position: relative; width: 100%; min-width: 720px; aspect-ratio: 960 / 470; }
+.jj-net-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.jj-sep { stroke: var(--jj-sep); stroke-width: 1; }
+.jj-site { fill: var(--fg-dim); font-family: var(--mono); font-size: 11px; letter-spacing: 2px; }
+.jj-l-up      { stroke: var(--jj-link-up); stroke-width: 3; }
+.jj-l-wait    { stroke: var(--jj-link-wait); stroke-width: 2; stroke-dasharray: 6 5; }
+.jj-l-refused { stroke: var(--err); stroke-width: 2; stroke-dasharray: 2 3; }
+.jj-l-session { stroke: var(--jj-session); stroke-width: 2.5; fill: none; }
+.jj-s-lost     { stroke-dasharray: 6 5; }
+.jj-s-mismatch { stroke-dasharray: 2 4; }
+.jj-dimmed { opacity: 0.5; }
+.jj-lbg { fill: var(--bg-deep); opacity: 0.85; }
+.jj-ltext { font-family: var(--mono); font-size: 11px; }
+.jj-node {
+  position: absolute; transform: translate(-50%, -50%); z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: none; padding: 0; cursor: pointer; letter-spacing: normal;
+}
+.jj-node:hover { border: none; }
+.jj-node-box {
+  font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--jj-n-fg);
+  padding: 8px 14px; min-width: 76px; text-align: center;
+  border-radius: 5px; border: 1.5px solid var(--jj-n-border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.jj-node:hover .jj-node-box { filter: brightness(1.12); }
+.jj-node:focus-visible { box-shadow: none; }
+.jj-node:focus-visible .jj-node-box { box-shadow: 0 0 0 2px var(--accent-hi); }
+.jj-node-sub {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; white-space: nowrap;
+  background: var(--bg-deep); opacity: 0.92; padding: 0 4px; border-radius: 2px;
+}
+.jj-n-direct  { background: var(--jj-n-direct); }
+.jj-n-routed  { background: var(--jj-n-routed); }
+.jj-n-down    { background: var(--jj-n-down); }
+.jj-n-self    { border-color: var(--amber); border-width: 2.5px; }
+.jj-n-refused { border-color: var(--err); }
+.jj-gw {
+  font-family: var(--mono); font-size: 10.5px; white-space: nowrap;
+  color: var(--jj-session-fg); background: var(--jj-session-bg);
+  border: 1px solid var(--jj-session); border-radius: 3px; padding: 1px 6px;
+}
+.jj-gw-lost { border-color: var(--err); border-style: dashed; }
+.jj-gw-mismatch { border-color: var(--amber); }
+.jj-legend { display: flex; gap: 8px 18px; flex-wrap: wrap; padding: 6px 14px 12px; border-top: 1px solid var(--rule); }
+.jj-lg { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; color: var(--fg-dim); }
+.jj-sw { display: inline-block; width: 12px; height: 9px; border-radius: 2px; }
+.jj-sw-self { border: 2px solid var(--amber); }
+
+/* ---------- members ---------- */
+.jj-mt-scroll { overflow-x: auto; }
+.jj-mt-head, .jj-mt-row {
+  display: grid;
+  grid-template-columns: 34px 150px minmax(200px, 1.4fr) minmax(190px, 1.2fr) minmax(150px, 1fr) 150px 120px;
+  align-items: center; column-gap: 10px; min-width: 1040px; padding: 0 12px;
+}
+.jj-mt-head {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-dim);
+  border-bottom: 1px solid var(--rule-strong); padding-top: 8px; padding-bottom: 8px;
+}
+.jj-mt-row {
+  width: 100%; text-align: left; min-height: 52px; padding-top: 6px; padding-bottom: 6px;
+  font: inherit; letter-spacing: normal; white-space: normal; color: var(--fg);
+  background: var(--bg-input); border: 1px solid transparent; border-bottom: 1px solid var(--rule); border-radius: 0;
+}
+.jj-mt-row:hover { background: var(--bg-input-hi); border-color: transparent; border-bottom-color: var(--rule); }
+.jj-mt-row.open { background: var(--bg-elev); border-bottom-color: var(--bg-elev); }
+.jj-mrow { scroll-margin-top: 90px; }
+.jj-caret { font-family: var(--mono); color: var(--accent); font-size: 12px; }
+.jj-cell2 { display: flex; flex-direction: column; min-width: 0; }
+.jj-name { color: var(--fg-dim); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jj-subtext { color: var(--fg-dim); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jj-how { display: flex; align-items: center; gap: 6px; }
+.jj-lock { flex: 0 0 auto; }
+.jj-lock rect, .jj-lock path { fill: none; stroke: var(--accent); stroke-width: 1.2; }
+.jj-pingcell { display: flex; align-items: center; gap: 8px; }
+.jj-ping { font-size: 12px; min-width: 56px; }
+.jj-spark polyline { fill: none; }
+
+.jj-detail {
+  background: var(--bg-elev); border-bottom: 1px solid var(--rule-strong);
+  padding: 6px 14px 16px 56px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;
+}
+.jj-dcol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.jj-dcol > .jj-k:not(:first-child) { margin-top: 8px; }
+.jj-dl { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.jj-att { display: flex; gap: 8px; flex-wrap: wrap; }
+.jj-cls {
+  display: grid; grid-template-columns: 96px repeat(3, minmax(0, 1fr)); column-gap: 8px; row-gap: 3px;
+  font-family: var(--mono); font-size: 11px;
+}
+.jj-pingrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+
+/* ---------- sessions and events ---------- */
+.jj-lower { display: flex; flex-wrap: wrap; gap: 18px; }
+.jj-sessions { flex: 1 1 420px; min-width: 0; }
+.jj-events { flex: 1 1 560px; min-width: 0; }
+.jj-session { padding: 12px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; }
+.jj-session:last-child { border-bottom: none; }
+.jj-session-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.jj-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.jj-chip, .jj-chip:visited {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; color: var(--fg);
+  padding: 3px 8px; border: 1px solid var(--rule-strong); border-radius: 2px; background: var(--bg-input);
+}
+.jj-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.jj-chip-warn { border-color: var(--amber); }
+.jj-chip-warn .jj-dot { background: var(--amber); }
+.jj-chip-warn .jj-chip-state { color: var(--amber); }
+.jj-chip-bad { border-color: var(--err); }
+.jj-chip-bad .jj-dot { background: var(--err); }
+.jj-chip-bad .jj-chip-state { color: var(--jj-red); }
+.jj-event-list { max-height: 520px; overflow-y: auto; }
+.jj-ev {
+  display: grid; grid-template-columns: 76px 76px 190px 1fr; column-gap: 10px; align-items: baseline;
+  padding: 6px 12px; border-bottom: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.jj-ev-name { color: var(--fg); overflow-wrap: anywhere; }
+.jj-ev-text { color: var(--fg-dim); font-family: var(--sans); font-size: 12.5px; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .jj-ev { grid-template-columns: 64px 1fr; row-gap: 2px; }
+  .jj-ev .jj-ev-name { grid-column: 2; }
+  .jj-ev .jj-ev-text { grid-column: 1 / span 2; }
+  .jj-detail { padding-left: 14px; }
+  .jj-net-actions { margin-left: 0; }
+}

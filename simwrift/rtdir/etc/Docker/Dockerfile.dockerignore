@@ -1,0 +1,7 @@
+# Files left out of the image (used by "docker build -f etc/Docker/Dockerfile", BuildKit)
+etc/Docker
+etc/systemd
+*.bat
+logs
+**/*.log
+.git

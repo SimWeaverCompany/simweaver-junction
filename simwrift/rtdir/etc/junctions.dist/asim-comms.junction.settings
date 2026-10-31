@@ -1,0 +1,9 @@
+# Gateway: an HLA Evolved to HLA Evolved federation.
+junction.group=ASIM-Trainer
+junction.name=ASIM-COMMS
+junction.description=HLA Evolved to HLA Evolved bridge
+junction.endpoints=ASIM-EXT-Comms;ASIM-INT-Comms
+junction.endpoint.ASIM-INT-Comms=endpoints/ASIM-INT-talk.endpoint.settings
+junction.endpoint.ASIM-EXT-Comms=endpoints/ASIM-EXT-talk.endpoint.settings
+junction.router=routers/ASIM-COMMS.router.settings
+junction.autostart=false

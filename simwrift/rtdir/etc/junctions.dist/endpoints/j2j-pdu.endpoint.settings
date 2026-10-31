@@ -1,0 +1,12 @@
+# Endpoint kit J2J-PDU (0.10.0): a session of the J2J network, for a PDU relay (router.kind=pdu).
+# Gateways on other SimWeaver servers that join the same session share their DIS PDUs with this
+# one, as they are. Needs J2J on this server (etc/j2j/network.settings, install guide 2.8).
+endpoint.name=J2J session
+endpoint.standard=j2j
+# the session (the default target): 1-64 letters, digits, '.', '_' and '-'; the same name on every member
+endpoint.j2j.session=exercise-pdu
+# the PDUs in the session are DIS of this version and exercise; every member must use the same
+endpoint.j2j.dis=7
+endpoint.j2j.exid=1
+# auto: Entity State best effort (the newest wins), the other PDUs reliable; reliable: all reliable
+endpoint.j2j.transport=auto

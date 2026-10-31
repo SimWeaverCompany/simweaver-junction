@@ -1,0 +1,17 @@
+# Datasource DIS6: a DIS 6 network, decoded as RPR FOM v2.0 objects and interactions.
+datasource.name=DIS6
+datasource.standard=dis6
+# HLA related - effective when using HLA
+# semicolon separated list of files or directories.
+# relative to the comdir of the standard specified.
+datasource.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml;
+#
+# datasource.hla.lsd=default
+# datasource.hla.federation=test1
+# datasource.hla.customfederatetype=SimwRift
+# datasource.hla.reconnectondisconnect=true
+# datasource.hla.reconnectintervalseconds=5
+# datasource.hla.customfomrootdir=./etc/fom/ieee1516-2010
+datasource.dis.port=3000
+datasource.dis.interface=0.0.0.0
+datasource.dis.entitytimeoutsecs=13

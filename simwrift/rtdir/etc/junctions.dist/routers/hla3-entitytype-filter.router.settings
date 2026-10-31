@@ -1,0 +1,15 @@
+# Router kit HLA3-EntityType-filter: everything, with entity types rewritten in passing (value
+# rules). An entity type that one side knows under another number is replaced wherever it occurs:
+# an entity's EntityType and AlternateEntityType, the MunitionType of fire and detonations, and
+# types inside records and arrays (articulated parts, silent entities). Exact matches only.
+router.kind=iem
+router.objects.allow=*
+router.interactions.allow=*
+# router.valuemap.<datatype>.<label> = A -> B [; C -> D]   (EntityType = EntityTypeStruct;
+# kind.domain.country.category.subcategory.specific.extra). A becomes B in every direction.
+# The same type under another country code:
+router.valuemap.EntityType.air = 1.2.225.1.3.0.0 -> 1.2.222.1.3.0.0
+# Two subcategories shown as one:
+router.valuemap.EntityType.land = 1.1.225.1.1.3.0 -> 1.1.225.1.1.4.0; 1.1.225.1.1.5.0 -> 1.1.225.1.1.4.0
+# other datatypes by their FOM name, e.g. the force of everything that passes:
+# router.valuemap.ForceIdentifierEnum8.force = 1 -> 2

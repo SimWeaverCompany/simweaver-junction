@@ -1,0 +1,14 @@
+# Router kit: Pitch Talk messages between Talk federations. Only the PitchTalk.Message
+# interactions pass: no Client, User or Equipment object is mirrored. Channel UUIDs in the
+# messages are rewritten to the receiving federation's channel of the same name.
+router.kind=talk
+talk.mode=messages
+# the message kinds bridged
+talk.messages=audio;radio;text;image
+# match channels by name or description
+talk.match=name
+# the channels bridged (names, * and ? as wildcards; none = the lobby only)
+talk.channels=*
+# voice_X in one federation is voice_Y in the other; a mapped channel the other side lacks is
+# registered there under that name (talk.createmappedchannels, on by default)
+talk.channelmap=voice_GROUPVAR1>voice_GROUPVAR2; radio_GROUPVAR1>radio_GROUPVAR2

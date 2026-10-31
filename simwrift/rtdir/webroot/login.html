@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SimWeaver - Sign in</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/login.css">
+	<script src="js/theme.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+	<span class="brand" title="SimWeaver">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="48" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Sign in</b></span>
+			<span class="sub">API token</span>
+		</span>
+	</span>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page login-page">
+
+	<section class="panel login-panel" aria-labelledby="login-title">
+		<div class="panel-head">
+			<span class="idx">AUTH</span>
+			<h2 id="login-title" class="title">Sign in</h2>
+		</div>
+		<div class="panel-body">
+			<p class="hint">This server asks for an API token. Paste the token you were given: it starts with <code>swt_</code>.</p>
+			<form id="login-form" class="login-form" novalidate>
+				<label for="login-token" class="field-label">API token</label>
+				<input id="login-token" class="login-token" type="password" name="token" autocomplete="off"
+					autocapitalize="off" spellcheck="false" placeholder="swt_&hellip;" required>
+				<label class="check"><input id="login-show" type="checkbox"> Show the token</label>
+				<p id="login-msg" class="login-msg" role="alert" hidden></p>
+				<button id="login-go" type="submit" class="primary">&#9654; Sign in</button>
+			</form>
+			<p class="login-help">No token? The server's administrator makes one on the server with
+				<code>run.sh --new-token=&lt;name&gt;</code> (<code>run.bat</code> on Windows).</p>
+		</div>
+	</section>
+
+</main>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // SIGN IN</span>
+	<span class="license">By SimWeaver - released under the BSD 3-Clause License</span>
+	<span class="dim">HLA &middot; DIS</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>

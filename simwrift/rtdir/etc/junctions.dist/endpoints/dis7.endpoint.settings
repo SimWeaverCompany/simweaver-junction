@@ -1,0 +1,18 @@
+# Endpoint kit DIS7: a DIS 7 network, seen as an RPR FOM v2.0 federation.
+endpoint.name=DIS7
+endpoint.standard=dis7
+# receive: interface (empty / * = all; an address or name; a multicast group, e.g. 239.1.2.3@eth0) and port
+endpoint.dis.interface=
+endpoint.dis.port=3000
+# the default exercise (0 = receive every exercise; PDUs are then sent as exercise 1)
+endpoint.dis.exid=1
+# send: unicast, broadcast or multicast address (empty: the group, else the broadcast address of the interface)
+# endpoint.dis.sendaddress=192.168.1.255
+# endpoint.dis.ttl=8
+# the gateway's own DIS ids: siteid-appid-n for HLA entities without a free EntityIdentifier
+endpoint.dis.siteid=900
+endpoint.dis.appid=1
+# keep: an HLA entity keeps its EntityIdentifier as DIS id when free; assign: always siteid-appid-n
+endpoint.dis.entityids=keep
+endpoint.dis.heartbeatsecs=5
+endpoint.dis.entitytimeoutsecs=12

@@ -1,0 +1,8 @@
+# Router kit Talk-Lobby-Only: the Talk lobby only. Voice, text and images in the lobby pass
+# between the Talk federations; messages in every other channel are dropped, whether the gateway
+# has seen the channel or not. Nothing is mirrored or registered: only the Talk message
+# interactions pass.
+router.kind=talk
+talk.mode=messages
+talk.messages=audio;text;image
+talk.channels=none
