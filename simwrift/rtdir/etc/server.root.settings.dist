@@ -1,6 +1,17 @@
-# SimWeaver Rift 0.9.10 - server settings (etc/server.root.settings)
-# Read at start-up: restart Rift after a change. Relative paths are relative to the
-# installation (runtime) folder. Full list: doc/simweaver-rift-install-and-config.md, 2.1.
+# SimWeaver Junction - server settings (etc/server.root.settings)
+# Read at start-up: restart the server after a change. Relative paths are relative to the
+# installation folder. Full list: doc/simweaver-rift-install-and-config.md, 2.1.
+
+# ---------------------------------------------------------------- folders (0.11.4)
+# The log files: relative to the installation folder, or absolute, e.g. /var/log/simweaver or
+# D:/SimWeaver/logs (on Windows write / or \\ : a single \ is an escape character in this file)
+logdir=./log
+# The configuration folder (default: etc in the installation folder): datasources, junctions,
+# fom, j2j, auth, enumerations, listprofiles.properties. Set here, the server takes all of them
+# from that folder, and reads its server.root.settings too (on top of this file). It can also be
+# given on the command line: run.sh etcdir=/srv/simweaver/etc   (install guide, 2.1)
+#etcdir=/srv/simweaver/etc
+#etcdir=D:/SimWeaver/etc
 
 # ---------------------------------------------------------------- web server
 webserver.port=8843
@@ -8,7 +19,6 @@ webserver.root=webroot
 webserver.keystore.path=keystore.jks
 # change this to your key store's password
 webserver.keystore.pwd=password
-logdir=./log
 
 # ---------------------------------------------------------------- syslog (0.9.22)
 # Also send the log to a syslog server. Full list: doc/simweaver-rift-install-and-config.md, 2.7.
@@ -23,7 +33,7 @@ syslog.enabled=false
 # lowest level sent: SEVERE WARNING NOTICE (events and problems only) INFO CONFIG FINE
 #syslog.level=INFO
 # tls: the CA of the syslog server's certificate, if Java's own CAs do not have it
-#syslog.tls.truststore=etc/syslog-ca.p12
+#syslog.tls.truststore=etc/syslog-ca.p12   (relative to the installation folder)
 #syslog.tls.truststorepassword=changeit
 
 # ---------------------------------------------------------------- J2J network (0.10.0)
@@ -53,7 +63,8 @@ syslog.enabled=false
 
 # ---------------------------------------------------------------- Junction gateways
 junction.enabled=true
-junction.dir=etc/junctions
+# the gateway configurations (default: junctions in the configuration folder, see etcdir)
+#junction.dir=etc/junctions
 # list each gateway endpoint as a datasource configuration too
 junction.datasourceconfigs=true
 

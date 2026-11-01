@@ -154,7 +154,7 @@ public final class RiftJunktionHost implements Inspector {
         // Rift prefixes relative names with its FOM folder (etc/fom/<standard>): keep the files
         // that are there short, give the others as absolute paths
         String stdDir = t.isDis() || !e.isHla4() ? "ieee1516-2010" : "ieee1516-2025";
-        String root = new File("etc" + File.separator + "fom" + File.separator + stdDir).getAbsolutePath() + File.separator;
+        String root = com.simweaver.common.config.SimwPaths.etc("fom", stdDir).toFile().getAbsolutePath() + File.separator;
         List<String> foms = new ArrayList<String>();
         for (String f : e.getFomPaths()) {
             String abs = new File(f).getAbsolutePath();

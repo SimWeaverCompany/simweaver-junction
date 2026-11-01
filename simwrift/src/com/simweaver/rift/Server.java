@@ -25,11 +25,52 @@ import java.util.logging.Logger;
 public class Server {
 
     /**
+     * 0.11.4: the settings. {@code etc/server.root.settings} of the installation first; when
+     * {@code etcdir} (in it, or on the command line) names another configuration folder, that
+     * folder's {@code server.root.settings} on top (if it has one); then the command line. Sets
+     * {@link com.simweaver.common.config.SimwPaths#etc()} for every other configuration default.
+     */
+    static SimwProperties readSettings(java.nio.file.Path installation, String[] args) {
+        SimwProperties fromArgs = new SimwProperties();
+        new SimwArgs().withConfigKeys("config").parseInto(fromArgs, args);
+        SimwProperties cfg = new SimwProperties();
+        java.nio.file.Path installEtc = installation.resolve(com.simweaver.common.config.SimwPaths.DEFAULT_ETC);
+        java.nio.file.Path own = installEtc.resolve("server.root.settings");
+        if (java.nio.file.Files.isReadable(own)) {
+            try {
+                cfg.load(own);
+            } catch (IOException e) {
+                System.err.println("Settings: " + own + " could not be read: " + e.getMessage());
+            }
+        }
+        String etcdir = fromArgs.getString("etcdir", cfg.getString("etcdir", "")).trim();
+        java.nio.file.Path etc = etcdir.isEmpty() ? installEtc : installation.resolve(etcdir);
+        if (!etc.normalize().equals(installEtc.normalize())) {
+            java.nio.file.Path moved = etc.resolve("server.root.settings");
+            if (java.nio.file.Files.isReadable(moved)) {
+                try {
+                    cfg.load(moved);
+                } catch (IOException e) {
+                    System.err.println("Settings: " + moved + " could not be read: " + e.getMessage());
+                }
+            }
+            if (!java.nio.file.Files.isDirectory(etc)) {
+                System.err.println("Settings: the configuration folder " + etc.toAbsolutePath() + " (etcdir) does not exist");
+            }
+        } else if (!java.nio.file.Files.isReadable(own)) {
+            System.err.println("Settings: " + own.toAbsolutePath() + " not found: running with the defaults");
+        }
+        new SimwArgs().withConfigKeys("config").parseInto(cfg, args);
+        com.simweaver.common.config.SimwPaths.setEtc(etc, !etc.normalize().equals(installEtc.normalize()));
+        return cfg;
+    }
+
+    /**
      * 0.11.1: reads {@code enumerations.siso.file} (etc/enumerations/SISO-REF-010.xml; empty = none)
      * and prints a start-up line. Without it the entity types are shown as numbers only.
      */
     static void loadEnumerations(SimwProperties cfg) {
-        String name = cfg.getString("enumerations.siso.file", "etc/enumerations/SISO-REF-010.xml").trim();
+        String name = cfg.getString("enumerations.siso.file", com.simweaver.common.config.SimwPaths.etcString("enumerations", "SISO-REF-010.xml")).trim();
         if (name.isEmpty()) {
             com.simweaver.common.siso.SisoEnumerations.setGlobal(null, "off (enumerations.siso.file is empty)");
             System.out.println("Enumerations:  off (enumerations.siso.file is empty)");
@@ -59,14 +100,10 @@ public class Server {
         // 0.9.22: before anything logs (the log stays open while the server stops)
         LogSetup.prepare();
 
-        // Read basic config
-        SimwProperties cfg = new SimwProperties();
-        try {
-            cfg = new SimwProperties().load("etc/server.root.settings");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        new SimwArgs().withConfigKeys("config").parseInto(cfg, args);
+        // Read basic config. 0.11.4: the installation's etc/server.root.settings, then (when etcdir names
+        // another configuration folder, there or on the command line) that folder's server.root.settings
+        // on top, then the command line
+        SimwProperties cfg = readSettings(Paths.get(""), args);
 
         // 0.11.0: run.sh --new-token=<name> makes an API token and stops (the server does not start)
         if (cfg.isSet("new-token")) {
@@ -97,6 +134,8 @@ public class Server {
         System.out.println("Released under the BSD 3-Clause License.");
         System.out.println();
         System.out.println("Log directory: "+mainLogDir);
+        System.out.println("Config folder: " + com.simweaver.common.config.SimwPaths.etc()
+                + (com.simweaver.common.config.SimwPaths.isMoved() ? " (etcdir)" : ""));
         System.out.println("Web port:      "+webPort);
         // 0.11.0: token authentication of /api (off unless api.auth.enabled=true)
         final com.simweaver.common.rest.auth.ApiAuth apiAuth = com.simweaver.common.rest.auth.ApiAuth.fromSettings(cfg,
@@ -133,7 +172,13 @@ public class Server {
         // junction.enabled / junction.dir; the 0.9.0 spelling junktion.* is still read
         boolean junctionOn = cfg.getBoolean("junction.enabled", cfg.getBoolean("junktion.enabled", true));
         if (junctionOn) {
-            File junctionsDir = new File(cfg.getString("junction.dir", cfg.getString("junktion.dir", "etc/junctions")));
+            String jdir = cfg.getString("junction.dir", cfg.getString("junktion.dir", com.simweaver.common.config.SimwPaths.etcString("junctions")));
+            // 0.11.4: "etc/junctions", the old default written out in many settings files, means the default:
+            // junctions in the configuration folder, also when etcdir moves it
+            if (com.simweaver.common.config.SimwPaths.isMoved() && Paths.get(jdir).normalize().equals(Paths.get("etc", "junctions"))) {
+                jdir = com.simweaver.common.config.SimwPaths.etcString("junctions");
+            }
+            File junctionsDir = new File(jdir);
             junktion = new JunctionManager(runtimeDir, junctionsDir, eventHub, new RiftJunktionHost(datasourceManager,
                     cfg.getBoolean("junction.datasourceconfigs", true)));
             System.out.println("Junction:      " + junctionsDir.getPath() + " (" + junktion.configs().getGateways().size()
@@ -142,14 +187,14 @@ public class Server {
         final JunctionManager junctionManager = junktion;
 
         // 0.10.0: J2J, the network of Junction servers; its code is com.simweaver.j2j, its settings etc/j2j/ and j2j.*
-        final com.simweaver.j2j.J2jService j2j = new com.simweaver.j2j.J2jService(cfg, Paths.get("etc/j2j/network.settings"),
-                Paths.get("etc/j2j/network.key"), "SimWeaver " + Version.getVersion());
+        final com.simweaver.j2j.J2jService j2j = new com.simweaver.j2j.J2jService(cfg, com.simweaver.common.config.SimwPaths.etc("j2j", "network.settings"),
+                com.simweaver.common.config.SimwPaths.etc("j2j", "network.key"), "SimWeaver " + Version.getVersion());
         com.simweaver.j2j.J2jService.setGlobal(j2j);
         j2j.setStatusSource(new J2jStatus(junctionManager));
         com.simweaver.j2j.J2jNode j2jNode = j2j.start();
         System.out.println("J2J:           " + (j2jNode.isRunning() ? j2jNode.config().selfId() + " in network " + j2jNode.config().networkId()
                 + ", " + j2jNode.config().members().size() + " members, port " + j2jNode.config().port()
-                : j2jNode.config().problems().isEmpty() ? "off (no members in etc/j2j/network.settings)"
+                : j2jNode.config().problems().isEmpty() ? "off (no members in " + com.simweaver.common.config.SimwPaths.etc("j2j", "network.settings") + ")"
                 : "NOT STARTED: " + String.join("; ", j2jNode.config().problems())));
         final com.simweaver.j2j.api.J2jApi j2jApi = new com.simweaver.j2j.api.J2jApi(j2j);
 

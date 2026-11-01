@@ -30,6 +30,7 @@ to it. All paths below are relative to it.
 <installation folder>/
 ├── run.sh                      start script, Linux
 ├── run.bat                     start script, Windows
+├── run.command                 start script, macOS (0.11.4)
 ├── lib/simweaverrift.jar
 └── etc/
     ├── server.root.settings
@@ -38,7 +39,8 @@ to it. All paths below are relative to it.
     ├── junctions.dist/         every sample configuration, as delivered (never read by the server)
     ├── fom/
     ├── Docker/Dockerfile
-    └── systemd/simweaver-rift.service
+    ├── systemd/simweaver-junction.service
+    └── windows/simweaver-junction.xml   Windows service (0.11.4)
 ```
 
 **Upgrading:** replace `lib/simweaverrift.jar`, `webroot/` and `doc/`, and `etc/junctions.dist/`
@@ -49,13 +51,13 @@ sample gateway configurations; copy what you want from there.
 ### The RTI library
 
 **HLA datasources** need the HLA RTI's Java library on the class path, for example
-`prti1516e.jar` for Pitch pRTI. It is not part of SimWeaver Rift. **DIS datasources need no
+`prtifull.jar` for Pitch pRTI 6. It is not part of SimWeaver Rift. **DIS datasources need no
 RTI.**
 
 All ways of starting the server below take the library from the variable **`RTI_JAR`**:
-- The start scripts have a default (`/opt/prti1516e/lib/prti1516e.jar`,
-  `C:\Program Files\prti1516e\lib\prti1516e.jar`), and an environment variable `RTI_JAR`
-  overrides it.
+- The start scripts and the service file have a default, pRTI 6 in its usual place
+  (`/opt/PitchPrti6/lib/prtifull.jar`, `C:\Program Files\prti6\lib\prtifull.jar`), and an
+  environment variable `RTI_JAR` overrides it.
 - Several libraries (e.g. one for HLA 1516-2010 and one for HLA 4) are separated with `:` on
   Linux and `;` on Windows.
 - Set `RTI_JAR` empty for a DIS-only installation. A path that does not exist is ignored by
@@ -85,30 +87,42 @@ run.bat           (Windows)
 
 ### 1b. As a systemd service (Linux)
 
-The service file `etc/systemd/simweaver-rift.service` runs `run.sh` as the user `simweaver`,
-from `/opt/simweaver-rift`. It restarts the server if it fails.
+The service file `etc/systemd/simweaver-junction.service` runs `run.sh` as the user `simweaver`,
+from `/opt/simweaver-junction`. It restarts the server if it fails, gives it 30 s to resign from
+its federations when it is stopped, and keeps it to its installation folder (the rest of the
+system read-only, home folders hidden).
 
-1. Install SimWeaver Rift in `/opt/simweaver-rift`, or change the paths in the service file.
+1. Install SimWeaver Junction in `/opt/simweaver-junction`, or change the paths in the service file.
 2. Create the service user and give it the installation folder:
 
     ```sh
-    sudo useradd --system --home-dir /opt/simweaver-rift simweaver
-    sudo chown -R simweaver /opt/simweaver-rift
+    sudo useradd --system --home-dir /opt/simweaver-junction --shell /usr/sbin/nologin simweaver
+    sudo chown -R simweaver:simweaver /opt/simweaver-junction
     ```
 
-3. Check the `RTI_JAR` line in the service file (remove it for DIS only).
+3. Check the settings in the service file:
+   - `RTI_JAR`: pRTI 6 in `/opt/PitchPrti6` by default; another RTI's library, or empty for DIS only.
+   - `JAVA_OPTS` (e.g. `-Xmx2g`) and `LD_LIBRARY_PATH` (an RTI's native libraries), commented out.
+   - J2J's last resort on port 443 (2.8) needs the two `CAP_NET_BIND_SERVICE` lines; remove their `#`.
+   - The RTI must not be installed in a home folder (`ProtectHome=true` hides them from the service).
 
 4. Install, enable and start the service:
 
     ```sh
-    sudo cp /opt/simweaver-rift/etc/systemd/simweaver-rift.service /etc/systemd/system/
+    sudo cp /opt/simweaver-junction/etc/systemd/simweaver-junction.service /etc/systemd/system/
     sudo systemctl daemon-reload
-    sudo systemctl enable --now simweaver-rift
+    sudo systemctl enable --now simweaver-junction
     ```
 
-- `systemctl status simweaver-rift` shows its state.
-- `journalctl -u simweaver-rift -f` follows its console output.
-- `sudo systemctl stop simweaver-rift` stops it.
+- `systemctl status simweaver-junction` shows its state.
+- `journalctl -u simweaver-junction -f` follows its console output.
+- `sudo systemctl stop simweaver-junction` stops it.
+- Commands that make API tokens (2.9) run as the service's user: `sudo -u simweaver ./run.sh --new-token=<name>`.
+
+**Upgrading from the `simweaver-rift` service** (before 0.11.3): stop and disable it
+(`sudo systemctl disable --now simweaver-rift`), delete `/etc/systemd/system/simweaver-rift.service`,
+then install the new one as above. To keep your installation where it is, change the
+`/opt/simweaver-junction` paths in the new file to `/opt/simweaver-rift`.
 
 ### 1c. In Docker
 
@@ -126,11 +140,11 @@ The RTI is not in the image. Mount its installation at `/opt/rti`:
 
 ```sh
 docker run -d --name simweaver-rift --network host \
-    -v /opt/prti1516e:/opt/rti:ro \
+    -v /opt/PitchPrti6:/opt/rti:ro \
     simweaver-rift
 ```
 
-- The image expects the RTI library at `/opt/rti/lib/prti1516e.jar`. For another RTI or
+- The image expects the RTI library at `/opt/rti/lib/prtifull.jar` (pRTI 6). For another RTI or
   layout, add `-e RTI_JAR=/opt/rti/<path to its jar>`. For DIS only, leave out the RTI mount.
 - **Network:** `--network host` is the simplest for HLA, because RTIs often open connections
   in both directions between the federate and the CRC/LSD. With Docker's default network,
@@ -138,12 +152,101 @@ docker run -d --name simweaver-rift --network host \
   `etc/server.root.settings`) and make sure the RTI can reach the container. With J2J (2.8), publish its port too, TCP and UDP (`-p 8844:8844 -p 8844:8844/udp`).
   **DIS needs `--network host`**, because broadcast and multicast PDUs do not cross Docker's
   default network.
-- **Configuration and logs:** to keep them outside the container, mount `etc/` and the log
-  folder as volumes, e.g. `-v /srv/rift/datasources:/opt/simweaver-rift/etc/datasources`.
+- **Configuration and logs:** to keep them outside the container, mount a folder for them and
+  point `etcdir` and `logdir` at it (2.1), e.g. `-v /srv/simweaver:/srv/simweaver` and, after the
+  image name, `etcdir=/srv/simweaver/etc logdir=/srv/simweaver/log` (copy the delivered `etc/`
+  there first). Single folders can be mounted too, e.g.
+  `-v /srv/rift/datasources:/opt/simweaver-rift/etc/datasources`.
+- **Podman** builds and runs the same image with the same commands: `podman build -f
+  etc/Docker/Dockerfile -t simweaver-rift .` and `podman run …`. Rootless Podman cannot use ports
+  below 1024 unless the system allows it, which only matters for J2J's last resort on 443.
 - `docker logs -f simweaver-rift` follows its console output.
 - `docker stop simweaver-rift` stops it.
 - `etc/Docker/Dockerfile.dockerignore` keeps logs, the Windows script and the service files
   out of the image.
+
+### 1d. As a Windows service (0.11.4)
+
+Windows cannot run a Java program as a service by itself. There are two ways:
+
+**With WinSW (recommended).** The [Windows Service Wrapper](https://github.com/winsw/winsw)
+(MIT licence, a single `.exe`, not part of SimWeaver) runs the server as a real service: it starts
+with Windows, is seen in **Services**, restarts the server when it fails, and stops it with Ctrl+C,
+so the server resigns from its federations properly. `etc/windows/simweaver-junction.xml` is its
+configuration. In a command prompt run **as administrator**, in the installation folder:
+
+1. Download `WinSW-x64.exe` (release 2.12) and save it in the installation folder as
+   `simweaver-junction.exe`.
+2. Copy the configuration next to it: `copy etc\windows\simweaver-junction.xml simweaver-junction.xml`
+3. Check it in a text editor:
+   - the RTI's library in `<arguments>`: `C:\Program Files\prti6\lib\prtifull.jar` (pRTI 6), or
+     another; remove `;…` after `simweaverrift.jar` for DIS only;
+   - `<executable>`: `java` is looked up in the **system** `PATH`, not your own user `PATH`. Give
+     the full path to `java.exe` if it is not there;
+   - Java options such as `-Xmx2g` go before `-cp`; `etcdir=D:/SimWeaver/etc` at the end keeps the
+     configuration elsewhere (2.1).
+4. Install and start it:
+
+    ```bat
+    simweaver-junction.exe install
+    simweaver-junction.exe start
+    ```
+
+- `simweaver-junction.exe status`, `stop`, `restart` and `uninstall`; or **Services**
+  (`services.msc`), *SimWeaver Junction*.
+- The server writes its log files to `logdir` (`log\`) as always; WinSW keeps its capture of the
+  console in `log\service`.
+- It runs as *LocalSystem* unless you choose an account (in the XML, or in **Services**,
+  *Properties*, *Log On*). That account needs to read the installation folder and to write to
+  `log\` and `etc\` (or `etcdir`).
+- After editing the XML: `simweaver-junction.exe restart` (changes to the account or the start
+  mode: `uninstall`, then `install`).
+
+**With Task Scheduler (no extra software).** A task that runs `run.bat` at start-up works too,
+with less comfort: it has no console, it is not listed in **Services**, and *End task* kills the
+server without a proper resign. In a command prompt run as administrator:
+
+```bat
+schtasks /Create /TN "SimWeaver Junction" /TR "\"C:\SimWeaver\run.bat\"" /SC ONSTART /RU SYSTEM /RL HIGHEST /F
+schtasks /Run /TN "SimWeaver Junction"
+```
+
+In the task's properties (**Task Scheduler**), set *If the task fails, restart every* 1 minute, and
+clear *Stop the task if it runs longer than* 3 days.
+
+**Either way, the Windows firewall** must let the browsers and the other servers in. For example:
+
+```bat
+netsh advfirewall firewall add rule name="SimWeaver Junction web" dir=in action=allow protocol=TCP localport=8843
+netsh advfirewall firewall add rule name="SimWeaver Junction J2J" dir=in action=allow protocol=TCP localport=8844
+netsh advfirewall firewall add rule name="SimWeaver Junction J2J UDP" dir=in action=allow protocol=UDP localport=8844
+netsh advfirewall firewall add rule name="SimWeaver Junction DIS" dir=in action=allow protocol=UDP localport=3000
+```
+
+(the ports are settings: `webserver.port`, `j2j.port`, each DIS endpoint's port; the RTI has its
+own rules.)
+
+### 1e. In a Terminal on macOS (0.11.4)
+
+`run.command` starts the server in a Terminal window: double-click it in Finder, or run
+`./run.command` in Terminal. **Ctrl+C** stops it.
+
+- It uses Java 11 or later: `JAVA_HOME` when it is set, else the newest Java macOS knows
+  (`/usr/libexec/java_home`), else `java` from the `PATH`. Without one it says so.
+- Set the RTI's library in the `RTI_JAR` line (or as an environment variable), e.g.
+  `RTI_JAR=/Applications/<your pRTI>/lib/prtifull.jar ./run.command`. Empty for DIS only.
+- The first time: macOS marks files from the internet as quarantined, so Finder refuses to open
+  it. Run once in Terminal, in the installation folder:
+
+    ```sh
+    xattr -dr com.apple.quarantine .
+    chmod 755 run.command
+    ```
+
+- Arguments are passed on to the server, as with `run.sh` (which works on macOS too, without the
+  Java lookup).
+- macOS asks whether Java may accept incoming network connections: allow it, or the browsers and
+  the other servers cannot reach it.
 
 ### Check that it runs
 
@@ -186,7 +289,8 @@ Server-wide settings. Restart the server after changing this file.
 | `webserver.root` | `webroot` | The web folder |
 | `webserver.keystore.path` | `keystore.jks` | Key store with the server certificate |
 | `webserver.keystore.pwd` | `password` | Its password |
-| `logdir` | `logs` | Log folder (2.7) |
+| `logdir` | `logs` (the delivered settings: `./log`) | Log folder (2.7); relative to the installation folder, or absolute |
+| `etcdir` | `etc` | 0.11.4: the configuration folder, see *Configuration and logs elsewhere* below |
 | `syslog.enabled` | `false` | Also send the log to a syslog server (2.7) |
 | `syslog.host` / `syslog.port` | / `514` (`6514` for TLS) | The syslog server |
 | `syslog.protocol` | `udp` | `udp`, `tcp` or `tls` |
@@ -218,6 +322,29 @@ Server-wide settings. Restart the server after changing this file.
 | `api.auth.tokens` | `etc/auth/api-tokens.settings` | The token file (2.9) |
 | `api.auth.sessionhours` | `12` | How long a browser stays signed in (2.9) |
 | `api.auth.origins` | | More origins whose pages may change things with a signed-in browser, `;`-separated, e.g. a reverse proxy's `https://rift.example.org` (2.9) |
+
+**Configuration and logs elsewhere** (0.11.4). By default the configuration is the `etc`
+folder of the installation, and the logs go to `logdir`. To keep them apart from the program (on
+a data disk, under `/srv` or `/var`, in `C:\ProgramData`, on a container volume), set:
+
+- `logdir`: the log folder, e.g. `logdir=/var/log/simweaver`.
+- `etcdir`: the configuration folder, e.g. `etcdir=/srv/simweaver/etc`. Everything the server
+  reads as configuration is then taken from there: `datasources/`, `junctions/`, `fom/`, `j2j/`,
+  `auth/`, `enumerations/` and `listprofiles.properties`. Copy the delivered `etc/` there first.
+
+`etcdir` can be set in two places:
+
+- in the installation's `etc/server.root.settings`. The server then also reads the
+  `server.root.settings` in that folder (when there is one), on top of the installation's, so
+  the installation's file can hold just the one line;
+- on the command line, e.g. `./run.sh etcdir=/srv/simweaver/etc` (also in a service file or the
+  Windows service's XML).
+
+The start-up lines show both: `Log directory: …` and `Config folder: … (etcdir)`. Relative paths
+are relative to the installation folder. Paths written out in the settings (such as
+`map.dir` or `webserver.keystore.path`) stay what they say; an old `junction.dir=etc/junctions`
+line means the default, `junctions` in the configuration folder. On Windows, write `/` or `\\` in
+the settings file (`etcdir=D:/SimWeaver/etc`): a single `\` is an escape character there.
 
 The server uses **HTTPS only**, so it needs a key store with its certificate. `keystore-gen-line.txt` has a `keytool` command that makes a self-signed one.
 
