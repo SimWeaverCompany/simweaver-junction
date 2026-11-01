@@ -102,7 +102,7 @@ public final class EndpointConfig implements Json.Writable {
         this.lsdOptions = com.simweaver.common.hla.session.LsdOptions.parse(p.getString("endpoint.hla.lsd", ""));
         this.lsd = lsdOptions.get(0);
         String std = isHla4() ? "ieee1516-2025" : "ieee1516-2010";
-        this.fomRootDir = p.getString("endpoint.hla.fomrootdir", "etc" + File.separator + "fom") + File.separator + std;
+        this.fomRootDir = p.getString("endpoint.hla.fomrootdir", com.simweaver.common.config.SimwPaths.etcString("fom")) + File.separator + std;   // 0.11.4: etcdir
         String[] foms = p.getStringArray("endpoint.hla.foms");
         boolean dyn = com.simweaver.common.hla.session.DynamicFom.isDynamic(foms);
         if (foms.length == 0 && t == EndpointType.TALK) {

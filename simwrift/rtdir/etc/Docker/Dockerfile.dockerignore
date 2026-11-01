@@ -5,3 +5,5 @@ etc/systemd
 logs
 **/*.log
 .git
+etc/windows
+run.command

@@ -83,7 +83,7 @@ public class DatasourceConfig implements Json.Writable{
         // 0.9.15: a ;-separated list of choices, the first is the default
         this.hlaLsdOptions = com.simweaver.common.hla.session.LsdOptions.parse(datasourceProps.getString("datasource.hla.lsd",""));
         this.hlalsd = hlaLsdOptions.get(0);
-        this.hlafomRootdir = datasourceProps.getString("datasource.hla.customfomrootdir","." + File.separator + "etc" + File.separator + "fom");
+        this.hlafomRootdir = datasourceProps.getString("datasource.hla.customfomrootdir", com.simweaver.common.config.SimwPaths.etcString("fom"));   // 0.11.4: etcdir
         switch (datasourceProps.getString("datasource.standard","other").trim().toLowerCase()){
             case "ieee1516-2010":
                 this.standard = Standard.IEEE1516_2010;

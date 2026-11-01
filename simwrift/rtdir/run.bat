@@ -1,10 +1,11 @@
 @echo off
-rem SimWeaver Rift - start the server in this console.
+rem SimWeaver Junction - start the server in this console.
 rem
 rem RTI_JAR: the HLA RTI's Java library (several: separate with ';'). Only HLA datasources need it;
 rem set it empty for DIS only. An environment variable RTI_JAR overrides the default below.
 
 setlocal
+title SimWeaver Junction
 cd /d "%~dp0"
 
 set "APP_JAR=lib\simweaverrift.jar"

@@ -60,7 +60,8 @@ public final class J2jFallbackSelfTest {
         Gate g = new Gate(gate, pa);
         try {
             check("a listens on the TLS fallback port", a.links().fallbackPort() == fa && a.links().fallbackError() == null);
-            check("primary closed: b reaches a over TLS", J2jSelfTest.await(() -> b.links().link("a") != null, 15000)
+            // both sides: a installs its end of the link a moment after b (0.11.4: the test raced under load)
+            check("primary closed: b reaches a over TLS", J2jSelfTest.await(() -> b.links().link("a") != null && a.links().link("b") != null, 15000)
                     && "tls443".equals(b.links().link("a").kind()) && "tls443".equals(a.links().link("b").kind()));
             check("over TLS: the J2J handshake inside still authenticates", b.links().link("a").keyId().equals("k1"));
             check("fallback event", J2jSelfTest.await(() -> J2jSelfTest.events("j2j.channel.fallback") >= 1, 3000));

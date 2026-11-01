@@ -129,7 +129,7 @@ public final class ApiAuth {
 
     /** @return the token file the settings name ({@code api.auth.tokens}) */
     public static Path tokenFile(SimwProperties cfg, Path runtimeDir) {
-        Path p = java.nio.file.Paths.get(cfg.getString("api.auth.tokens", "etc/auth/api-tokens.settings"));
+        Path p = java.nio.file.Paths.get(cfg.getString("api.auth.tokens", com.simweaver.common.config.SimwPaths.etcString("auth", "api-tokens.settings")));
         return p.isAbsolute() ? p : runtimeDir.resolve(p).normalize();
     }
 

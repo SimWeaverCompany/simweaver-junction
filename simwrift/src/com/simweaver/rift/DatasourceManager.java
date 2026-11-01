@@ -39,7 +39,10 @@ public class DatasourceManager implements DataSourceCallbackSink {
     private static final Logger LOG = Logger.getLogger(DatasourceManager.class.getName());
 
     /** NEW: optional list-view profiles (see RiftListProfiles.fromProperties); RPR defaults when absent. */
-    private static final Path LIST_PROFILES_FILE = Paths.get("etc/listprofiles.properties");
+    /** 0.11.4: in the configuration folder (etcdir) */
+    private static Path listProfilesFile() {
+        return com.simweaver.common.config.SimwPaths.etc("listprofiles.properties");
+    }
 
     private volatile List<DatasourceConfig> configs;                       // FIX: replaced by reloadConfigs on HTTP threads
     private final List<DataSource> dataSources = new CopyOnWriteArrayList<>();   // FIX: read/changed by HTTP and RTI threads
@@ -73,7 +76,7 @@ public class DatasourceManager implements DataSourceCallbackSink {
 
     public void reloadConfigs(){
 
-        Path dirPath = Paths.get("etc/datasources");
+        Path dirPath = com.simweaver.common.config.SimwPaths.etc("datasources");               // 0.11.4: etcdir
 
         try (Stream<Path> stream = Files.list(dirPath)) {
 
@@ -378,6 +381,7 @@ public class DatasourceManager implements DataSourceCallbackSink {
     }
 
     private static RiftListProfiles loadListProfiles() {
+        Path LIST_PROFILES_FILE = listProfilesFile();
         if (!Files.isReadable(LIST_PROFILES_FILE)) return RiftListProfiles.rprDefaults();
         Properties p = new Properties();
         try (InputStream in = Files.newInputStream(LIST_PROFILES_FILE)) {

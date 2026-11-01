@@ -1,0 +1,21 @@
+# SimWeaver Junction - systemd service. Install (as root), with Rift in /opt/simweaverjunction:
+#   useradd --system --home-dir /opt/simweaver-rift simweaver && chown -R simweaver /opt/simweaver-rift
+#   cp /opt/simweaver-rift/etc/systemd/simweaver-rift.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now simweaver-rift
+
+[Unit]
+Description=SimWeaver Junction - HLA/DIS data gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=simweaver
+WorkingDirectory=/opt/simweaverjunction
+Environment=RTI_JAR=/opt/PitchPrti6/lib/prtifull.jar
+ExecStart=/opt/simweaverjunction/run.sh
+Restart=on-failure
+# 143 = stopped by systemd (SIGTERM): a normal stop
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

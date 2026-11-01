@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.11.2. Java 11, no libraries apart from the HLA RTIs.
+Version 0.11.4. Java 11, no libraries apart from the HLA RTIs.
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -159,7 +159,7 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | `endpoint.hla.createfoms` | | `dynamic` only: FOM files to create the federation with when it is not running (see below). Empty: the federation must be running |
 | `endpoint.hla.fddtimeoutseconds` | `15` | `dynamic`: how long to wait for the federation's FDD after the join |
 | `endpoint.hla.fddclass` / `fddattribute` | `HLAobjectRoot.HLAmanager.HLAfederation` / `HLAcurrentFDD` | `dynamic`: where the FDD is read, for an RTI that names them differently |
-| `endpoint.hla.fomrootdir` | `etc/fom/<standard>` | |
+| `endpoint.hla.fomrootdir` | `etc/fom/<standard>` | `fom` in the configuration folder (0.11.4: `etcdir`, install guide 2.1) |
 | `endpoint.hla.federation` | — | Default target |
 | `endpoint.hla.createfederation` | `true` | Create it when missing |
 | `endpoint.hla.destroyfederation` | `false` | Try to destroy it when the gateway stops |

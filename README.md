@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.11.2 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.11.4 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ---
 
@@ -99,7 +99,7 @@ Version 0.11.2 · BSD 3-Clause License · © 2026 Simweaver AB
 | **Java** | 11 or later (the code is compiled for Java 11) |
 | **HLA RTI** | Only for HLA datasources and endpoints, e.g. Pitch pRTI. DIS works without one. |
 | **Browser** | A current Microsoft Edge or Google Chrome |
-| **OS** | Windows or Linux. Docker and systemd examples are in `simwrift/rtdir/etc`. |
+| **OS** | Windows, Linux or macOS. Examples for Docker or Podman, a systemd service and a Windows service (WinSW) are in `simwrift/rtdir/etc`. |
 
 ---
 
@@ -148,10 +148,10 @@ The RTI is loaded by reflection at run time, so the jar itself contains no RTI.
 ## Install and run a release build
 
 1. Download the release build zip-file and unzip to a writable installation folder of own choice.
-2. Set `RTI_JAR` in `run.bat` (Windows) or `run.sh` (Linux) to your RTI's Java library. Leave it
+2. Set `RTI_JAR` in `run.bat` (Windows), `run.sh` (Linux) or `run.command` (macOS) to your RTI's Java library. Leave it
    empty for DIS only.
 3. Configure your data sources and gateways as described by documents in `doc` folder of the installation.
-3. Start it with `run.bat` or `run.sh`, and open `https://<server>:8843` in a browser.
+3. Start it with `run.bat`, `run.sh` or `run.command`, and open `https://<server>:8843` in a browser.
 
 The installation guide (`doc/simweaver-rift-install-and-config.md`) covers more: services,
 Docker, maps and every setting.
@@ -164,10 +164,10 @@ Docker, maps and every setting.
 2. Put `simweaverrift.jar` in its `lib/`.
 3. Create a key store for HTTPS. The command is in `keystore-gen-line.txt`; use your own
    password, and set it in `etc/server.root.settings`.
-4. Set `RTI_JAR` in `run.bat` (Windows) or `run.sh` (Linux) to your RTI's Java library. Leave it
+4. Set `RTI_JAR` in `run.bat` (Windows), `run.sh` (Linux) or `run.command` (macOS) to your RTI's Java library. Leave it
    empty for DIS only.
 5. Download a release build and fetch the raster map directories for it, and place under `maps/raster`
-6. Start it with `run.bat` or `run.sh`, and open `https://<server>:8843` in a browser.
+6. Start it with `run.bat`, `run.sh` or `run.command`, and open `https://<server>:8843` in a browser.
 
 The installation guide (`doc/simweaver-rift-install-and-config.md`) covers more: services,
 Docker, maps and every setting.
