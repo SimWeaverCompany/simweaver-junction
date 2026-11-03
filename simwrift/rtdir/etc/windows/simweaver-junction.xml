@@ -23,10 +23,10 @@
        the full path, e.g. C:\Program Files\Eclipse Adoptium\jdk-17.0.12.7-hotspot\bin\java.exe -->
   <executable>java</executable>
 
-  <!-- The class path: SimWeaver, then the HLA RTI's library (pRTI 6 here; remove ";..." for DIS
+  <!-- The class path: SimWeaver, then the HLA RTI's library (a placeholder path here; remove ";..." for DIS
        only). Add Java options before -cp, e.g. -Xmx2g. Add etcdir=D:/SimWeaver/etc at the end to
        keep the configuration outside the installation folder. -->
-  <arguments>-cp "%BASE%\lib\simweaverrift.jar;C:\Program Files\prti6\lib\prtifull.jar" com.simweaver.rift.Server</arguments>
+  <arguments>-cp "%BASE%\lib\simweaverrift.jar;C:\Program Files\anrti\lib\hlaimpl.jar" com.simweaver.rift.Server</arguments>
 
   <!-- %BASE% is the folder of simweaver-junction.exe: the installation folder -->
   <workingdirectory>%BASE%</workingdirectory>

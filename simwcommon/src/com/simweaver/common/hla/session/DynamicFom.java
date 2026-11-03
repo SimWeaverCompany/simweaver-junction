@@ -95,7 +95,7 @@ public final class DynamicFom {
     /**
      * The OMT format the FDD is written in, from the namespace of its {@code objectModel}
      * element. An RTI may report it in another format than the API the federate joined with:
-     * an HLA 4 RTI (e.g. pRTI 6) reports a 1516-2025 FDD to 1516-2010 federates too.
+     * an HLA 4 RTI may report a 1516-2025 FDD to 1516-2010 federates too.
      *
      * @return the format, or null when the FDD names no known OMT namespace
      */

@@ -51,13 +51,13 @@ sample gateway configurations; copy what you want from there.
 ### The RTI library
 
 **HLA datasources** need the HLA RTI's Java library on the class path, for example
-`prtifull.jar` for Pitch pRTI 6. It is not part of SimWeaver Rift. **DIS datasources need no
+`/opt/anrti/lib/hlaimpl.jar` (in this guide a placeholder for your RTI's jar). It is not part of SimWeaver Rift. **DIS datasources need no
 RTI.**
 
 All ways of starting the server below take the library from the variable **`RTI_JAR`**:
-- The start scripts and the service file have a default, pRTI 6 in its usual place
-  (`/opt/PitchPrti6/lib/prtifull.jar`, `C:\Program Files\prti6\lib\prtifull.jar`), and an
-  environment variable `RTI_JAR` overrides it.
+- The start scripts and the service file have a placeholder default
+  (`/opt/anrti/lib/hlaimpl.jar`, `C:\Program Files\anrti\lib\hlaimpl.jar`): change it to
+  your RTI's library, or set an environment variable `RTI_JAR`, which overrides it.
 - Several libraries (e.g. one for HLA 1516-2010 and one for HLA 4) are separated with `:` on
   Linux and `;` on Windows.
 - Set `RTI_JAR` empty for a DIS-only installation. A path that does not exist is ignored by
@@ -101,7 +101,7 @@ system read-only, home folders hidden).
     ```
 
 3. Check the settings in the service file:
-   - `RTI_JAR`: pRTI 6 in `/opt/PitchPrti6` by default; another RTI's library, or empty for DIS only.
+   - `RTI_JAR`: your RTI's library (the default is a placeholder), or empty for DIS only.
    - `JAVA_OPTS` (e.g. `-Xmx2g`) and `LD_LIBRARY_PATH` (an RTI's native libraries), commented out.
    - J2J's last resort on port 443 (2.8) needs the two `CAP_NET_BIND_SERVICE` lines; remove their `#`.
    - The RTI must not be installed in a home folder (`ProtectHome=true` hides them from the service).
@@ -140,11 +140,11 @@ The RTI is not in the image. Mount its installation at `/opt/rti`:
 
 ```sh
 docker run -d --name simweaver-rift --network host \
-    -v /opt/PitchPrti6:/opt/rti:ro \
+    -v /opt/anrti:/opt/rti:ro \
     simweaver-rift
 ```
 
-- The image expects the RTI library at `/opt/rti/lib/prtifull.jar` (pRTI 6). For another RTI or
+- The image expects the RTI library at `/opt/rti/lib/hlaimpl.jar` (a placeholder). For your RTI's
   layout, add `-e RTI_JAR=/opt/rti/<path to its jar>`. For DIS only, leave out the RTI mount.
 - **Network:** `--network host` is the simplest for HLA, because RTIs often open connections
   in both directions between the federate and the CRC/LSD. With Docker's default network,
@@ -179,8 +179,8 @@ configuration. In a command prompt run **as administrator**, in the installation
    `simweaver-junction.exe`.
 2. Copy the configuration next to it: `copy etc\windows\simweaver-junction.xml simweaver-junction.xml`
 3. Check it in a text editor:
-   - the RTI's library in `<arguments>`: `C:\Program Files\prti6\lib\prtifull.jar` (pRTI 6), or
-     another; remove `;…` after `simweaverrift.jar` for DIS only;
+   - the RTI's library in `<arguments>`: `C:\Program Files\anrti\lib\hlaimpl.jar` is a placeholder:
+     change it to your RTI's; remove `;…` after `simweaverrift.jar` for DIS only;
    - `<executable>`: `java` is looked up in the **system** `PATH`, not your own user `PATH`. Give
      the full path to `java.exe` if it is not there;
    - Java options such as `-Xmx2g` go before `-cp`; `etcdir=D:/SimWeaver/etc` at the end keeps the
@@ -234,7 +234,7 @@ own rules.)
 - It uses Java 11 or later: `JAVA_HOME` when it is set, else the newest Java macOS knows
   (`/usr/libexec/java_home`), else `java` from the `PATH`. Without one it says so.
 - Set the RTI's library in the `RTI_JAR` line (or as an environment variable), e.g.
-  `RTI_JAR=/Applications/<your pRTI>/lib/prtifull.jar ./run.command`. Empty for DIS only.
+  `RTI_JAR=/Applications/<your RTI>/lib/<its jar> ./run.command`. Empty for DIS only.
 - The first time: macOS marks files from the internet as quarantined, so Finder refuses to open
   it. Run once in Terminal, in the installation folder:
 
@@ -402,6 +402,17 @@ datasource.standard = IEEE1516-2010
   (`datasource.cdis.heartbeat.entitystate` 5, `.emission` 10, `.designator` 5,
   `.transmitter` 2, `.iff` 10, seconds). Altitude is the height above the WGS84 ellipsoid. See
   [junction.md](junction.md), section 9, *C-DIS endpoints*, for the codec.
+- **Talk audio** (HLA, 0.12.0, for the Comms page's *Listen*): Talk's PCM16 carries no sample
+  rate, so the datasource tells it: `datasource.talk.samplerate` (default `16000`) and
+  `datasource.talk.pcmbyteorder` (`little`, the default, or `big`), as `talk.audio.*` in a
+  Junction Talk router. RPR / DIS radio audio carries its own rate.
+- **Federation probes** (HLA only, 0.11.5): the federation list of the Create dialog comes from a
+  probe, one per standard and LSD, shared by all configurations that use it. It connects to the
+  RTI when the dialog first asks, not at start-up. When it cannot connect (no RTI at that LSD),
+  the console shows one WARNING per probe; it is tried again when the dialog asks (not sooner than
+  3 s after a failure), the repeats go to the log file only (at most one line per 10 minutes, or
+  when the RTI's message changes), and an INFO line tells when it connects. The RTI library itself
+  may print its own messages on a failed connect; those are the RTI's.
 - **LSD choices** (HLA only): `datasource.hla.lsd = default;crc2;crc@10.0.0.5:8989` offers
   several, the first is the default. The Create dialog offers the others, and any other value
   can be typed there; empty is the RTI's own default. An empty entry in the list offers that
@@ -474,7 +485,9 @@ for example the Natural Earth *Cross Blended Hypso with Shaded Relief, Water, an
   latitude/longitude rasters are placed correctly; projected ones are reported in the log.
 - **Tiles** (256 px, Web Mercator) are made from the raster when first needed and kept in
   `maps/cache` (rebuilt when the raster file changes). The world view is made in the background
-  at start-up. The server log shows each map it found:
+  at start-up. The console shows one line (`Map: 2 background maps (default …), 8 overlays
+  loading; the layers are listed in the log file`) and any problems; the log file
+  (`simwjunction.log`, 2.7) shows each map it found (0.11.5):
 
   ```
   Map:           HYP_HR_SR_W_DR (default): maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif, 21600 x 10800, uncompressed TIFF, 3 x 8 bit RGB, strips of 1 row; whole globe (no georeferencing found); zoom 0-6
@@ -545,7 +558,8 @@ map.overlay.towns.labelminzoom=6
   higher is shown.
 - **Tiles** (transparent PNG) are drawn from the shapes when first asked for and kept in memory
   and under `maps/cache/overlays/<id>/` (made again when a file or the style changes). The files
-  are read in the background at start-up; the server log shows each one:
+  are read in the background at start-up; the log file shows each one (0.11.5: not the
+  console, which only shows an overlay that cannot be read or has a problem):
 
   ```
   Map overlay:   towns: D:/gis/towns.zip!towns.shp, 1956 point features (point), SWEREF99_TM (Transverse Mercator, GRS 1980), 1956 labels (NAMN), 11.120..24.150 E, 55.340..69.050 N
@@ -636,6 +650,10 @@ Field names are matched without regard to case, so `name` and `NAME` both work (
 | `group.started` / `group.startfailed` | NOTICE / WARNING | `group`, `instance`, `started`, `failed` (startfailed: none started) |
 | `group.stopped` | NOTICE | `group`, `instance`, `stopped` |
 | `endpoint.connectionlost` / `endpoint.reconnected` | WARNING / NOTICE | `gateway`, `endpoint`, `federation`: a Junction HLA endpoint lost its RTI connection / joined again |
+
+**The console and the log file** (0.11.5). The console shows what needs attention; a few details
+go to the log file only: each background map and overlay read at start-up (2.4, 2.5), and the
+repeats of a federation probe that cannot reach its RTI (2.2, *Federation probes*).
 
 **Syslog.** With `syslog.enabled=true` the server sends the same log to a syslog server too (rsyslog, syslog-ng, a SIEM). Messages wait in a queue, so logging never waits for the network; while the syslog server cannot be reached the queue is kept and sending is retried (after 1 s, doubling up to a minute). When the queue is full, newer messages are dropped; after the next connection a NOTICE tells the syslog server how many. The local log notes once that syslog cannot be reached, and when it is connected again. The Web UI's server readout (top bar, tooltip) shows the syslog target and what was sent, queued and dropped; `GET /api/serverinfo` has it as `syslog`.
 

@@ -4,7 +4,7 @@
 #
 # RTI_JAR: the HLA RTI's Java library (several: separate with ':'). Only HLA needs it; set it
 # empty for DIS only. An environment variable RTI_JAR overrides the default below: change the
-# default to where your pRTI is installed.
+# default (a placeholder path) to where your RTI is installed.
 # Java 11 or later: JAVA_HOME when set, else the newest one macOS knows (/usr/libexec/java_home),
 # else java from the PATH.
 
@@ -14,7 +14,7 @@ cd "$(dirname "$0")" || exit 1
 printf '\033]0;SimWeaver Junction\007'
 
 APP_JAR=lib/simweaverrift.jar
-RTI_JAR="${RTI_JAR-/opt/PitchPrti6/lib/prtifull.jar}"
+RTI_JAR="${RTI_JAR-/opt/anrti/lib/hlaimpl.jar}"
 
 if [ -z "$JAVA_HOME" ] && [ -x /usr/libexec/java_home ]; then
     JAVA_HOME="$(/usr/libexec/java_home -v 11+ 2>/dev/null)"

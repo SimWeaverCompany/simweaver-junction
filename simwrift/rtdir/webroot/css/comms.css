@@ -1,0 +1,150 @@
+/* ============================================================
+   SimWeaver Rift - the Comms page (comms.html), 0.12.0.
+   Uses the colour variables of rift.css only, so both themes work.
+   ============================================================ */
+
+.cm-page { max-width: none; gap: 12px; padding-bottom: 18px; }
+
+/* ---------- header: listening ---------- */
+.cm-head .panel-head { gap: 12px; }
+.cm-listen {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding: 8px 12px;
+  font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+}
+.cm-listen-label { letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-faint); font-size: 10.5px; }
+.cm-audio {
+  font-weight: 700; letter-spacing: 0.14em; font-size: 10px;
+  padding: 1px 6px; border: 1px solid var(--rule-strong); color: var(--fg-faint);
+}
+.cm-audio.live { color: var(--ok); border-color: var(--ok); }
+.cm-audio.connecting { color: var(--amber); border-color: var(--amber); }
+.cm-audio.error { color: var(--err); border-color: var(--err); }
+.cm-vol { display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; color: var(--fg-faint); }
+.cm-vol input, .cm-chvol { accent-color: var(--accent); width: 110px; }
+.cm-hint { color: var(--fg-faint); font-family: var(--mono); font-size: 11px; }
+.cm-pad { padding: 12px; }
+
+/* ---------- layout ---------- */
+.cm-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 12px;
+  align-items: start;
+}
+.cm-channels, .cm-chat { min-width: 0; }
+.cm-chat { position: sticky; top: 72px; display: flex; flex-direction: column; max-height: calc(100vh - 90px); }
+.cm-grid.no-chat { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1100px) {
+  .cm-grid { grid-template-columns: minmax(0, 1fr); }
+  .cm-chat { position: static; max-height: none; }
+}
+.cm-channels .panel-head .meta input[type="search"] { width: 180px; }
+
+/* ---------- channel list ---------- */
+.cm-list { padding: 6px 10px 12px; }
+.cm-section + .cm-section { margin-top: 12px; }
+.cm-sec-head {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 8px 2px 6px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
+}
+.cm-sec-title { color: var(--amber); }
+.cm-sec-count { color: var(--fg-faint); letter-spacing: 0.1em; }
+
+.cm-row {
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--rule-strong);
+  background: var(--bg-input);
+  margin-top: 6px;
+  padding: 7px 10px 6px;
+}
+.cm-row.listening { border-left-color: var(--accent); }
+.cm-row.talking { border-left-color: var(--ok); background: var(--bg-input-hi); }
+.cm-row-main {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 1fr) auto;
+  gap: 6px 16px;
+  align-items: center;
+}
+@media (max-width: 760px) { .cm-row-main { grid-template-columns: minmax(0, 1fr); } }
+.cm-row-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.cm-name {
+  font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--amber);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+.cm-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.cm-badge {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em;
+  padding: 0 5px; border: 1px solid var(--rule-strong); color: var(--fg-dim);
+  white-space: nowrap;
+}
+.cm-badge.k-voice, .cm-badge.k-radio, .cm-badge.k-rf { color: var(--accent); border-color: var(--accent-soft); }
+.cm-badge.k-chat, .cm-badge.k-lobby { color: var(--amber); border-color: var(--amber-soft); }
+.cm-badge.fam, .cm-badge.dim { color: var(--fg-faint); }
+.cm-badge.freq { color: var(--blue); }
+.cm-badge.enc { color: var(--ok); }
+.cm-badge.bad { color: var(--err); border-color: var(--err); }
+.cm-badge.sig { color: var(--blue); border-style: dashed; }
+
+.cm-row-graph { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cm-spark { width: 100%; max-width: 420px; min-width: 0; height: 30px; display: block; flex: 1 1 0; }
+.cm-row-nums { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; font-family: var(--mono); font-size: 10.5px; min-width: 64px; }
+.cm-rate { color: var(--fg); }
+.cm-last { color: var(--fg-faint); }
+
+.cm-row-ctl { display: flex; align-items: center; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.cm-listen-cb {
+  display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-dim);
+}
+.cm-listen-cb input { accent-color: var(--accent); margin: 0; width: 15px; height: 15px; }
+.cm-listen-cb:has(input:disabled) { cursor: not-allowed; opacity: 0.5; }
+.cm-chvol { width: 80px; }
+.cm-meter { display: inline-block; width: 46px; height: 6px; background: var(--rule); position: relative; }
+.cm-meter-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ok); transition: width 0.09s linear; }
+.cm-chatbtn.on { color: var(--amber); border-color: var(--amber); }
+
+/* senders: transmitter objects with their platforms, Talk clients */
+.cm-sources { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--rule); }
+.cm-nosrc { font-family: var(--mono); font-size: 10.5px; color: var(--fg-faint); }
+.cm-src {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px;
+  padding: 1px 7px; border: 1px solid var(--rule); background: var(--bg-panel);
+  max-width: 100%;
+}
+.cm-src .lamp { width: 7px; height: 7px; animation: none; }
+.cm-src.talking { border-color: var(--ok); }
+.cm-src-name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+a.cm-src-name, a.cm-host { color: var(--accent); }
+a.cm-src-name:hover, a.cm-host:hover { color: var(--accent-hi); text-decoration: underline; }
+.cm-src-dim { color: var(--fg-faint); font-size: 10px; white-space: nowrap; }
+.cm-tx { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; color: var(--fg-faint); }
+.cm-tx.s1 { color: var(--fg-dim); }
+.cm-tx.s2 { color: var(--ok); }
+
+/* ---------- chat ---------- */
+.cm-chat-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+.cm-tab {
+  font-family: var(--mono); font-size: 11px; padding: 2px 8px;
+  display: inline-flex; gap: 6px; align-items: center;
+  background: var(--bg-input); color: var(--fg-dim);
+}
+.cm-tab.on { color: var(--amber); border-color: var(--amber); }
+.cm-tab-n { color: var(--fg-faint); font-size: 10px; }
+.cm-transcript {
+  flex: 1 1 auto; min-height: 240px; max-height: 70vh; overflow-y: auto;
+  padding: 6px 10px 10px;
+  font-family: var(--mono); font-size: 12px;
+}
+.cm-line { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+.cm-line.new { animation: cm-in 1.2s ease-out; }
+.cm-line.img .cm-text { color: var(--fg-dim); font-style: italic; }
+.cm-time { color: var(--fg-faint); font-size: 10.5px; }
+.cm-who { color: hsl(var(--h, 40), 65%, 62%); font-weight: 700; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+html.light .cm-who { color: hsl(var(--h, 40), 60%, 32%); }
+.cm-text { color: var(--fg); white-space: pre-wrap; overflow-wrap: anywhere; }
+@keyframes cm-in { from { background: var(--accent-soft); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .cm-line.new { animation: none; } .cm-meter-bar { transition: none; } }

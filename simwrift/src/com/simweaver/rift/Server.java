@@ -164,7 +164,12 @@ public class Server {
 
         // NEW: the map view (background rasters as tiles under /api/maps; map.enabled=false turns it off)
         final MapService maps = new MapService(cfg, runtimeDir);
-        for (String line : maps.describe()) {
+        // 0.11.5: one line and the problems on the console; every map and overlay in the log file
+        System.out.println("Map:           " + maps.summary());
+        for (String line : maps.details()) {
+            com.simweaver.common.logging.ConsoleTee.logOnly("Map:           " + line);
+        }
+        for (String line : maps.problems()) {
             System.out.println("Map:           " + line);
         }
 
@@ -213,6 +218,7 @@ public class Server {
             java.util.Map<String, com.sun.net.httpserver.HttpHandler> extra = new java.util.LinkedHashMap<>();
             extra.put("/api/maps", new MapHttpHandler(maps, "/api/maps"));        // NEW: binary tiles
             extra.put("/api/auth", apiAuth.handler());                            // 0.11.0: sign in / out, whoami
+            extra.put("/api/audio", new com.simweaver.rift.comms.CommsAudioHandler(datasourceManager::getComms, "/api/audio"));  // 0.12.0: Comms audio
             apiAuth.logStart();
             XrServer.run(webPort,apiRequestEntryPoint,webRoot,"/","/api",keyStorePath,keyStorePass,eventHub,extra,
                     apiAuth.filter());

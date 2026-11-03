@@ -624,6 +624,14 @@ public final class DisToRpr {
 
     // ================================================================== radio
 
+    /**
+     * The RPR StreamTag of a DIS radio, the same in its RadioTransmitter object and in its audio
+     * signals: host site, application, entity and radio id packed (0.12.0, as Junction's DisToRpr).
+     */
+    public static long streamTag(DisEntityId host, int radioId) {
+        return ((long) host.site << 48) | ((long) host.application << 32) | ((long) host.entity << 16) | (radioId & 0xFFFF);
+    }
+
     /** Instance name of a radio transmitter: {@code "<host>/radio-<id>"}. */
     public static String transmitterName(DisEntityId host, int radioId) {
         return host.text() + "/radio-" + radioId;
@@ -677,6 +685,7 @@ public final class DisToRpr {
         a.put("TransmittedPower", RprCodec.f32(power));
         a.put("TransmitterOperationalStatus", RprCodec.enum8(transmitState));
         a.put("WorldLocation", RprCodec.worldLocation(antenna));
+        a.put("StreamTag", RprCodec.u64(streamTag(host, radioId)));       // 0.12.0: as Junction's, so audio finds its transmitter
         return new Radio(RADIO_TRANSMITTER, transmitterName(host, radioId), host, radioId, a);
     }
 
@@ -722,7 +731,7 @@ public final class DisToRpr {
         switch (encodingClass) {
             case 0:                                                  // encoded audio
                 if (data.length == 0) return null;
-                p.put("AudioData", RprCodec.audioData(0, encodingType, sampleRate, dataLengthBits, samples, data));
+                p.put("AudioData", RprCodec.audioData(streamTag(host, radioId), encodingType, sampleRate, dataLengthBits, samples, data));
                 return new Interaction(ENCODED_AUDIO_SIGNAL, p);
             case 1:                                                  // raw binary (incl. tactical data links)
             case 2: {                                                // application specific

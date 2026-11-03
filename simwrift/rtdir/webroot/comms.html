@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Comms · SimWeaver Rift</title>
+	<link rel="icon" href="favicon.ico" sizes="any">
+	<link rel="stylesheet" href="css/rift.css">
+	<link rel="stylesheet" href="css/comms.css">
+	<script src="js/theme.js"></script>
+</head>
+<body class="cm-body">
+
+<header class="topbar">
+	<a class="brand" href="index.html" title="SimWeaver Rift - overview">
+		<img class="brand-mark brand-logo" src="img/simweaver-logo.png" width="48" height="36" alt="" aria-hidden="true">
+		<span class="brand-text">
+			<span class="mark">SimWeaver <b>Rift</b></span>
+			<span class="sub">Comms</span>
+		</span>
+	</a>
+	<nav class="app-nav" aria-label="Applications">
+		<a class="app-nav-link" href="index.html" title="SimWeaver Rift - datasources">Rift datasources</a>
+		<a class="app-nav-link" href="junction.html" title="SimWeaver Junction - gateways">Junction gateways</a>
+		<a class="app-nav-link" href="infra.html" title="SimWeaver Infra - the DIS exercises and HLA federations Rift and Junction have contact with">Infra</a>
+		<a class="app-nav-link" id="nav-j2j" href="j2j.html" title="SimWeaver J2J - the network of Junction servers" hidden>J2J</a>
+		<a class="app-nav-link" href="config-assistant.html" title="SimWeaver Config Assistant - write configuration files">Config assistant</a>
+	</nav>
+	<div class="toolbar-spacer"></div>
+	<div class="toolbar-group">
+		<span id="server-info" class="server-info" hidden></span>
+		<span id="link-status" class="link-status" title="No contact yet">
+			<span class="lamp" aria-hidden="true"></span><span class="link-text">LINK &mdash;</span>
+		</span>
+		<span class="clock" title="Zulu time (UTC)">
+			<span id="clock-time" class="clock-time">--:--:--Z</span>
+			<span id="clock-dtg" class="clock-dtg">&nbsp;</span>
+		</span>
+		<button id="btn-theme" type="button" class="ghost" aria-pressed="false">&#9728; Day</button>
+	</div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="page cm-page">
+	<section class="panel cm-head" aria-labelledby="cm-title">
+		<div class="panel-head">
+			<span class="idx">CO</span>
+			<h1 id="cm-title" class="ds-name">&hellip;</h1>
+			<span id="cm-state" class="ds-state">&mdash;</span>
+			<span id="cm-facts" class="ds-facts"></span>
+			<span class="meta">
+				<span id="cm-stream" class="ds-stream" title="Live update stream"><span class="lamp off" aria-hidden="true"></span><span class="ds-stream-text">STREAM &mdash;</span></span>
+				<a id="cm-ds-link" class="btn" href="index.html" title="The datasource page">&#9656; Datasource</a>
+			</span>
+		</div>
+		<div class="cm-listen">
+			<span class="cm-listen-label">Listen</span>
+			<span id="cm-audio" class="cm-audio off" title="The audio stream">OFF</span>
+			<label class="cm-vol" title="Master volume">Master
+				<input id="cm-master" type="range" min="0" max="100" value="80" aria-label="Master volume">
+			</label>
+			<button id="cm-stop" type="button" class="btn" disabled>&#9632; Stop all</button>
+			<span id="cm-listen-hint" class="cm-hint">Tick the channels to listen to. Your browser plays them mixed.</span>
+		</div>
+		<div id="cm-msg"></div>
+	</section>
+
+	<div class="cm-grid">
+		<section class="panel cm-channels" aria-labelledby="cm-ch-title">
+			<div class="panel-head">
+				<span class="idx">01</span>
+				<h2 id="cm-ch-title" class="title">Channels</h2>
+				<span class="meta">
+					<input id="cm-filter" type="search" placeholder="Filter channels" aria-label="Filter channels" autocomplete="off" spellcheck="false">
+					<label class="check" title="Hide channels without activity in the last two minutes"><input id="cm-active" type="checkbox"> Active only</label>
+					<span id="cm-upd" class="upd"></span>
+				</span>
+			</div>
+			<div id="cm-list" class="cm-list"></div>
+		</section>
+
+		<section class="panel cm-chat" aria-labelledby="cm-chat-title">
+			<div class="panel-head">
+				<span class="idx">02</span>
+				<h2 id="cm-chat-title" class="title">Chat</h2>
+				<span class="meta"><span id="cm-chat-count" class="upd"></span></span>
+			</div>
+			<div id="cm-chat-tabs" class="cm-chat-tabs" role="tablist" aria-label="Chat channels"></div>
+			<div id="cm-transcript" class="cm-transcript" aria-live="polite"></div>
+		</section>
+	</div>
+</main>
+
+<footer class="pagefoot">
+	<span>SIMWEAVER // RIFT</span>
+	<span class="license">By SimWeaver - released under the BSD 3-Clause License</span>
+	<span class="dim">HLA &middot; DIS datasource gateway</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/server-info.js"></script>
+<script src="js/comms-audio.js"></script>
+<script src="js/comms.js"></script>
+</body>
+</html>

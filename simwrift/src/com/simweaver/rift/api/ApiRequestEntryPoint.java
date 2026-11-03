@@ -128,6 +128,9 @@ public class ApiRequestEntryPoint implements ApiCallHandlerWithBody {
                         if ("DELETE".equals(method)) return datasourceManager.jsonTeardownDatasource(seg.get(1));
                         return methodNotAllowed(method, path, "GET, DELETE");
                     }
+                    if ("comms".equalsIgnoreCase(seg.get(2))) {                 // 0.12.0: the Comms view
+                        return comms(method, path, seg, queryMap);
+                    }
                     XrResultPair page = pageApi.handle(method, path, queryMap);
                     if (page != null) return page;
                     break;
@@ -142,6 +145,43 @@ public class ApiRequestEntryPoint implements ApiCallHandlerWithBody {
             LOG.log(Level.WARNING, "API call failed: " + method + " " + path, e);
             return RiftDatasourcePageApi.error(500, "INTERNAL_ERROR", e.toString());
         }
+    }
+
+    // ------------------------------------------------------------------ comms (0.12.0)
+
+    /**
+     * {@code GET /api/datasources/{id}/comms}: channels, senders and activity;
+     * {@code GET …/comms/chat?channel=<id>&limit=200}: a chat transcript (oldest first).
+     * The audio itself is {@code GET /api/audio/stream} (CommsAudioHandler).
+     */
+    private XrResultPair comms(String method, String path, List<String> seg, Map<String, String> q) {
+        if (!isGet(method)) return methodNotAllowed(method, path, "GET");
+        DataSource ds = findDatasource(seg.get(1));
+        com.simweaver.rift.comms.CommsTracker t = ds == null ? null : datasourceManager.getComms(ds.getId());
+        if (t == null) {
+            return RiftDatasourcePageApi.error(404, "DATASOURCE_UNKNOWN", "No datasource " + seg.get(1));
+        }
+        if (seg.size() == 3) {
+            return ok(com.simweaver.common.json.Json.toJson(t.snapshot()));
+        }
+        if (seg.size() == 4 && "chat".equalsIgnoreCase(seg.get(3))) {
+            String channel = q == null ? null : q.get("channel");
+            if (channel == null || channel.trim().isEmpty()) throw new BadRequest("channel is required");
+            int limit = 200;
+            String l = q.get("limit");
+            if (l != null) {
+                try {
+                    limit = Integer.parseInt(l.trim());
+                } catch (NumberFormatException e) {
+                    throw new BadRequest("limit must be a number");
+                }
+                if (limit < 1 || limit > 500) throw new BadRequest("limit must be 1 - 500");
+            }
+            Map<String, Object> chat = t.chat(channel.trim(), limit);
+            if (chat == null) return RiftDatasourcePageApi.error(404, "CHANNEL_UNKNOWN", "No channel " + channel.trim());
+            return ok(com.simweaver.common.json.Json.toJson(chat));
+        }
+        return notFound(method, path);
     }
 
     // ------------------------------------------------------------------ datasources

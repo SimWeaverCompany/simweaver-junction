@@ -16,3 +16,6 @@ datasource.hla.federation=Talk
 # datasource.hla.reconnectondisconnect=true
 # datasource.hla.reconnectintervalseconds=5
 # datasource.hla.customfomrootdir=./etc/fom/ieee1516-2010
+# Talk audio for the Comms page (0.12.0): Talk PCM16 has no sample rate of its own
+# datasource.talk.samplerate=16000
+# datasource.talk.pcmbyteorder=little

@@ -102,7 +102,7 @@ public final class RtiLibrary {
     }
 
     /**
-     * From a setting such as {@code endpoint.hla.rtijar=lib/rti/prti5;extra.jar}.
+     * From a setting such as {@code endpoint.hla.rtijar=lib/rti/anrti;extra.jar}.
      *
      * @param setting ';'-separated jars and folders; null or blank = {@link #classPath()}
      * @param baseDir folder that relative entries are relative to (null = working directory)

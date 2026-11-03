@@ -7,6 +7,6 @@
 cd "$(dirname "$0")" || exit 1
 
 APP_JAR=lib/simweaverrift.jar
-RTI_JAR="${RTI_JAR-/opt/PitchPrti6/lib/prtifull.jar}"
+RTI_JAR="${RTI_JAR-/opt/anrti/lib/hlaimpl.jar}"
 
 exec java $JAVA_OPTS -cp "$APP_JAR${RTI_JAR:+:$RTI_JAR}" com.simweaver.rift.Server "$@"

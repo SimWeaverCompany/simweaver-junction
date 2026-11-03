@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.11.4 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.12.0 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ---
 
@@ -30,6 +30,10 @@ Version 0.11.4 · BSD 3-Clause License · © 2026 Simweaver AB
   - over a GeoTIFF background;
   - with shapefile overlays read straight from their `.zip` packages: coastlines, borders,
     towns, airports, roads.
+- **Comms view** (0.12.0). The Talk channels (voice, radio, chat) and the RPR / DIS radio
+  frequencies a datasource hears, with the transmitters and the platforms carrying them, two
+  minutes of activity per channel, the chat transcripts, and **listening** to voice and radio
+  channels in the browser.
 - **REST API and SSE events** for everything the UI shows.
 
 **Junction: bridge federations and networks**
@@ -51,6 +55,8 @@ Version 0.11.4 · BSD 3-Clause License · © 2026 Simweaver AB
 - **DIS 7 ⇄ C-DIS PDU relay**: all 22 C-DIS PDU types passed PDU by PDU, not through the RPR model.
 - **Class filters**, instance renaming and object reference rewriting.
 - **Value rules**, e.g. one entity type replaced by another in passing.
+- **NETN properties** (0.12.0): RPR and DIS objects going into a NETN federation get a NETN
+  `UniqueId` and a `Callsign` from their Marking.
 - **Talk** channel mapping, and a radio bridge to RPR/DIS. No Talk FOM is delivered: Talk
   endpoints take it from the running federation, or from your own copy of the files.
 - **FOM from the federation.** An HLA endpoint set to `dynamic` joins and reads the
@@ -97,7 +103,7 @@ Version 0.11.4 · BSD 3-Clause License · © 2026 Simweaver AB
 | | |
 |---|---|
 | **Java** | 11 or later (the code is compiled for Java 11) |
-| **HLA RTI** | Only for HLA datasources and endpoints, e.g. Pitch pRTI. DIS works without one. |
+| **HLA RTI** | Only for HLA datasources and endpoints: any RTI with the IEEE 1516-2010 or 1516-2025 Java API. DIS works without one. |
 | **Browser** | A current Microsoft Edge or Google Chrome |
 | **OS** | Windows, Linux or macOS. Examples for Docker or Podman, a systemd service and a Windows service (WinSW) are in `simwrift/rtdir/etc`. |
 
@@ -135,10 +141,10 @@ Each module has `src/`. The self tests are in `test/` next to it.
 `build.sh` compiles the three modules and the tests, then packs
 `out/artifacts/simweaverrift/simweaverrift.jar`. It compiles against the HLA API jars, and only
 the API classes are needed. Point it at your RTI's jars with `HLA_API_CP`. Use `:` between
-files on Linux and macOS, `;` in Git Bash on Windows:
+files on Linux and macOS, `;` in Git Bash on Windows (`/opt/anrti/...` stands for your RTI):
 
 ```sh
-HLA_API_CP=/opt/prti1516e/lib/prti1516e.jar ./build.sh
+HLA_API_CP=/opt/anrti/lib/hlaimpl.jar ./build.sh
 ```
 
 The RTI is loaded by reflection at run time, so the jar itself contains no RTI.

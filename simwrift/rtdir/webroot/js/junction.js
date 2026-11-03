@@ -299,7 +299,12 @@
 			n.objects.title = Object.keys(o.relayed || {}).map(function (k) { return k + ': ' + o.relayed[k]; }).join('\n');
 		} else {
 			n.objects.textContent = count(o.bridged) + ' OBJECTS · ' + count(o.copies) + ' COPIES'
-				+ (o.pending ? ' · ' + o.pending + ' PENDING' : '') + (o.failed ? ' · ' + o.failed + ' FAILED' : '');
+				+ (o.pending ? ' · ' + o.pending + ' PENDING' : '') + (o.failed ? ' · ' + o.failed + ' FAILED' : '')
+				+ (o.netn ? ' · NETN ' + count(o.netn.objects) : '');
+			// 0.12.0: router.netn: what the NETN enrichment added
+			n.objects.title = o.netn ? 'NETN properties into ' + (o.netn.into || []).join(', ') + ': ' + count(o.netn.objects)
+				+ ' objects, ' + count(o.netn.uniqueids) + ' UniqueIds (' + o.netn.uniqueid + '), ' + count(o.netn.callsigns)
+				+ ' Callsigns (' + o.netn.callsign + ')' : '';
 		}
 		n.started.textContent = 'SINCE ' + ui.zulu(g.created, false);
 		var vars = g.vars || {};

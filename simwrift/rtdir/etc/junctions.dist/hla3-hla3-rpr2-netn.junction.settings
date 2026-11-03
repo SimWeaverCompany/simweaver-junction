@@ -1,0 +1,9 @@
+# Gateway HLA3<->HLA3 RPR-NETN: an RPR v2 federation and a NETN federation. The RPR entities
+# appear in the NETN federation with a UniqueId and a Callsign (routers/hla3-netn).
+junction.name=HLA3<->HLA3 RPR-NETN
+junction.description=RPR v2 objects into a NETN federation, with NETN UniqueId and Callsign added
+junction.endpoints=rpr;netn
+junction.endpoint.rpr=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.netn=endpoints/hla3-netn.endpoint.settings
+junction.router=routers/hla3-netn.router.settings
+junction.autostart=false

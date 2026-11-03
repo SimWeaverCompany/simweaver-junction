@@ -13,7 +13,7 @@ Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the env
 
 With API authentication on (0.11.0) every call needs `Authorization: Bearer <token>`, as all of `/api` does ([rest-api.md](rest-api.md), 14).
 
-API state: Junction 0.11.4, November 2026.
+API state: Junction 0.12.1, November 2026.
 
 ---
 
@@ -258,6 +258,15 @@ DIS and C-DIS endpoints (0.9.18) also have `dis`: `disversion`, `exercise`, `sen
 ```
 
 `notconvertible`: PDUs of types C-DIS does not have, not sent. `waitingforfull`: partial updates dropped because the object's first full update had not arrived. `lasterror` only when there was one.
+
+An IEM gateway with the NETN properties on (`router.netn.enabled`, 0.12.0) has in `objects` a `netn` object: the objects that get them now, the UniqueIds and Callsigns sent, the modes and the NETN endpoints they go into:
+
+```json
+"objects": { "bridged": 12, "copies": 12, "pending": 0, "failed": 0,
+             "netn": { "objects": 12, "uniqueids": 12, "callsigns": 9, "uniqueid": "stable", "callsign": "marking", "into": ["netn"] } }
+```
+
+The configuration JSON of an IEM router has `netn`: `{"enabled": true, "uniqueid": "stable", "callsign": "marking", "classes": ["*"]}`.
 
 A PDU relay (`"router": "pdu"`) has in `objects` the PDUs passed per direction and per type: `{"relayed": {"dis -> cdis": 102}, "pdutypes": {"001": 102}, "filtered": 0}`; its endpoints count Entity State, EE, Designator, Transmitter, Receiver and IFF PDUs as updates, the others as interactions.
 

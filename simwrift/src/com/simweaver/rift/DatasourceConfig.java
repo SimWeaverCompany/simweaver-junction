@@ -52,8 +52,6 @@ public class DatasourceConfig implements Json.Writable{
     private String hlafomRootdir;
     private String hlalsd;
     private java.util.List<String> hlaLsdOptions;
-    /** 0.9.15: probes for other LSDs than the default, made when first asked for */
-    private final java.util.Map<String, FederationProbe> otherProbes = new java.util.concurrent.ConcurrentHashMap<>();
     private String hlaFederation;
     //
     private String hlaFederateType;
@@ -154,9 +152,8 @@ public class DatasourceConfig implements Json.Writable{
             }
         }
 
-        if (this.federationProbe != null) {
-            this.federationProbe.startProbe();
-        }
+        // 0.11.5: no connect here. The probe is shared (one per standard and LSD) and connects when
+        // federations are first asked for (Create datasource), not each time the configurations are read
 
     }
 
@@ -270,11 +267,9 @@ public class DatasourceConfig implements Json.Writable{
         if (standard != Standard.IEEE1516_2010 && standard != Standard.IEEE1516_2025) {
             return federationProbe;
         }
-        return otherProbes.computeIfAbsent(l, k -> {
-            FederationProbe p = standard == Standard.IEEE1516_2025 ? FederationProbeFactory.createHla4(k) : FederationProbeFactory.createHla3(k);
-            p.startProbe();
-            return p;
-        });
+        // 0.11.5: shared and connected on first use (rescan), like the default one
+        FederationProbe p = standard == Standard.IEEE1516_2025 ? FederationProbeFactory.createHla4(l) : FederationProbeFactory.createHla3(l);
+        return p != null ? p : federationProbe;
     }
 
     /** @return the LSD choices of {@code datasource.hla.lsd}, the default first (never empty) */

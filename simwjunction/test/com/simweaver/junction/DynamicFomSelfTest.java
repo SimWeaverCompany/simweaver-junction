@@ -52,7 +52,7 @@ public final class DynamicFomSelfTest {
         settings();
         gateway(fomRoot, rtiDir, false, false);
         gateway(fomRoot, rtiDir, true, false);
-        // an HLA 4 RTI serving 1516-2010 federates (pRTI 6) reports the FDD in the 1516-2025 format
+        // an HLA 4 RTI serving 1516-2010 federates may report the FDD in the 1516-2025 format
         gateway(fomRoot, rtiDir, false, true);
         System.out.println(checks + " checks, " + failures + " failures");
         System.exit(failures == 0 ? 0 : 1);

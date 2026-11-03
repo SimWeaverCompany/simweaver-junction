@@ -10,7 +10,7 @@ over HTTPS:
 The SimWeaver Rift Web UI is built only on this API, so anything the Web UI shows, another
 tool can get the same way.
 
-API state: SimWeaver Rift, October 2026.
+API state: SimWeaver Rift 0.12.1, November 2026.
 
 ---
 
@@ -30,6 +30,7 @@ API state: SimWeaver Rift, October 2026.
 12. [Infra](#12-infra-0920)
 13. [J2J](#13-j2j-0100)
 14. [Authentication](#14-authentication-0110)
+15. [Comms](#15-comms-0120)
 
 ---
 
@@ -119,6 +120,9 @@ discovered, updated or removed, or an interaction received.
 | `GET` | [`/api/infra/items/{key}`](#123-get-apiinfraitemskey) | The live detail of one |
 | `POST` | [`/api/infra/items/{key}/refresh`](#124-post-apiinfraitemskeyrefresh) | HLA: ask the MOM for fresh values now |
 | `POST` | [`/api/infra/items/{key}/declarations`](#125-post-apiinfraitemskeydeclarations) | HLA: ask the MOM for a federate's publications and subscriptions |
+| `GET` | [`/api/datasources/{dsid}/comms`](#151-get-apidatasourcesdsidcomms) | The datasource's communication channels: Talk, RPR / DIS radio (Comms page) |
+| `GET` | [`/api/datasources/{dsid}/comms/chat?channel=…`](#152-get-commschatchannel) | A chat transcript |
+| `GET` | [`/api/audio/stream?ds=…&channels=…`](#153-get-apiaudiostreamdschannels) | The audio of some channels, as a binary stream |
 | `GET` / `POST` | [`/api/j2j/…`](#13-j2j-0100) | The J2J network of Junction servers (J2J page): see [j2j-rest-api.md](j2j-rest-api.md) |
 
 ---
@@ -305,7 +309,9 @@ creating a datasource. Note the singular `datasourceconfig` in this path.
 
 - `{"federations": []}` when none were found, when `configid` is unknown, or when it is not
   an integer.
-- The scan contacts the RTI, so it can take a moment.
+- The scan contacts the RTI, so it can take a moment. 0.11.5: the probe (one per standard and
+  LSD, shared by the configurations) connects on the first scan; after a failed connect it is
+  not tried again for 3 s, and the answer is `{"federations": []}` meanwhile.
 - `?lsd=crc2` asks the RTI with that LSD instead of the configuration's default (one of its
   choices or any other). The Web UI sends the LSD chosen in the Create dialog. `standard` is
   sent too and ignored.
@@ -911,6 +917,7 @@ es.addEventListener('datasource.removed', () => es.close());
 | `ds:{dsid}:classes` | Patches: instance counts per class |
 | `ds:{dsid}:interactions` | Event `interaction`, one per interaction (rate-limited, 8.4) |
 | `obj:{dsid}:{iid}` | Patches: every attribute update of that one object |
+| `comms:{dsid}` | Events `comms.tick` and `comms.chat` (0.12.0, section 15) |
 
 Subscribe `obj:` topics only for the objects you need, for example the ones on screen. The
 Web UI uses at most about 100 per connection.
@@ -982,6 +989,8 @@ the `rev` you have.
 | `interaction.stats` | `ds:{dsid}` | Once per second while interactions arrive: `{"window": 1.0, "counts": {"<classnameq>": n, …}, "dropped": n}` |
 | `datasource.state` | `ds:{dsid}` | `{"state": "…", "statemessage": "…" or null}` when the state changes (e.g. `JOINING`, `JOINED`, `CONNECTION_LOST`) |
 | `datasource.removed` | `ds:{dsid}` | `{}`: the datasource was removed (by `DELETE`, or after losing the RTI connection). No more events follow for it |
+| `comms.tick` | `comms:{dsid}` | Once per second while a page listens: the last whole second's activity per channel (15.4) |
+| `comms.chat` | `comms:{dsid}` | A chat or image message: `{"channel": "…", "line": {…}}` (15.2) |
 
 **Rate limit for interactions.** At most **50** `interaction` events per second are sent per
 datasource; the rest are dropped from the stream, though they still go into the history
@@ -1214,6 +1223,114 @@ the server, or with 14.3.
 ### 14.3 `DELETE /api/auth/session`
 
 Signs the browser out: `204` and the cookie cleared.
+
+---
+
+## 15. Comms (0.12.0)
+
+The communication channels a datasource sees, for the Comms page (`comms.html?id=<dsid>`):
+
+- **Talk** (the Talk FOM's `HLAobjectRoot.PitchTalk.*` classes): the channel objects (voice, radio,
+  chat) and the lobby, with the senders (the Talk clients) heard in them. Text and image messages
+  make a transcript; PCM16 audio can be listened to (`datasource.talk.samplerate`, default 16000,
+  and `datasource.talk.pcmbyteorder`, default `little`, in the datasource configuration), and Opus
+  (0.12.1: passed through as it is and decoded by the listener; the Web UI uses the browser's
+  WebCodecs).
+- **RPR / DIS radio**: one channel per frequency of the `RadioTransmitter` objects, which are listed
+  with their host objects. `EncodedAudioRadioSignal` audio is matched to its transmitter by
+  `StreamTag` and played when it is 16-bit linear PCM (either byte order), 8-bit linear PCM,
+  mu-law or Opus (passed through, 0.12.1); other encodings (CVSD, GSM, …) are shown as not playable. The other `RadioSignal`
+  classes (raw binary, Link 16, database index, application specific) count as activity, matched by
+  `HostRadioIndex`. DIS datasources come through the same way (DIS arrives as RPR).
+
+Channel ids: `t-<uuid hex>` (Talk), `t-lobby`, `f-<hertz>` (radio), `x-…` (signals whose transmitter
+is not known).
+
+### 15.1 `GET /api/datasources/{dsid}/comms`
+
+```json
+{ "rev": 17, "t": 1793698262, "seconds": 120,
+  "stats": { "audioframes": 600, "playedframes": 480, "unplayableframes": 0, "decodeerrors": 0, "transmitters": 3,
+             "listeners": [ { "client": "/10.0.0.5:51022", "channels": ["f-251000000"], "opened": "…", "frames": 480, "dropped": 0 } ] },
+  "talk": { "samplerate": 16000, "pcmbyteorder": "little" },
+  "channels": [
+    { "id": "f-251000000", "family": "radio", "kind": "radio", "name": "251 MHz", "frequency": 251000000,
+      "present": true, "audio": true, "playable": true, "encoding": "16-bit linear PCM",
+      "chat": false, "chatcount": 0, "frames": 600, "bytes": 192000, "lastactivity": "2026-11-03T09:31:01.020Z",
+      "activity": [0, 0, …, 50, 50],
+      "sources": [ { "id": 3, "kind": "transmitter", "label": "1-2-3/radio-1", "frames": 600, "lastactive": "…", "talking": true,
+                     "object": { "instanceid": "o2", "label": "1-2-3/radio-1", "classname": "RadioTransmitter" },
+                     "status": 2, "radioindex": 1,
+                     "host": { "instanceid": "o1", "label": "VIPER 11", "classname": "Aircraft" } } ] },
+    { "id": "f-969000000", "family": "radio", "kind": "radio", "name": "969 MHz", "audio": false, "playable": false,
+      "signals": { "Raw binary": 108 }, "activity": […], "sources": […] },
+    { "id": "t-b0a08934…", "family": "talk", "kind": "chat", "name": "Ops", "description": "Operations chat",
+      "present": true, "chat": true, "chatcount": 14, "activity": […],
+      "sources": [ { "id": 7, "kind": "client", "label": "Alpha Lead", "uuid": "…",
+                     "object": { "instanceid": "o1", "label": "…", "classname": "Client" } } ] } ] }
+```
+
+- `rev` changes when channels, senders or names change; `t` is the epoch second of the last
+  `activity` value; `activity` has `seconds` values, oldest first: messages or audio frames per second.
+- `kind`: Talk `voice`, `radio`, `chat`, `lobby`; radio frequencies `radio`. `present`: the Talk
+  channel object exists (a channel seen only in messages has none).
+- `audio`: audio was heard; `playable`: in an encoding the page can play; `unplayable` says why not.
+  `codec` (0.12.1): how it comes on the audio stream, `pcm` (converted to PCM16 by the server) or
+  `opus` (Opus packets as received: the listener needs an Opus decoder).
+- `sources`: radio frequencies list the transmitter objects on that frequency now (`status`:
+  `TransmitterOperationalStatus`, 0 off, 1 on, 2 transmitting) with their `host` (or `hostname`
+  while the host object is not known); Talk channels the clients heard in them. `talking`: a frame
+  in the last 1.5 s. `object` / `host` are object chips (6.3 gives the object).
+
+### 15.2 `GET …/comms/chat?channel=`
+
+The transcript of a channel, oldest first (`limit`, default 200, at most 500; the server keeps 500
+per channel): `{"channel", "name", "total", "lines": [{"seq", "time", "sender", "senderid", "kind": "text" | "image", "text"}]}`.
+`404 CHANNEL_UNKNOWN` for an unknown channel.
+
+### 15.3 `GET /api/audio/stream?ds=&channels=`
+
+The audio of up to 32 channels of one datasource (`ds` = datasource id, `channels` = channel ids,
+comma separated) as one long chunked `application/octet-stream` response of frames, little endian:
+
+| Octets | Field |
+|---|---|
+| 0 | version (1) |
+| 1 | type: 0 keep-alive (every 2 s without audio, no payload), 1 audio |
+| 2 | encoding of the payload: 1 = 16-bit linear PCM, little endian, mono; 2 = one Opus packet (RFC 6716) as received (0.12.1; the sample rate field is then 48000, the decoder's rate) |
+| 3 | reserved |
+| 4–5 | channel: its position in `channels=` (0 based) |
+| 6–7 | reserved |
+| 8–11 | source: the sender's `id` in the channel listing |
+| 12–15 | sample rate (Hz) |
+| 16–19 | sequence number of the frame in this stream |
+| 20–23 | payload length (octets) |
+| 24–31 | server receive time, ms since 1970 (float64) |
+| 32… | payload |
+
+- The server converts every other playable encoding to PCM16 LE at the source's sample rate; Opus
+  goes as it is, one packet per frame (0.12.1). The receiver decodes Opus, resamples and mixes (the
+  Web UI uses WebCodecs and Web Audio).
+- A listener that falls behind loses the oldest frames (about 5 s are kept per stream).
+- To listen to other channels, open a new stream and close the old one. At most 16 streams per
+  datasource (`429 TOO_MANY_LISTENERS`); `400 BAD_REQUEST` for a missing or bad `channels` or `ds`,
+  `404 DATASOURCE_UNKNOWN`.
+- It is under `/api`, so it needs the same authentication as the rest (section 14); the browser's
+  session cookie travels with `fetch()`.
+
+```sh
+curl -k -N "https://localhost:8843/api/audio/stream?ds=$DS&channels=f-251000000" > radio.bin
+```
+
+### 15.4 `comms.tick`
+
+```json
+{ "rev": 17, "t": 1793698263,
+  "channels": { "f-251000000": { "n": 50, "talking": [3], "lastactivity": "2026-11-03T09:31:03.010Z" } } }
+```
+
+Only channels with activity in that second, or a sender talking, are listed. A `rev` other than
+the one of the last listing means channels, senders or names changed: get 15.1 again.
 
 ---
 

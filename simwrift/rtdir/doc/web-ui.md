@@ -8,6 +8,8 @@ gateways, the Infra page and the Config assistant. From a browser you can:
 - browse the object instances it discovers, by class, with decoded attribute values, and see
   them on a map;
 - follow the interactions live, with rates per class;
+- see the Talk and radio channels a datasource hears, read the chat and listen to the voice
+  and radio channels (**Comms**, 0.12.0);
 - see every exercise and federation the server has contact with (**Infra**);
 - see the J2J network of SimWeaver servers this server belongs to (**J2J**, when configured);
 - start and watch Junction gateways, and write configuration files with the Config assistant.
@@ -241,6 +243,38 @@ history.
 - The layer choices are remembered in this browser for every datasource.
 - The maps and their settings: see *2.4 Maps* in the installation guide. The server
   setting `map.enabled=false` removes the map.
+
+### Comms page (0.12.0)
+
+**☎ Comms** in the datasource page's header opens `comms.html?id=<datasource>` in its own tab:
+the communication channels that datasource hears, live.
+
+- **Talk**: the voice, radio and chat channels of the Talk federation and the lobby, with the
+  Talk clients heard in each.
+- **Radio · RPR / DIS**: one channel per frequency of the radio transmitter objects. Each lists
+  its transmitters, with their state (**TX** transmitting, **ON**, **OFF**) and the platform that
+  hosts them (*1-2-3/radio-1 TX on VIPER 11 Aircraft*). Click a transmitter or a platform to see it
+  on the datasource page. A frequency that only carries data (raw binary, Link 16, database index,
+  application specific signals) shows the kinds and counts, and its activity, nothing to listen to.
+- **Activity**: every channel has a graph of the last two minutes (messages or audio frames per
+  second), the last second's rate and how long ago it was active. The lamps light while someone
+  talks. **Active only** hides the channels quiet for two minutes; the filter box searches names,
+  frequencies, transmitters and platforms.
+- **Chat** (panel 02): the transcript of a Talk chat channel or the lobby, live, with each sender in
+  a colour of its own. Pick the channel in the tabs, or with **Transcript** on its row. The server
+  keeps the last 500 messages per channel. The panel is hidden while there are no chat channels.
+- **Listen**: tick **Listen** on audio channels. The browser plays them mixed, each with its own
+  volume and level meter; **Master** sets the volume of all, **■ Stop all** stops listening. The
+  status next to *Listen* says LIVE, CONNECTING or what went wrong. The sound is about 0.2 s behind.
+  - Played: Talk PCM16 (the datasource's `datasource.talk.samplerate` and `pcmbyteorder`, by
+    default 16 kHz little endian) and RPR / DIS 16-bit linear PCM (either byte order), 8-bit linear
+    PCM and mu-law. Other encodings (CVSD, GSM, …) show their name in red: heard, not played.
+  - **Opus** (Talk's other codec, 0.12.1) is decoded by the browser itself (WebCodecs): a current
+    Edge or Chrome, Firefox 130 or later. In a browser without it the Opus badge is red and the
+    tick is off, with the reason in its tooltip. A decoding problem shows next to *Listen*.
+  - Browsers start sound only after a click on the page, which the tick is.
+  - The audio comes from the server as one stream per tab, only for the ticked channels, about
+    128–256 kbit/s per channel while it carries sound.
 
 ### Infra page
 
