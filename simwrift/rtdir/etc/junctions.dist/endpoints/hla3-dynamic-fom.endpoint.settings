@@ -1,5 +1,5 @@
 # Endpoint kit HLA3-dynamic-FOM: an HLA Evolved (IEEE 1516-2010) federation whose FOM is taken
-# from the federation itself, on the RTI found on Rift's class path (e.g. Pitch pRTI 5 in lib/).
+# from the federation itself, on the RTI found on Rift's class path (RTI_JAR).
 endpoint.name=HLA3-dynamic-FOM
 endpoint.standard=ieee1516-2010
 # no FOM files: join the running federation without modules, read its current FDD

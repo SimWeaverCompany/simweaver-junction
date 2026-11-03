@@ -332,6 +332,12 @@
 			return;
 		}
 
+		// 0.12.0: the Comms view of this datasource, in its own tab
+		var comms = $('btn-comms');
+		comms.href = 'comms.html?id=' + encodeURIComponent(dsid);
+		comms.target = 'rift-comms-' + dsid;
+		comms.hidden = false;
+
 		var removeBtn = $('btn-remove-ds');
 		removeBtn.hidden = false;
 		removeBtn.addEventListener('click', remove);

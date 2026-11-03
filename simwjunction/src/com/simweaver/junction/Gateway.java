@@ -237,7 +237,9 @@ public final class Gateway implements Json.Writable {
                 break;
             default:
                 r = new IemRouter(cfg.getRouter(), runtimeName(), rules, cfg.getRouter().getFilter(),
-                        new com.simweaver.junction.router.convert.RprIffBridge());     // IFF modes RPR v2 <-> v3 (when both are there)
+                        new com.simweaver.junction.router.ExtensionChain(
+                                new com.simweaver.junction.router.convert.RprIffBridge(),          // IFF modes RPR v2 <-> v3 (when both are there)
+                                new com.simweaver.junction.router.convert.NetnEnrichment(cfg.getRouter().getNetn())));  // 0.12.0: router.netn.*
         }
         this.router = r;
 

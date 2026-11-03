@@ -1,21 +1,55 @@
-# SimWeaver Junction - systemd service. Install (as root), with Rift in /opt/simweaverjunction:
-#   useradd --system --home-dir /opt/simweaver-rift simweaver && chown -R simweaver /opt/simweaver-rift
-#   cp /opt/simweaver-rift/etc/systemd/simweaver-rift.service /etc/systemd/system/
-#   systemctl daemon-reload && systemctl enable --now simweaver-rift
+# SimWeaver Junction - systemd service (Linux). The installation guide, 1b, has the details.
+#
+# Install as root, with SimWeaver Junction in /opt/simweaver-junction (else change the paths below):
+#   useradd --system --home-dir /opt/simweaver-junction --shell /usr/sbin/nologin simweaver
+#   chown -R simweaver:simweaver /opt/simweaver-junction
+#   cp /opt/simweaver-junction/etc/systemd/simweaver-junction.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now simweaver-junction
+#
+# Then: systemctl status simweaver-junction / journalctl -u simweaver-junction -f
+# After editing this file in /etc/systemd/system: systemctl daemon-reload && systemctl restart simweaver-junction
 
 [Unit]
-Description=SimWeaver Junction - HLA/DIS data gateway
+Description=SimWeaver Junction - HLA and DIS gateway, monitor and site link
+Documentation=file:///opt/simweaver-junction/doc/simweaver-rift-install-and-config.md
 After=network-online.target
 Wants=network-online.target
 
 [Service]
+Type=simple
 User=simweaver
-WorkingDirectory=/opt/simweaverjunction
-Environment=RTI_JAR=/opt/PitchPrti6/lib/prtifull.jar
-ExecStart=/opt/simweaverjunction/run.sh
+Group=simweaver
+WorkingDirectory=/opt/simweaver-junction
+ExecStart=/opt/simweaver-junction/run.sh
+
+# The HLA RTI's Java library (a placeholder path: change it to your RTI's). Several: separate with ':'. Empty: DIS only.
+Environment=RTI_JAR=/opt/anrti/lib/hlaimpl.jar
+# Java options, e.g. more memory for large federations
+#Environment=JAVA_OPTS=-Xmx2g
+# Native libraries of the RTI, when it has any (see the RTI's documentation)
+#Environment=LD_LIBRARY_PATH=/opt/anrti/lib
+
 Restart=on-failure
-# 143 = stopped by systemd (SIGTERM): a normal stop
+RestartSec=5
+# 143 = stopped by systemd (SIGTERM): a normal stop. The server resigns from its federations and
+# sends what is left of its log first, so give it time.
 SuccessExitStatus=143
+TimeoutStopSec=30
+
+# Many gateways, datasources and J2J links mean many sockets
+LimitNOFILE=65536
+# Files the server writes (logs, API tokens) are not for other users
+UMask=0027
+
+# Hardening: the server writes only below its installation folder (logs, etc/auth, map tiles)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+# J2J's last resort on port 443 (j2j.fallback.port) needs the right to bind a port below 1024:
+#AmbientCapabilities=CAP_NET_BIND_SERVICE
+#CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target

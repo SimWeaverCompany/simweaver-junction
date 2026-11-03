@@ -36,6 +36,9 @@ public final class ConsoleTee {
 
     private static volatile Runnable closer;
 
+    /** The sink of System.out's log file while installed (0.11.5: {@link #logOnly}). */
+    private static volatile LineSink outLog;
+
     /**
      * @param dir       directory the logs are written to (created if missing)
      * @param baseName  file name stem, e.g. "bridgeservice"
@@ -65,8 +68,10 @@ public final class ConsoleTee {
         PrintStream teeErr = tee(originalErr, errSink);
         System.setOut(teeOut);
         System.setErr(teeErr);
+        outLog = outSink;
 
         closer = () -> {
+            outLog = null;
             close(teeOut);       // flushes any unterminated partial line
             close(teeErr);
             System.setOut(originalOut);
@@ -77,6 +82,26 @@ public final class ConsoleTee {
         if (closeOnShutdown) {
             Runtime.getRuntime().addShutdownHook(new Thread(ConsoleTee::close, "console-tee-shutdown"));
         }
+    }
+
+    /**
+     * Writes a line to the log file of System.out only, not to the console (0.11.5): details that
+     * belong in the log but would clutter the console, e.g. every map layer read at start-up.
+     * Without the tee installed (tests, tools) the line goes to System.out as before.
+     */
+    public static void logOnly(String line) {
+        LineSink sink = outLog;
+        if (sink != null) {
+            System.out.flush();
+            sink.accept(line);
+        } else {
+            System.out.println(line);
+        }
+    }
+
+    /** @return true while System.out / System.err are mirrored to log files */
+    public static boolean isInstalled() {
+        return outLog != null;
     }
 
     /** Writes the last partial lines and closes the files; the console keeps working. */

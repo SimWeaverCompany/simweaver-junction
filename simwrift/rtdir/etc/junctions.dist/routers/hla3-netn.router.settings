@@ -1,0 +1,15 @@
+# Router kit HLA3-NETN: everything both sides have, like HLA3-all, plus the NETN properties that
+# RPR objects lack (0.12.0). An object bridged from an endpoint whose FOM lacks them (RPR, DIS)
+# into a NETN endpoint gets a UniqueId and a Callsign there; objects from a NETN endpoint keep
+# their own.
+router.kind=iem
+router.objects.allow=*
+router.interactions.allow=*
+router.netn.enabled=true
+# UniqueId (NETN-BASE): stable (from the gateway, the origin endpoint and the object's name; the
+# same after a reconnect or a restart), random (new for each bridged object) or off
+router.netn.uniqueid=stable
+# Callsign (NETN-ENTITY): the RPR Marking (AggregateMarking for aggregates) when it is set, or off
+router.netn.callsign=marking
+# which objects get them; class patterns as router.objects.allow, e.g. BaseEntity.* for entities only
+router.netn.classes=*

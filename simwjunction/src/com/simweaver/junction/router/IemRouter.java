@@ -140,6 +140,10 @@ public final class IemRouter implements Router {
         /** The router stops (endpoints are still open). */
         default void stopping() {
         }
+
+        /** Adds the extension's counters to the router's {@code objects} JSON (any thread; 0.12.0). */
+        default void describe(Map<String, Object> into) {
+        }
     }
 
     /** No extension. */
@@ -267,6 +271,32 @@ public final class IemRouter implements Router {
         d.updateObject(p.key, attributes, values, null);
         stats.updatesRouted.incrementAndGet();
         return true;
+    }
+
+    /**
+     * For extensions (dispatcher thread): the class that objects of {@code originClass} from
+     * {@code origin} get in {@code d} (the route's destination class), or -1 when they are not
+     * routed there. Known before any copy exists (0.12.0).
+     */
+    public int routedClass(Endpoint origin, int originClass, Endpoint d) {
+        RouteTable t = table(origin, d);
+        ClassRoute cr = t == null ? null : t.objectRoute(originClass);
+        return cr == null ? -1 : cr.destinationClass;
+    }
+
+    /**
+     * For extensions (dispatcher thread): the GUID of a bridged object, the one of the
+     * {@code {guid}} copy-name token: from this gateway, the origin endpoint and the object's name,
+     * so the same object gets the same GUID after a reconnect or a restart (0.12.0). Null for an
+     * object the router does not bridge.
+     */
+    public java.util.UUID objectGuid(Endpoint origin, long originKey) {
+        Map<Long, GwObject> mine = byOrigin.get(origin);
+        GwObject g = mine == null ? null : mine.get(originKey);
+        if (g == null) {
+            return null;
+        }
+        return guidOf(g, g.originName.isEmpty() ? g.origin.id() + "-" + g.id : g.originName);
     }
 
     private Proxy liveProxy(Endpoint origin, long originKey, Endpoint d) {
@@ -950,8 +980,16 @@ public final class IemRouter implements Router {
 
     @Override
     public Json.Writable objects() {
-        return () -> Json.object().put("bridged", bridged.get()).put("copies", proxiesLive.get())
-                .put("pending", proxiesPending.get()).put("failed", proxiesFailed.get());
+        return () -> {
+            Json.JsonObject o = Json.object().put("bridged", bridged.get()).put("copies", proxiesLive.get())
+                    .put("pending", proxiesPending.get()).put("failed", proxiesFailed.get());
+            Map<String, Object> more = new LinkedHashMap<String, Object>();
+            ext.describe(more);
+            for (Map.Entry<String, Object> e : more.entrySet()) {
+                o.put(e.getKey(), e.getValue());
+            }
+            return o;
+        };
     }
 
     /** @return the route tables, for tests */

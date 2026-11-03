@@ -15,17 +15,23 @@ import java.util.logging.Logger;
  * <p>Each RTI-based probe is created in its own nested holder class. The JVM loads (and
  * verifies) a holder only when it is first used, inside the try below, so this factory itself
  * never needs the RTI classes - also not for {@link #createDis6} etc.
+ *
+ * <p>0.11.5: one probe per standard and LSD, shared. Before, every configuration object had a
+ * probe of its own, connected when it was made - and the configurations in etc/datasources are
+ * made again on every listing, so each listing opened new RTI connections (never closed) and, with
+ * no RTI reachable, printed two lines per configuration. The probes connect on first use.
  */
 public class FederationProbeFactory {
 
     private static final Logger LOG = Logger.getLogger(FederationProbeFactory.class.getName());
     private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
+    private static final java.util.Map<String, FederationProbe> PROBES = new ConcurrentHashMap<>();
 
     /** HLA 1516-2010 probe, or null when the hla.rti1516e library is not on the class path. */
     public static FederationProbe createHla3(String lsd) {
         if (!RtiAvailability.HLA_EVOLVED) return unavailable("IEEE 1516-2010", "hla.rti1516e", null);
         try {
-            return Hla3.create(lsd);
+            return PROBES.computeIfAbsent("1516-2010|" + key(lsd), k -> Hla3.create(key(lsd)));
         } catch (LinkageError e) {                  // API present, but the RTI library is incomplete
             return unavailable("IEEE 1516-2010", "hla.rti1516e", e);
         }
@@ -35,7 +41,7 @@ public class FederationProbeFactory {
     public static FederationProbe createHla4(String lsd) {
         if (!RtiAvailability.HLA_4) return unavailable("IEEE 1516-2025", "hla.rti1516_2025", null);
         try {
-            return Hla4.create(lsd);
+            return PROBES.computeIfAbsent("1516-2025|" + key(lsd), k -> Hla4.create(key(lsd)));
         } catch (LinkageError e) {
             return unavailable("IEEE 1516-2025", "hla.rti1516_2025", e);
         }
@@ -56,6 +62,10 @@ public class FederationProbeFactory {
 
     public static FederationProbe createMisc(String config) {
         return null;
+    }
+
+    private static String key(String lsd) {
+        return lsd == null ? "" : lsd.trim();
     }
 
     private static FederationProbe unavailable(String standard, String api, LinkageError cause) {

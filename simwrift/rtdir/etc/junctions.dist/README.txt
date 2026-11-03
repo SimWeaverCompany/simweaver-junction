@@ -15,11 +15,13 @@ this folder has the rest too:
   talk-talk-lobby-only.junction.settings         two Talk federations, the lobby only
   talk-talk-dis7-radio.junction.settings         two Talk federations, two channels on DIS radio
   hla3-hla3-two-rtis.junction.settings           two RTI versions in one process
+  hla3-hla3-rpr2-netn.junction.settings          RPR v2 objects into NETN, with UniqueId and Callsign (0.12.0)
   dis7-j2j.junction.settings                     a DIS 7 network shared through a J2J session (0.10.0)
   hla3-j2j.junction.settings                     an RPR v2 federation shared through a J2J session (0.10.0)
 
 and the kits only they use: endpoints/hla3-rpr2-own-rti, endpoints/hla4-fedpro-rpr2,
-endpoints/j2j-pdu, endpoints/j2j-rpr2 and routers/talk-full.
+endpoints/j2j-pdu, endpoints/j2j-rpr2, endpoints/hla3-netn, routers/talk-full and
+routers/hla3-netn.
 
 The server never reads this folder. Only etc/junctions is used.
 

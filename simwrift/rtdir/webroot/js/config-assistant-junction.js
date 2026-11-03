@@ -60,7 +60,7 @@
 		{ source: 'endpoints/talk.endpoint.settings', name: 'Talk', standard: 'talk', target: 'Talk',
 			sets: [['FOM', 'from the running Talk federation'], ['RTI', 'the RTI on Rift\'s class path']] },
 		{ source: 'endpoints/hla3-rpr2-own-rti.endpoint.settings', name: 'HLA3-RPR2-own-RTI', standard: 'ieee1516-2010', target: 'Red',
-			sets: [['FOM', RPR2_FILE], ['RTI', 'its own library lib/rti/prti6/prti1516e.jar, CRC localhost:8989'],
+			sets: [['FOM', RPR2_FILE], ['RTI', 'its own library lib/rti/anrti/hlaimpl.jar (a placeholder path)'],
 				['Use', 'bridges a second RTI or RTI version in one gateway'], DIST_ONLY] },
 		{ source: 'endpoints/hla4-fedpro-rpr2.endpoint.settings', name: 'HLA4-FedPro-RPR2', standard: 'ieee1516-2025-fedpro', target: 'Remote',
 			sets: [['FOM', RPR2_HLA4_FILE], ['RTI', 'FedPro client lib/rti/fedpro/fedpro-client.jar'],
@@ -202,6 +202,7 @@
 		var r = {
 			kind: 'iem', src: 'kit', kit: 'routers/hla3-all.router.settings', extra: '',
 			preset: 'all', oa: '*', ob: '', ia: '*', ib: '', names: 'same-or-suffix', prefix: '', promote: true, del: true, queue: '50000', mapping: '',
+			netn: 'off', netnUid: 'stable', netnClasses: '',
 			mode: 'full', msgs: { audio: true, radio: true, text: true, image: true }, track: true, match: 'name', channels: '*', mirror: true, create: false,
 			cmap: [], umap: [], radio: false, radioEp: '', rmap: [{ ch: '', mhz: '' }], entityid: '900-99-1',
 			sr: '16000', order: 'little', enc: 'pcm16be', rprsr: '', hang: '500', pduTypes: '',
@@ -243,10 +244,10 @@
 			return newGateway({ name: 'HLA 3 - HLA 4', eps: [
 				newEndpoint({ id: 'hla3', kit: 'endpoints/hla3-rpr2.endpoint.settings', target: 'Blue' }),
 				newEndpoint({ id: 'hla4', kit: 'endpoints/hla4-rpr2.endpoint.settings', target: 'Green' })] }); } },
-		{ t: 'Two RTI versions', s: 'E.g. pRTI 5 (class path) and pRTI 6 (own library) in one gateway.', g: function () {
-			return newGateway({ name: 'pRTI 5 - pRTI 6', eps: [
-				newEndpoint({ id: 'prti5', kit: 'endpoints/hla3-rpr2.endpoint.settings', target: 'Blue' }),
-				newEndpoint({ id: 'prti6', kit: 'endpoints/hla3-rpr2-own-rti.endpoint.settings', target: 'Red' })] }); } },
+		{ t: 'Two RTI versions', s: 'E.g. one RTI version on the class path and another from its own library, in one gateway.', g: function () {
+			return newGateway({ name: 'RTI A - RTI B', eps: [
+				newEndpoint({ id: 'rti-a', kit: 'endpoints/hla3-rpr2.endpoint.settings', target: 'Blue' }),
+				newEndpoint({ id: 'rti-b', kit: 'endpoints/hla3-rpr2-own-rti.endpoint.settings', target: 'Red' })] }); } },
 		{ t: 'RPR v2 ⇄ RPR v3', s: 'Converts between the RPR FOM v2.0 and v3.0.', g: function () {
 			return newGateway({ name: 'RPR v2 - RPR v3', eps: [
 				newEndpoint({ id: 'v2', kit: 'endpoints/hla3-rpr2.endpoint.settings', target: 'Blue' }),
@@ -559,7 +560,7 @@
 				ca.field('Display name', ca.input(ep, 'name', { placeholder: k ? k.name : '' }), null, { opt: true })
 			]));
 			card.appendChild(ca.more('More: change other kit settings for this gateway only, class filters', [
-				ca.grid([ca.field('Other settings', ca.area(ep, 'extra', { rows: 3, placeholder: fam === 'dis' ? 'dis.port=3001\ndis.sendaddress=192.168.1.255' : 'hla.lsd=crcAddress=rti-host:8989\nhla.rtijar=lib/rti/other/prti1516e.jar' }),
+				ca.grid([ca.field('Other settings', ca.area(ep, 'extra', { rows: 3, placeholder: fam === 'dis' ? 'dis.port=3001\ndis.sendaddress=192.168.1.255' : 'hla.lsd=<local settings designator>\nhla.rtijar=lib/rti/anrti/hlaimpl.jar' }),
 					ca.rich('One `key=value` per line, keys as in the kit without `endpoint.` (e.g. `hla.lsd`). They override the kit for this gateway only.'), { wide: true })]),
 				filterBlock(ep)
 			]));
@@ -607,16 +608,16 @@
 				: ca.seg(ep, 'rti', [{ v: 'classpath', l: 'Rift\'s class path' }, { v: 'jar', l: 'Its own library' }]),
 				ep.rti === 'jar' || fedpro ? 'Loaded in isolation: one gateway can join federations of two different RTIs or RTI versions.'
 					: 'The RTI that Rift itself runs with (RTI_JAR in the start script).', { wide: true }),
-			ep.rti !== 'jar' && !fedpro ? ca.field('Local settings designator', ca.input(ep, 'lsd', { placeholder: 'e.g. crcAddress=localhost:8989 (empty: the RTI\'s default)' }),
-				'Passed to the RTI\'s connect(). Pitch pRTI: crcAddress=host:port.', { opt: true }) : null,
-			ep.rti === 'jar' || fedpro ? ca.field('Library jar(s)', ca.input(ep, 'rtijar', { placeholder: fedpro ? 'lib/rti/fedpro/fedpro-client.jar' : 'lib/rti/prti6/prti1516e.jar',
+			ep.rti !== 'jar' && !fedpro ? ca.field('Local settings designator', ca.input(ep, 'lsd', { placeholder: 'in the RTI\'s own syntax (empty: the RTI\'s default)' }),
+				'Passed to the RTI\'s connect(), in the RTI\'s own syntax.', { opt: true }) : null,
+			ep.rti === 'jar' || fedpro ? ca.field('Library jar(s)', ca.input(ep, 'rtijar', { placeholder: fedpro ? 'lib/rti/fedpro/fedpro-client.jar' : 'lib/rti/anrti/hlaimpl.jar',
 				validate: function (v) { return v.trim() ? null : 'Give the jar'; } }),
 				'Relative to Rift\'s folder; several separated by ;. The jar\'s manifest Class-Path is followed.', { req: true }) : null,
 			ep.rti === 'jar' || fedpro ? ca.field(fedpro ? 'Federate Protocol server' : 'RTI address', ca.input(ep, 'rtiaddress', {
 				placeholder: fedpro ? 'host:15164' : 'empty: from the settings below',
 				validate: function (v) { return fedpro && !v.trim() ? 'The server address is needed' : null; } }),
 				fedpro ? 'host:port of the FedPro server (the RtiConfiguration rtiAddress).' : 'For HLA 4 libraries: the RtiConfiguration rtiAddress.', { req: fedpro }) : null,
-			ep.rti === 'jar' || fedpro ? ca.field('Connect settings', ca.area(ep, 'rtisettings', { rows: 2, placeholder: fedpro ? 'vendor settings, one per line' : 'crcAddress=localhost:8989' }),
+			ep.rti === 'jar' || fedpro ? ca.field('Connect settings', ca.area(ep, 'rtisettings', { rows: 2, placeholder: fedpro ? 'vendor settings, one per line' : 'vendor settings, one per line' }),
 				'Replace the LSD for this library (one per line).', { opt: true }) : null
 		]));
 		card.appendChild(ca.more('More: federate name and type, create / destroy, reconnect', [ca.grid([
@@ -712,6 +713,7 @@
 
 	function routerCard(g, server) {
 		var rt = g.rt;
+		if (!rt.netn) { rt.netn = 'off'; rt.netnUid = 'stable'; rt.netnClasses = ''; }        // a state saved before 0.12.0
 		var kind = routerKind(rt, server);
 		var card = el('div.ca-card.router', { id: 'ca-box-rt' });
 		var talkEps = g.eps.filter(function (e) { return famOf(e, server) === 'talk'; });
@@ -810,7 +812,15 @@
 			ca.field('Options', el('div.ca-checks', null, [
 				ca.check(rt, 'promote', 'Send a class the other side lacks as its nearest superclass'),
 				ca.check(rt, 'del', 'Delete the copies when the gateway stops')
-			]), null, { wide: true })
+			]), null, { wide: true }),
+			// 0.12.0: router.netn.*
+			ca.field('NETN properties', ca.seg(rt, 'netn', [
+				{ v: 'off', l: 'Off' }, { v: 'both', l: 'UniqueId + Callsign' }, { v: 'uniqueid', l: 'UniqueId only' }, { v: 'callsign', l: 'Callsign only' }
+			]), 'For objects from an RPR or DIS endpoint going into a NETN endpoint: a UniqueId (UUID) and the Marking as Callsign there. Objects from a NETN endpoint keep their own.', { wide: true }),
+			rt.netn !== 'off' && rt.netn !== 'callsign' ? ca.field('UniqueId', ca.seg(rt, 'netnUid', [
+				{ v: 'stable', l: 'Stable' }, { v: 'random', l: 'Random' }
+			]), 'Stable: the same UUID for the same object after a reconnect or a restart (from the gateway, the endpoint and the object name). Random: a new one each time.') : null,
+			rt.netn !== 'off' ? ca.field('For classes', ca.input(rt, 'netnClasses', { placeholder: '* (all objects); BaseEntity.* = entities only' }), null, { opt: true }) : null
 		]));
 		card.appendChild(ca.more('More: queue, RPR conversion table', [ca.grid([
 			ca.field('Queue capacity', ca.input(rt, 'queue', { numeric: true }), 'Events waiting for the router. Updates are dropped (and counted) when full.'),
@@ -1025,6 +1035,12 @@
 			if (rt.names !== 'same-or-suffix') { put('router.names.policy', rt.names === 'prefix' ? 'prefix:' + rt.prefix : rt.names, 'names of the copies'); }
 			if (!rt.promote) { put('router.promote', 'false'); }
 			if (!rt.del) { put('router.deleteobjectsonstop', 'false'); }
+			if (rt.netn && rt.netn !== 'off') {
+				put('router.netn.enabled', 'true', 'NETN UniqueId / Callsign for objects from RPR / DIS endpoints');
+				put('router.netn.uniqueid', rt.netn === 'callsign' ? 'off' : rt.netnUid || 'stable');
+				put('router.netn.callsign', rt.netn === 'uniqueid' ? 'off' : 'marking');
+				if (String(rt.netnClasses || '').trim()) { put('router.netn.classes', String(rt.netnClasses).trim()); }
+			}
 			if (String(rt.queue).trim() && String(rt.queue).trim() !== '50000') { put('router.queue.capacity', String(rt.queue).trim()); }
 			if (rt.mapping.trim()) { put('router.rpr.mapping', rt.mapping.trim()); }
 		} else {
@@ -1338,7 +1354,7 @@
 
 		steps.push('Put each file on the server at the path shown, relative to Rift\'s installation folder (`' + ((server && server.junctionDir) || 'etc/junctions') + '` is the gateway folder).');
 		steps.push('Open **Junction gateways** and press **Reload**: no restart needed. **Compatibility** on a gateway card shows what will pass between its endpoints, without connecting.');
-		if (st.gws.some(function (g) { return g.eps.some(function (e) { return e.src === 'new' && (e.rti === 'jar' || e.standard === 'ieee1516-2025-fedpro'); }) || g.eps.some(function (e) { return e.src === 'kit' && /prti6|fedpro/.test(e.kit); }); })) {
+		if (st.gws.some(function (g) { return g.eps.some(function (e) { return e.src === 'new' && (e.rti === 'jar' || e.standard === 'ieee1516-2025-fedpro'); }) || g.eps.some(function (e) { return e.src === 'kit' && /own-rti|fedpro/.test(e.kit); }); })) {
 			steps.push('Copy the RTI libraries the endpoints name (e.g. `lib/rti/...`) to the server. A missing one shows as **RTI MISSING** on the page.');
 		}
 		var gname = st.group.name.trim();

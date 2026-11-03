@@ -95,7 +95,7 @@
 			name: '', file: '', fileAuto: true,
 			standard: 'ieee1516-2010',
 			foms: 'RPR_FOM_v2.0_Link16_1516-2010.xml',
-			lsdMode: 'crc', crcHost: 'localhost', crcPort: '8989', lsd: '',
+			lsdMode: 'empty', crcHost: 'localhost', crcPort: '8989', lsd: '',
 			federation: '', fedType: '', reconnect: true, reconnectSecs: '5', fomRoot: '',
 			disIf: 'all', disAddr: '', disGroup: '239.1.2.3', disNic: '',
 			disPort: '3000', disExid: '1', disTimeout: '13', cdisTimeout: '2.4'
@@ -119,7 +119,7 @@
 	};
 
 	var SCENARIOS = [
-		{ t: 'HLA Evolved federation', s: 'IEEE 1516-2010 with the RPR FOM v2.0, e.g. on Pitch pRTI.',
+		{ t: 'HLA Evolved federation', s: 'IEEE 1516-2010 with the RPR FOM v2.0.',
 			d: { name: 'HLA Evolved RPR', standard: 'ieee1516-2010', foms: 'RPR_FOM_v2.0_Link16_1516-2010.xml', federation: 'Blue' } },
 		{ t: 'HLA 4 federation', s: 'IEEE 1516-2025 with the RPR FOM v2.0 modules.',
 			d: { name: 'HLA 4 RPR', standard: 'ieee1516-2025', foms: ca.RPR2_2025_CORE, lsdMode: 'empty', federation: 'Green' } },
@@ -287,11 +287,11 @@
 				ca.field(hla4 ? 'RTI configuration' : 'Local settings designator', ca.seg(d, 'lsdMode', hla4 ? [
 					{ v: 'empty', l: 'RTI default' }, { v: 'custom', l: 'Configuration name' }
 				] : [
-					{ v: 'crc', l: 'CRC address (Pitch)' }, { v: 'empty', l: 'RTI default' }, { v: 'default', l: '"default"' }, { v: 'custom', l: 'Custom text' }
+					{ v: 'empty', l: 'RTI default' }, { v: 'crc', l: 'crcAddress=host:port' }, { v: 'default', l: '"default"' }, { v: 'custom', l: 'Custom text' }
 				]), hla4 ? 'HLA 4: the name of an RTI configuration, passed to connect(). Empty: the RTI\'s own default.'
-					: 'Passed to the RTI in connect(). Pitch pRTI takes crcAddress=host:port; other RTIs have their own syntax.', { wide: true }),
+					: 'Passed to the RTI in connect(), in the RTI\'s own syntax: see its documentation. crcAddress=host:port is a common form.', { wide: true }),
 				d.lsdMode === 'crc' && !hla4 ? ca.field('CRC host', ca.input(d, 'crcHost', { placeholder: 'localhost' })) : null,
-				d.lsdMode === 'crc' && !hla4 ? ca.field('CRC port', ca.input(d, 'crcPort', { numeric: true, validate: portCheck }), 'pRTI\'s default is 8989.') : null,
+				d.lsdMode === 'crc' && !hla4 ? ca.field('CRC port', ca.input(d, 'crcPort', { numeric: true, validate: portCheck }), 'The RTI\'s CRC or central server port.') : null,
 				d.lsdMode === 'custom' ? ca.field(hla4 ? 'Configuration name' : 'Designator', ca.input(d, 'lsd', { placeholder: hla4 ? 'e.g. MyRtiConfig' : 'vendor text' })) : null
 			]));
 			body.push(ca.more('More: federate type, reconnect, FOM folder', [ca.grid([
@@ -313,7 +313,7 @@
 			case 'dis7': return 'No RTI needed. Receives DIS 6 and 7.';
 			case 'dis6': return 'No RTI needed. Receives DIS 5 and 6.';
 			case 'cdis': return 'No RTI needed. Receives C-DIS (full and partial updates) and decodes it to DIS 7.';
-			default: return 'Needs an HLA Evolved RTI library on Rift\'s class path (RTI_JAR), e.g. prti1516e.jar.';
+			default: return 'Needs an HLA Evolved RTI library on Rift\'s class path (RTI_JAR).';
 		}
 	}
 

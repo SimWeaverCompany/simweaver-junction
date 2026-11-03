@@ -51,6 +51,8 @@ public class DatasourceManager implements DataSourceCallbackSink {
     // NEW: live updates per datasource, and the state shown in the page header
     private final RiftListProfiles listProfiles;
     private final Map<UUID, RiftEventPublisher> publishers = new ConcurrentHashMap<>();
+    /** 0.12.0: the Comms view of each datasource */
+    private final Map<UUID, com.simweaver.rift.comms.CommsTracker> comms = new ConcurrentHashMap<>();
     private final Map<UUID, String[]> states = new ConcurrentHashMap<>();  // {state, statemessage}
     // 0.9.22: {configuration name, federation or ""} per datasource, for the log events
     private final Map<UUID, String[]> labels = new ConcurrentHashMap<>();
@@ -273,6 +275,11 @@ public class DatasourceManager implements DataSourceCallbackSink {
                 db.resolver(), listProfiles);
         db.addListener(new RiftPublisherListener(publisher));
         publishers.put(dataSource.getId(), publisher);
+        // 0.12.0: the Comms view (Talk channels, radio frequencies, chat, audio)
+        com.simweaver.rift.comms.CommsTracker tracker = new com.simweaver.rift.comms.CommsTracker(db, dataSource.getId().toString(),
+                eventHub, commsSettings(config));
+        db.addListener(tracker);
+        comms.put(dataSource.getId(), tracker);
         setState(dataSource.getId(), "JOINING", null);
 
         OpResult result = dataSource.connectJoinSub();
@@ -369,8 +376,28 @@ public class DatasourceManager implements DataSourceCallbackSink {
         if (publisher != null) publisher.stateChanged(state, message);
     }
 
+    /** 0.12.0: the Comms view of a datasource, or null. */
+    public com.simweaver.rift.comms.CommsTracker getComms(UUID datasourceId) {
+        return datasourceId == null ? null : comms.get(datasourceId);
+    }
+
+    /** {@code datasource.talk.samplerate} (16000) and {@code datasource.talk.pcmbyteorder} (little) of a configuration. */
+    static com.simweaver.rift.comms.CommsTracker.Settings commsSettings(DatasourceConfig config) {
+        com.simweaver.common.config.SimwProperties p = config.getDatasourceProps();
+        if (p == null) {
+            return com.simweaver.rift.comms.CommsTracker.Settings.defaults();
+        }
+        int rate = p.getInt("datasource.talk.samplerate", 16000);
+        String order = p.getString("datasource.talk.pcmbyteorder", "little").trim().toLowerCase(java.util.Locale.ROOT);
+        return new com.simweaver.rift.comms.CommsTracker.Settings(rate, !order.startsWith("big"));
+    }
+
     /** Forgets a datasource's publisher and state, and stops its database (not on the caller's thread). */
     private void discard(UUID datasourceId, RiftDatabase db) {
+        com.simweaver.rift.comms.CommsTracker tracker = comms.remove(datasourceId);
+        if (tracker != null) {
+            tracker.closeAll();
+        }
         publishers.remove(datasourceId);
         states.remove(datasourceId);
         if (db != null) {

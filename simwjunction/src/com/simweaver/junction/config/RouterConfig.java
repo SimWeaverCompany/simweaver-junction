@@ -83,6 +83,8 @@ public final class RouterConfig implements Json.Writable {
     private final String raw;
     // pdu relay
     private final List<Integer> pduTypes;
+    // 0.12.0: NETN properties for objects from non-NETN endpoints
+    private final Netn netn;
 
     /**
      * @param id      kit id, or the gateway id for an inline router
@@ -208,6 +210,8 @@ public final class RouterConfig implements Json.Writable {
         for (String e : verr) {
             errors.add("router " + id + ": " + e);
         }
+
+        this.netn = new Netn(p, id, errors);
 
         this.talkMatch = p.getString("talk.match", "name").trim().toLowerCase(Locale.ROOT);
         List<String> ch = new ArrayList<String>();
@@ -579,6 +583,109 @@ public final class RouterConfig implements Json.Writable {
         return raw;
     }
 
+    /** @return the NETN properties feature ({@code router.netn.*}, 0.12.0) */
+    public Netn getNetn() {
+        return netn;
+    }
+
+    /**
+     * {@code router.netn.*} (0.12.0): NETN properties for objects routed from an endpoint whose
+     * model lacks them into one whose model has them (NETN-BASE {@code UniqueId}, NETN-ENTITY
+     * {@code Callsign}). Off unless {@code router.netn.enabled=true}.
+     */
+    public static final class Netn implements Json.Writable {
+
+        /** How a UniqueId is made. */
+        public enum UniqueIdMode { STABLE, RANDOM, OFF }
+
+        private final boolean enabled;
+        private final UniqueIdMode uniqueIdMode;
+        private final boolean callsign;
+        private final List<String> classes;
+
+        Netn(SimwProperties p, String id, List<String> errors) {
+            this.enabled = p.getBoolean("router.netn.enabled", false);
+            String u = p.getString("router.netn.uniqueid", "stable").trim().toLowerCase(Locale.ROOT);
+            UniqueIdMode m;
+            switch (u) {
+                case "stable":
+                case "":
+                    m = UniqueIdMode.STABLE;
+                    break;
+                case "random":
+                    m = UniqueIdMode.RANDOM;
+                    break;
+                case "off":
+                case "none":
+                case "false":
+                    m = UniqueIdMode.OFF;
+                    break;
+                default:
+                    errors.add("router " + id + ": router.netn.uniqueid: '" + u + "' is not stable, random or off");
+                    m = UniqueIdMode.STABLE;
+            }
+            this.uniqueIdMode = m;
+            String c = p.getString("router.netn.callsign", "marking").trim().toLowerCase(Locale.ROOT);
+            switch (c) {
+                case "marking":
+                case "":
+                case "true":
+                    this.callsign = true;
+                    break;
+                case "off":
+                case "none":
+                case "false":
+                    this.callsign = false;
+                    break;
+                default:
+                    errors.add("router " + id + ": router.netn.callsign: '" + c + "' is not marking or off");
+                    this.callsign = true;
+            }
+            List<String> cl = new ArrayList<String>();
+            for (String x : p.getStringArray("router.netn.classes")) {
+                if (!x.trim().isEmpty()) cl.add(x.trim());
+            }
+            if (cl.isEmpty()) cl.add("*");
+            this.classes = Collections.unmodifiableList(cl);
+        }
+
+        /** Off: everything at its default (for tests and other routers). */
+        public static Netn off() {
+            return new Netn(new SimwProperties(), "", new ArrayList<String>());
+        }
+
+        public boolean isEnabled() {
+            return enabled && (isUniqueId() || callsign);
+        }
+
+        public UniqueIdMode getUniqueIdMode() {
+            return uniqueIdMode;
+        }
+
+        public boolean isUniqueId() {
+            return uniqueIdMode != UniqueIdMode.OFF;
+        }
+
+        public boolean isCallsign() {
+            return callsign;
+        }
+
+        /** @return the class patterns of {@code router.netn.classes} (default {@code *}) */
+        public List<String> getClasses() {
+            return classes;
+        }
+
+        @Override
+        public Object toJson() {
+            Json.JsonObject o = Json.object();
+            o.put("enabled", enabled);
+            o.put("uniqueid", uniqueIdMode.name().toLowerCase(Locale.ROOT));
+            o.put("callsign", callsign ? "marking" : "off");
+            o.put("classes", classes);
+            return o;
+        }
+    }
+
     @Override
     public Object toJson() {
         Json.JsonObject o = Json.object();
@@ -596,6 +703,9 @@ public final class RouterConfig implements Json.Writable {
             o.put("namemaxlengths", new LinkedHashMap<String, Object>(nameMaxLengths));
         }
         o.put("valuemap", valueRules);
+        if (kind == Kind.IEM) {
+            o.put("netn", netn);
+        }
         if (kind != Kind.PDU) {
             o.put("provideforward", provideForward);
             o.put("provideforwardintervalms", provideForwardIntervalMillis);

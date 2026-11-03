@@ -194,7 +194,8 @@ public final class MapService {
             CompletableFuture<VectorOverlay> load = CompletableFuture.supplyAsync(() -> {
                 try {
                     VectorOverlay o = VectorOverlay.load(fid, src, style);
-                    System.out.println("Map overlay:   " + o);
+                    // 0.11.5: the details go to the log file only; problems also to the console
+                    com.simweaver.common.logging.ConsoleTee.logOnly("Map overlay:   " + o);
                     for (String w : o.warnings) {
                         System.out.println("Map overlay:   " + fid + ": " + w);
                     }
@@ -362,11 +363,53 @@ public final class MapService {
         return enabled;
     }
 
-    /** For the server log. */
+    /** For the server log: {@link #details()}, then {@link #problems()}. */
     public List<String> describe() {
+        if (!enabled) {
+            return new ArrayList<>(java.util.Collections.singletonList(summary()));
+        }
+        List<String> l = details();
+        l.addAll(problems());
+        return l;
+    }
+
+    /**
+     * 0.11.5: one line for the console at start-up, e.g. {@code 2 background maps (default X),
+     * 8 overlays loading}; the layers themselves are in the log file ({@link #details()}).
+     */
+    public String summary() {
+        if (!enabled) {
+            return "off (map.enabled=false)";
+        }
+        StringBuilder b = new StringBuilder();
+        if (maps.isEmpty()) {
+            b.append("no background map");
+        } else {
+            b.append(maps.size()).append(maps.size() == 1 ? " background map" : " background maps");
+            if (maps.size() > 1) {
+                b.append(" (default ").append(defaultMapId()).append(')');
+            }
+        }
+        if (!overlays.isEmpty()) {
+            b.append(", ").append(overlays.size()).append(overlays.size() == 1 ? " overlay" : " overlays").append(" loading");
+        }
+        if (!maps.isEmpty() || !overlays.isEmpty()) {
+            b.append("; the layers are listed in the log file");
+        }
+        return b.toString();
+    }
+
+    /** 0.11.5: what is wrong (a missing map folder, a raster that cannot be read, a bad default …). */
+    public List<String> problems() {
+        synchronized (problems) {
+            return new ArrayList<>(problems);
+        }
+    }
+
+    /** 0.11.5: every background map and overlay, one line each (for the log file). */
+    public List<String> details() {
         List<String> l = new ArrayList<>();
         if (!enabled) {
-            l.add("off (map.enabled=false)");
             return l;
         }
         String def = defaultMapId();
@@ -376,9 +419,6 @@ public final class MapService {
         }
         for (OverlayEntry o : overlays.values()) {
             l.add("overlay " + o.id + ": " + o.source.name() + " (loading)");
-        }
-        synchronized (problems) {
-            l.addAll(problems);
         }
         return l;
     }

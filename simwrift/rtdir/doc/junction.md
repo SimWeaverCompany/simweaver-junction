@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.11.4. Java 11, no libraries apart from the HLA RTIs.
+Version 0.12.1. Java 11, no libraries apart from the HLA RTIs.
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -100,7 +100,7 @@ Only in `etc/junctions.dist`. Copy one (and any kit it needs) to `etc/junctions`
 | Exercise: HLA3<->DIS7, Exercise: Talk<->Talk | `exercise-hla3-dis7.junction.settings`, `exercise-talk-talk.junction.settings` | A group (`Exercise`) with group variables and their descriptions (section 7) |
 | Talk<->Talk lobby only | `talk-talk-lobby-only.junction.settings` | Talk (two sites) · Talk-Lobby-Only |
 | Talk<->Talk + DIS7 radio | `talk-talk-dis7-radio.junction.settings` | Talk (two sites) + DIS7 · Talk-Full with the radio bridge |
-| HLA3<->HLA3 two RTIs | `hla3-hla3-two-rtis.junction.settings` | HLA3-RPR2 + HLA3-RPR2-own-RTI (pRTI 6 from its own jar) · HLA3-all |
+| HLA3<->HLA3 two RTIs | `hla3-hla3-two-rtis.junction.settings` | HLA3-RPR2 + HLA3-RPR2-own-RTI (a second RTI from its own jar) · HLA3-all |
 
 The kits, in both folders (the last three in `junctions.dist` only):
 
@@ -113,7 +113,7 @@ The kits, in both folders (the last three in `junctions.dist` only):
 | `dis6`, `dis7` | DIS 6 / DIS 7 on UDP port 3000 | `talk-messages` | Talk messages only, channels by name |
 | `cdis` | C-DIS on UDP port 3100, full updates | `pdu-relay` | DIS PDUs as they are, between DIS 6, DIS 7 and C-DIS |
 | `talk` | A Talk federation, its FOM from the running federation (section 6) | `talk-lobby-only` | Talk messages in the lobby only |
-| `hla3-rpr2-own-rti` | HLA Evolved on its own RTI jar (pRTI 6) | `talk-full` | Talk full mode: clients mirrored |
+| `hla3-rpr2-own-rti` | HLA Evolved on its own RTI jar | `talk-full` | Talk full mode: clients mirrored |
 | `hla4-fedpro-rpr2` | HLA 4 over the Federate Protocol | | |
 
 **`RPR_FOM_v2.0_Link16_1516-2025.xml`** (in `etc/fom/ieee1516-2025`) is the 1516-2010 RPR FOM v2.0 with Link 16, converted to the 1516-2025 format: the namespace, `copyright` in the identification, `valueRequired` on every attribute, `noteReferences` for `notes`, and without the `conveyProducingFederate` switch and the empty `dimensions`, `transportations` and `updateRates` sections. Compared with the HLA 4 RPR v2 modules, every attribute, parameter, datatype, class and note they have in common is the same; the Link 16 classes and datatypes come on top.
@@ -203,7 +203,7 @@ endpoint.hla.lsd=default
 
 An HLA endpoint (`ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`) with `endpoint.hla.foms=dynamic` brings no FOM of its own. It joins without FOM modules and reads the federation's current FDD from the MOM: attribute `HLAcurrentFDD` of the `HLAobjectRoot.HLAmanager.HLAfederation` object, the merged FOM as text. The endpoint's model is built from that text, so the gateway bridges whatever FOM the federation runs: RPR, NETN, proprietary extensions or a custom FOM, without copies of the modules.
 
-- **The FDD's format** is read from the document itself, not from the endpoint's API. An HLA 4 RTI that also serves 1516-2010 federates (pRTI 6) reports the FDD in the 1516-2025 format to HLA Evolved federates too. The names and encodings are the same, so the HLA Evolved endpoint works with it, and its FOM source says *written in the IEEE 1516-2025 format*.
+- **The FDD's format** is read from the document itself, not from the endpoint's API. An HLA 4 RTI that also serves 1516-2010 federates may report the FDD in the 1516-2025 format to HLA Evolved federates too. The names and encodings are the same, so the HLA Evolved endpoint works with it, and its FOM source says *written in the IEEE 1516-2025 format*.
 - **The RTI's own copy of the standard MIM** (0.11.2). An FDD repeats the standard MIM datatypes, and an RTI may write some of them a little differently from the standard, e.g. `HLAtoken` with cardinality `0` instead of `Dynamic`. Such a difference is a warning, and the standard definition is kept (the encoding is the same). The byte order of an 8-bit basic type (`HLAoctet`, `HLAunsignedInteger8`) is ignored everywhere: one octet has none. Two of your own FOM modules that disagree on a datatype are still an error.
 
 - **The federation must exist, unless `endpoint.hla.createfoms` names FOM files** (0.9.21). Without them the endpoint has no FOM to create a federation with (`createfederation` is ignored), and the start fails with a message saying what to do: start the gateway after the federation's first federate, or name the files. With them, the endpoint joins a running federation as before; only when it is missing does it create it with those files (and `endpoint.hla.createfederation=false` still forbids that). Either way the model is then built from the federation's FDD.
@@ -236,6 +236,10 @@ Samples: the kits `endpoints/hla3-dynamic-fom.endpoint.settings` (federation `Bl
 | `router.provide.forwardintervalms` | `1000` | The same attribute of an object is asked of the origin at most this often (0 – 3600000 ms) |
 | `router.group` | | Group of every gateway using this kit (section 7) |
 | `router.valuemap.<datatype>[.<label>]` | | Value rules: `A -> B` replaces every value A of the datatype by B (below) |
+| `router.netn.enabled` | `false` | NETN properties for objects from RPR / DIS endpoints going into a NETN endpoint (0.12.0, below) |
+| `router.netn.uniqueid` | `stable` | `stable`, `random` or `off`: the NETN `UniqueId` those objects get |
+| `router.netn.callsign` | `marking` | `marking` or `off`: the NETN `Callsign` from the RPR `Marking` |
+| `router.netn.classes` | `*` | Which objects get them: class patterns as `router.objects.allow`, e.g. `BaseEntity.*` |
 
 **Class patterns**, written without the root (`HLAobjectRoot.` / `HLAinteractionRoot.`):
 
@@ -304,6 +308,30 @@ router.names.template=GW-{name}
   - A name the gateway has not seen (an object that is not bridged) passes unchanged.
 - **Not used for DIS endpoints**, which name their objects by entity id. The gateway warns when a template is keyed to one, or to an endpoint the gateway does not have.
 - `router.names.policy=rti` lets the RTI choose names; a template applies instead where it is set.
+
+### NETN properties (0.12.0)
+
+A NETN federation expects every object to have a `UniqueId` (NETN-BASE, a UUID on `HLAobjectRoot`) and entities to have a `Callsign` (NETN-ENTITY, on `BaseEntity`). RPR federates and DIS do not send them. With the NETN properties on, the gateway adds them to the copies it makes in a NETN endpoint:
+
+```properties
+# routers/hla3-netn.router.settings (in etc/junctions.dist)
+router.kind=iem
+router.objects.allow=*
+router.interactions.allow=*
+router.netn.enabled=true
+router.netn.uniqueid=stable
+router.netn.callsign=marking
+router.netn.classes=*
+```
+
+- **Which objects:** those that come from an endpoint whose FOM lacks the attribute (RPR v2 / v3, DIS) and go into an endpoint whose FOM has it. NETN is recognised by the attributes themselves (`HLAobjectRoot.UniqueId`, `BaseEntity.Callsign`), so FOMs with extra NETN or national modules work too. Objects from a NETN endpoint keep their own values, also in a NETN ⇄ NETN gateway.
+- **UniqueId:** `stable` gives every object the same UUID each time: it is derived from the gateway, the origin endpoint and the object's name (the same as the `{guid}` token of copy names), so it stays after a reconnect or a restart of the gateway. `random` gives a new UUID (version 4) to every object bridged. `off` adds none.
+- **Callsign:** the text of the RPR `Marking` (`AggregateMarking` for aggregates), trimmed, when it is not empty, and again whenever it changes. An empty Marking leaves the last Callsign. Only classes with a `Callsign` (entities) get one.
+- **Classes:** `router.netn.classes` limits both to some classes (patterns as `router.objects.allow`, in the NETN endpoint's class names). The default `*` follows NETN-BASE, which wants a UniqueId on every object; `BaseEntity.*` gives them to entities only.
+- The values go with the copy's first update, again after the copy is registered anew (a reconnect), and on provide requests. The gateway publishes the two attributes for the classes it publishes in the NETN endpoint.
+- The objects the NETN federation sends back to the RPR side pass as usual (the RPR side has no such attributes).
+- The gateway card shows **NETN n** next to the object counts (the tooltip has the details), and the gateway's `objects` JSON a `netn` object (REST guide).
+- The sample `hla3-hla3-rpr2-netn.junction.settings` (with the kits `endpoints/hla3-netn` and `routers/hla3-netn`, in `etc/junctions.dist`) bridges an RPR v2 federation into a NETN one. The Config Assistant has the setting under the IEM router, *NETN properties*.
 
 ### Provide requests
 
@@ -728,13 +756,13 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
 
 ## 10. RTI libraries per endpoint
 
-`endpoint.hla.rtijar` loads an RTI in isolation: its own class loader, with the HLA API from the jar (or next to it). One gateway can then bridge two RTI vendors or versions, e.g. pRTI 5 on the class path and pRTI 6 from `lib/rti/prti6/prti1516e.jar`.
+`endpoint.hla.rtijar` loads an RTI in isolation: its own class loader, with the HLA API from the jar (or next to it). One gateway can then bridge two RTI vendors or versions, e.g. one version on the class path and another from `lib/rti/anrti/hlaimpl.jar` (a placeholder path).
 
 - Several jars are separated by `;`. Relative paths are relative to Rift's runtime folder. The jar manifest's `Class-Path` is followed.
 - Connect settings come from `endpoint.hla.rtiaddress` / `rtisettings` (and `rtifactory` to pick a factory).
 - The Federate Protocol (`ieee1516-2025-fedpro`) works the same way, with the vendor's FedPro client jar and the server in `rtiaddress`.
 - A missing library is reported on the page ("RTI MISSING") and by the API (`RTI_NOT_AVAILABLE`). Rift itself is not affected.
-- **One connect or join at a time per library.** A gateway opens its endpoints in parallel, but the connect, create and join calls on one RTI library (the class path RTI, or one `rtijar`) take turns, also with other gateways and Rift's datasources. An RTI's local library may not take two at once: pRTI failed with a `ConcurrentModificationException` when the two Talk endpoints of a gateway joined at the same moment. Everything after the join stays parallel.
+- **One connect or join at a time per library.** A gateway opens its endpoints in parallel, but the connect, create and join calls on one RTI library (the class path RTI, or one `rtijar`) take turns, also with other gateways and Rift's datasources. An RTI's local library may not take two at once: one RTI failed with a `ConcurrentModificationException` when the two Talk endpoints of a gateway joined at the same moment. Everything after the join stays parallel.
 
 ---
 
@@ -772,7 +800,7 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
   - Mode S: bit 0 = TCAS II.
 - **IFF and RPR v3:** Mode 5, TCAS and the Mode S details are not passed between DIS / RPR v2 and v3 (see section 8).
 - **Link 16:** the J-message contents are defined in the restricted MIL-STD-6016; the gateway copies them, and Rift shows them as hex. The RPR v3 FOMs here have no Link-16 module, so between RPR v2 and v3 a Link 16 interaction goes as its nearest v3 superclass (`RawBinaryRadioSignal`, without the message data), unless both FOMs include the module. Check against your Link 16 simulators which `SISOSTD002Version` they send.
-- **FOM from the federation** (section 4) relies on the RTI providing `HLAcurrentFDD` as an `HLAunicodeString` with the merged FDD, and updating it when modules are added. The test RTIs do (`-Dfakerti.fddformat=2025` makes them report it in the 1516-2025 format, as pRTI 6 does); verify it with your RTI (pRTI 5 / 6), including the *FDD has changed* notice. `endpoint.hla.fddclass` / `fddattribute` cover an RTI that names them differently.
+- **FOM from the federation** (section 4) relies on the RTI providing `HLAcurrentFDD` as an `HLAunicodeString` with the merged FDD, and updating it when modules are added. The test RTIs do (`-Dfakerti.fddformat=2025` makes them report it in the 1516-2025 format, as an HLA 4 RTI may); verify it with your RTI, including the *FDD has changed* notice. `endpoint.hla.fddclass` / `fddattribute` cover an RTI that names them differently.
 - **Name templates** (section 5) apply to the copies the router registers. A reference to an object the gateway does not bridge passes with its original name.
 - **Value rules** (section 5) have no wildcards and no per-direction scope yet. They do not change values that the gateway builds itself: the IFF mode objects of `RprIffBridge` and Talk channels.
 
@@ -797,6 +825,7 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.common.logging.LoggingSelfTest` | Logging and syslog: the settings and their mistakes; RFC 5424 and RFC 3164 messages (PRI, header, time zones, BOM, line breaks, cutting at a character); events and `by=`; INFO to the `.log`, problems to the `.err.log`; the client address of a REST call; UDP, TCP (octet counting and line feeds) and TLS (host name checked, not checked, untrusted) against local receivers; a syslog server that comes up later, a full queue and the dropped-messages notice |
 | `com.simweaver.junction.router.RprConversionSelfTest` | RPR v2 → v3 → v2 with the delivered table, emitter systems and beams, designators and IFF systems included |
 | `com.simweaver.junction.IffBridgeSelfTest` | IFF modes RPR v2 ⇄ v3 (attributes ⇄ IFFData objects) both ways, and DIS IFF PDUs ⇄ an RPR v3 federation |
+| `com.simweaver.junction.NetnEnrichSelfTest` | NETN properties (0.12.0): settings and the delivered sample; RPR v2 → NETN on the test RTI: stable UniqueIds (the same after a restart), Callsign from the Marking and its changes, an empty Marking, the radio's UniqueId, a NETN object keeping its own, random UUIDs, `BaseEntity.*` only, Callsign off, off by default |
 | `com.simweaver.junction.NamingSelfTest` | Name templates: tokens, cutting to a length, the settings and their mistakes; an HLA ⇄ HLA gateway renaming in one direction, references in a simple attribute, an array, a record and interaction parameters both ways; the same names after a restart, also for objects that existed before the gateway started |
 | `com.simweaver.junction.DynamicFomSelfTest` | FOM from the federation: decoding `HLAunicodeString`, building models from a 1516-2010 and a merged 1516-2025 FDD, RPR v2 recognised from the classes, the settings and their mistakes; the FDD read in its own format (a 1516-2025 FDD for a 1516-2010 federate); an RTI's FDD whose MIM copy differs from the standard (read, a warning), while two of your own modules that disagree are still an error; HLA 3 and HLA 4 gateways with both endpoints `dynamic`, and an HLA 3 gateway on an RTI that reports 1516-2025 FDDs: bridging, the FOM source in the API, the notice when a federate joins with more modules, a missing federation |
 | `com.simweaver.junction.LsdSelfTest` | LSD choices: the setting's form, group variables in it, the default, another choice, a typed value, the RTI default, mistakes; the test RTI refuses one LSD to show which one an endpoint connects with; group starts with LSDs per gateway; Inspect with the endpoint's LSD |
