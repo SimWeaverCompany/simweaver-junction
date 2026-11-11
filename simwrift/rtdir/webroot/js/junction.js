@@ -19,7 +19,7 @@
 
 	var TYPE_BADGE = {
 		'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO',
-		'dis6': 'DIS6', 'dis7': 'DIS7', 'cdis': 'C-DIS', 'talk': 'TALK', 'j2j': 'J2J'
+		'dis6': 'DIS6', 'dis7': 'DIS7', 'cdis': 'C-DIS', 'talk': 'TALK', 'j2j': 'J2J', 'kafka': 'KAFKA'
 	};
 
 	var state = { configs: [], gateways: {}, nodes: {}, streamClose: null, vardesc: {} };
@@ -93,6 +93,7 @@
 			return String(ep.target) === '0' ? 'exercise 0 (all)' : 'exercise ' + ep.target;
 		}
 		if (std === 'j2j') { return 'session ' + (ep.target || '—'); }
+		if (std === 'kafka') { return 'topic ' + (ep.target || '—'); }
 		return ep.target || '—';
 	}
 
@@ -221,6 +222,9 @@
 		p.inspect = ep.standard === 'j2j'
 			// 0.10.0: a J2J session has nothing Rift could join; the J2J page shows the session
 			? el('a.btn.jx-inspect', { href: 'j2j.html', title: 'The J2J page: the session with all its members' }, 'J2J page ↗')
+			: ep.standard === 'kafka'
+			// 0.13.0: a Kafka topic has nothing Rift could join
+			? el('span.jx-inspect', { hidden: true })
 			: el('button.btn.jx-inspect', { type: 'button',
 				title: 'Open a Rift datasource on ' + ep.name + "'s target in a new tab",
 				on: { click: function () { inspect(g.id, ep.id, p.inspect); } } }, 'Inspect ↗');
@@ -284,6 +288,34 @@
 			+ '\nThe J2J page shows the whole session.';
 	}
 
+	/** 0.13.0: a Kafka endpoint: its topics, the consumer group and lag, the producer. */
+	function kafkaLine(node, k) {
+		var p = k.producer, c = k.consumer;
+		var failing = (p && p.state === 'failing') || (c && c.state === 'failing');
+		node.hidden = false;
+		node.classList.toggle('warn', !!failing);
+		// the group name is long and comes last: the line is cut at the card's width
+		node.textContent = (k.kind === 'objects' ? 'JSON OBJECTS' : 'DIS PDUS')
+			+ (failing ? ' · ' + (p && p.state === 'failing' ? 'PRODUCER' : 'CONSUMER') + ' FAILING' : '')
+			+ (c ? ' · LAG ' + count(c.lag || 0) : '')
+			+ (p && p.waiting ? ' · ' + count(p.waiting) + ' WAITING' : '')
+			+ (p && (p.dropped || p.expired || p.failed) ? ' · ' + count((p.dropped || 0) + (p.expired || 0) + (p.failed || 0)) + ' NOT SENT' : '')
+			+ (k.kind === 'objects' ? ' · ' + count(k.ownobjects) + ' OWN / ' + count(k.topicobjects) + ' FROM THE TOPIC' : '')
+			+ (c ? ' · ' + (k.group ? 'GROUP ' + k.group : 'NO GROUP') : '');
+		node.title = 'Kafka ' + k.bootstrap + ', topics ' + (k.topics || []).join(', ') + ' (' + k.direction + ')\n'
+			+ (p ? 'Producer: ' + p.state + ' · sent ' + count(p.sent) + ' records in ' + count(p.requests) + ' requests · waiting ' + count(p.waiting)
+				+ ' · dropped ' + count(p.dropped) + ' · expired ' + count(p.expired) + ' · failed ' + count(p.failed)
+				+ (p.lasterror ? '\n  last error: ' + p.lasterror : '') + '\n' : '')
+			+ (c ? 'Consumer: ' + c.state + (k.group ? ' · group ' + k.group + ' generation ' + c.generation : ' · no group')
+				+ ' · partitions ' + (c.partitions || []).join(' ') + ' · lag ' + count(c.lag || 0) + ' · received ' + count(c.received)
+				+ ' · rebalances ' + count(c.rebalances) + ' · commits ' + count(c.commits)
+				+ (c.unsupportedbatches ? ' · ' + count(c.unsupportedbatches) + ' batches not readable (zstd?)' : '')
+				+ (c.lasterror ? '\n  last error: ' + c.lasterror : '') + '\n' : '')
+			+ 'Own records dropped: ' + count(k.owndropped) + ' · malformed: ' + count(k.malformed)
+			+ (k.kind === 'objects' ? ' · unknown classes: ' + count(k.unknownclasses) + ' · value issues: ' + count(k.valueissues)
+				+ (k.lastissue ? '\nLast issue: ' + k.lastissue : '') : '');
+	}
+
 	function updateGateway(n, g) {
 		var sc = stateClass(g.state);
 		n.root.className = 'jx-gw st-' + sc;
@@ -338,7 +370,7 @@
 			p.fom.title = ep.fom || '';
 			p.notice.hidden = !ep.fomnotice;
 			p.notice.textContent = ep.fomnotice || '';
-			if (ep.j2j) { j2jLine(p.cdis, ep.j2j); } else { cdisLine(p.cdis, ep.dis); }
+			if (ep.j2j) { j2jLine(p.cdis, ep.j2j); } else if (ep.kafka) { kafkaLine(p.cdis, ep.kafka); } else { cdisLine(p.cdis, ep.dis); }
 			var st = ep.stats || {}, si = st['in'] || {}, so = st.out || {};
 			p.rateIn.textContent = rate(si.rate);
 			p.rateOut.textContent = rate(so.rate);
@@ -352,7 +384,7 @@
 			p.wireOut.classList.toggle('dead', es !== 'ok');
 			p.msg.hidden = !ep.message;
 			p.msg.textContent = ep.message || '';
-			if (ep.standard !== 'j2j') {
+			if (ep.standard !== 'j2j' && ep.standard !== 'kafka') {
 				p.inspect.classList.toggle('opened', !!ep.inspectdatasource);
 				p.inspect.textContent = ep.inspectdatasource ? 'Inspect ↗ (open)' : 'Inspect ↗';
 			}
@@ -517,7 +549,8 @@
 				el('span.jx-ep-id', { text: ep.id }),
 				el('span.jx-cfg-target', { title: 'Default target', text: ep.isdis
 					? (String(ep.defaulttarget) === '0' ? 'exercise 0 (all)' : 'exercise ' + ep.defaulttarget)
-					: ep.isj2j ? 'session ' + (ep.defaulttarget || '(at start)') : (ep.defaulttarget || '(federation at start)') }),
+					: ep.isj2j ? 'session ' + (ep.defaulttarget || '(at start)') : ep.iskafka ? 'topic ' + (ep.defaulttarget || '—')
+					: (ep.defaulttarget || '(federation at start)') }),
 				ep.dynamicfom ? el('span.jx-chip', { title: "The FOM is taken from the federation's FDD when the gateway starts", text: 'DYNAMIC FOM' }) : null,
 				ep.ishla ? lsdChip(ep) : null,
 				ep.rtijar ? el('span.jx-chip', { title: 'Own RTI library: ' + ep.rtijar, text: 'JAR' }) : null,
@@ -601,7 +634,8 @@
 				badge(ep.standard),
 				el('div.jx-kit-body', null, [
 					el('div.jx-kit-name', { text: ep.name || ep.id }),
-					el('div.jx-kit-sub', { text: (ep.isdis ? 'exercise ' + ep.defaulttarget : ep.isj2j ? 'session ' + (ep.defaulttarget || '—') : (ep.defaulttarget || '—')) + ' · ' + ep.source }),
+					el('div.jx-kit-sub', { text: (ep.isdis ? 'exercise ' + ep.defaulttarget : ep.isj2j ? 'session ' + (ep.defaulttarget || '—')
+						: ep.iskafka ? 'topic ' + (ep.defaulttarget || '—') : (ep.defaulttarget || '—')) + ' · ' + ep.source }),
 					(ep.errors || []).length ? el('div.jx-kit-err', { text: ep.errors.join('; ') }) : null,
 					ep.available === false ? el('div.jx-kit-err', { text: 'RTI missing' }) : null
 				])

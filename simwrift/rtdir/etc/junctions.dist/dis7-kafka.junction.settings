@@ -1,0 +1,11 @@
+# Gateway DIS7<->Kafka (0.13.0): a DIS 7 network written to an Apache Kafka topic, one PDU per
+# record, and the PDUs other writers put there sent on the network. Start the same gateway on
+# another network (or a DIS 6 / C-DIS one) to join the two through the topic.
+junction.name=DIS7<->Kafka
+junction.description=DIS 7 on port 3000 shared through the Kafka topic simweaver.dis (DIS PDUs as they are)
+junction.endpoints=dis;kafka
+junction.endpoint.dis=endpoints/dis7.endpoint.settings
+junction.endpoint.kafka=endpoints/kafka.endpoint.settings
+junction.endpoint.kafka.kafka.topic=simweaver.dis
+junction.router=routers/pdu-relay.router.settings
+junction.autostart=false

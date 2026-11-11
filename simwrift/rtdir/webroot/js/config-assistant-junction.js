@@ -29,7 +29,11 @@
 		{ v: 'dis7', l: 'DIS 7 network', badge: 'DIS 7', fam: 'dis', help: 'DIS 7 on UDP (receives DIS 6 and 7), bridged as an RPR FOM v2.0 federation.' },
 		{ v: 'dis6', l: 'DIS 6 network', badge: 'DIS 6', fam: 'dis', help: 'DIS 6 on UDP (receives DIS 5 and 6), bridged as an RPR FOM v2.0 federation.' },
 		{ v: 'cdis', l: 'C-DIS network', badge: 'C-DIS', fam: 'dis', help: 'Compressed DIS (SISO-STD-023-2024) on UDP: a DIS 7 endpoint with C-DIS on the wire, bridged as an RPR FOM v2.0 federation.' },
-		{ v: 'talk', l: 'Talk federation', badge: 'TALK', fam: 'talk', help: 'A Talk federation. The Talk FOM comes from the running federation (none is delivered). Use it with the Talk router.' }
+		{ v: 'talk', l: 'Talk federation', badge: 'TALK', fam: 'talk', help: 'A Talk federation. The Talk FOM comes from the running federation (none is delivered). Use it with the Talk router.' },
+		{ v: 'kafka', l: 'Apache Kafka topic', badge: 'KAFKA', fam: 'kafka',
+			help: 'Records in an Apache Kafka topic: raw DIS PDUs with the PDU relay router, JSON objects and interactions with the IEM router.' },
+		// J2J endpoints are made from the delivered kits (J2J network settings are on the J2J page)
+		{ v: 'j2j', l: 'J2J session', badge: 'J2J', fam: 'j2j', kitOnly: true, help: 'A session of the J2J network.' }
 	];
 	function typeOf(std) { return TYPES.filter(function (t) { return t.v === std; })[0] || { v: std, l: std || '?', badge: '?', fam: 'hla', help: '' }; }
 
@@ -64,7 +68,13 @@
 				['Use', 'bridges a second RTI or RTI version in one gateway'], DIST_ONLY] },
 		{ source: 'endpoints/hla4-fedpro-rpr2.endpoint.settings', name: 'HLA4-FedPro-RPR2', standard: 'ieee1516-2025-fedpro', target: 'Remote',
 			sets: [['FOM', RPR2_HLA4_FILE], ['RTI', 'FedPro client lib/rti/fedpro/fedpro-client.jar'],
-				['Server', 'fedpro.example.org:15164 - an example: edit the kit, or override hla.rtiaddress below'], DIST_ONLY] }
+				['Server', 'fedpro.example.org:15164 - an example: edit the kit, or override hla.rtiaddress below'], DIST_ONLY] },
+		{ source: 'endpoints/kafka.endpoint.settings', name: 'Kafka', standard: 'kafka', target: '',
+			sets: [['Kafka', 'localhost:9092, plaintext'], ['Records', 'DIS PDUs with the PDU relay, JSON with the IEM router'],
+				['Topic', 'simweaver.dis or simweaver.objects unless set below'], DIST_ONLY] },
+		{ source: 'endpoints/kafka-sasl-ssl.endpoint.settings', name: 'Kafka-SASL-SSL', standard: 'kafka', target: '',
+			sets: [['Kafka', 'kafka1.example.org:9093 - an example: edit the kit, or override kafka.bootstrap below'],
+				['Security', 'SASL SCRAM-SHA-512 over TLS, password from ${env:KAFKA_PASSWORD}'], DIST_ONLY] }
 	];
 	var RT_KITS = [
 		{ source: 'routers/hla3-all.router.settings', name: 'HLA3-all', kind: 'iem',
@@ -98,6 +108,7 @@
 			var sets = [];
 			if (k.foms && k.foms.length) { sets.push(['FOM', k.foms.join(', ')]); }
 			if (k.isdis) { sets.push(['Network', (k.disinterface || 'all interfaces') + ', UDP port ' + (k.disport || 3000)]); }
+			else if (k.iskafka && k.kafka) { sets.push(['Kafka', k.kafka.bootstrap + (k.kafka.security && k.kafka.security !== 'plaintext' ? ' (' + k.kafka.security + ')' : '')]); }
 			else if (k.rtijar) { sets.push(['RTI', 'its own library ' + k.rtijar]); }
 			else if (k.ishla || k.istalk) { sets.push(['RTI', 'the RTI on Rift\'s class path' + (k.lsd ? ', LSD ' + k.lsd : '')]); }
 			list.push({ source: src, name: k.name || src, standard: k.standard || '', target: k.defaulttarget || '',
@@ -136,12 +147,13 @@
 				var t = typeOf(ep.standard);
 				var sets = [];
 				if (t.fam === 'dis') { sets.push(['Network', (ep.disIf === 'all' ? 'all interfaces' : ep.disIf === 'address' ? ep.disAddr : ep.disGroup) + ', UDP port ' + ep.disPort]); }
+				else if (t.fam === 'kafka') { sets.push(['Kafka', ep.kBootstrap + (ep.kSecurity !== 'plaintext' ? ' (' + ep.kSecurity + ')' : '')]); }
 				else {
 					if (ca.splitList(ep.foms).length) { sets.push(['FOM', ca.splitList(ep.foms).join(', ')]); }
 					sets.push(['RTI', ep.rti === 'jar' || ep.standard === 'ieee1516-2025-fedpro' ? 'its own library ' + (ep.rtijar || '?') : 'the RTI on Rift\'s class path']);
 				}
 				out.eps.push({ source: 'endpoints/' + kitFileName(ep), name: (ep.name || t.l) + ' (new)', standard: ep.standard,
-					target: t.fam === 'dis' ? ep.disExid : ep.federation, sets: sets, where: 'New kits made on this page',
+					target: t.fam === 'dis' ? ep.disExid : t.fam === 'kafka' ? ep.kTopic : ep.federation, sets: sets, where: 'New kits made on this page',
 					madeBy: gwId(g) + ' / ' + ep.id, isNew: true });
 			});
 			if (g.rt.src === 'new' && g.rt.saveKit) {
@@ -190,6 +202,9 @@
 			createfed: true, destroyfed: false, createfoms: '', fedname: '', fedtype: '', reconnect: true, reconnectSecs: '5', reftypes: '', talkhla: 'ieee1516-2010',
 			disIf: 'all', disAddr: '', disGroup: '239.1.2.3', disNic: '', disPort: '3000', disExid: '1', sendaddr: '', ttl: '8',
 			siteid: '900', appid: '1', entityids: 'keep', heartbeat: '5', timeout: '12',
+			kBootstrap: 'localhost:9092', kTopic: '', kItopic: '', kGroup: '', kStart: 'latest', kDirection: 'both', kSecurity: 'plaintext',
+			kMech: 'SCRAM-SHA-512', kUser: '', kPassword: '${env:KAFKA_PASSWORD}', kTrust: '', kTrustPw: '', kKey: '', kKeyPw: '',
+			kAcks: 'all', kCompression: 'none', kValues: 'full', kObjTimeout: '', kFoms: '',
 			cdisMode: 'full', cdisMult: '2.4', cdisTimeout: '2.4', hbEs: '5', hbEe: '10', hbDes: '5', hbTx: '2', hbIff: '10',
 			filters: { inoa: '', inob: '', inia: '', inib: '', outoa: '', outob: '', outia: '', outib: '' },
 			saveKit: false, kitName: ''
@@ -239,6 +254,15 @@
 			return newGateway({ name: 'DIS 7 - C-DIS', eps: [
 				newEndpoint({ id: 'dis', kit: 'endpoints/dis7.endpoint.settings', target: '1' }),
 				newEndpoint({ id: 'cdis', kit: 'endpoints/cdis.endpoint.settings', target: '1' })],
+				rt: newRouter({ kind: 'pdu', kit: 'routers/pdu-relay.router.settings' }) }); } },
+		{ t: 'HLA ⇄ Kafka', s: 'An HLA Evolved RPR federation as JSON records in an Apache Kafka topic.', g: function () {
+			return newGateway({ name: 'HLA - Kafka', eps: [
+				newEndpoint({ id: 'hla', kit: 'endpoints/hla3-rpr2.endpoint.settings', target: 'Blue' }),
+				newEndpoint({ id: 'kafka', src: 'new', standard: 'kafka', name: 'Kafka', kTopic: 'simweaver.objects' })] }); } },
+		{ t: 'DIS 7 ⇄ Kafka', s: 'A DIS 7 network through an Apache Kafka topic, one PDU per record.', g: function () {
+			return newGateway({ name: 'DIS 7 - Kafka', eps: [
+				newEndpoint({ id: 'dis', kit: 'endpoints/dis7.endpoint.settings', target: '1' }),
+				newEndpoint({ id: 'kafka', src: 'new', standard: 'kafka', name: 'Kafka', kTopic: 'simweaver.dis' })],
 				rt: newRouter({ kind: 'pdu', kit: 'routers/pdu-relay.router.settings' }) }); } },
 		{ t: 'HLA Evolved ⇄ HLA 4', s: 'An IEEE 1516-2010 and an IEEE 1516-2025 federation, both RPR v2.', g: function () {
 			return newGateway({ name: 'HLA 3 - HLA 4', eps: [
@@ -295,6 +319,13 @@
 		return ep.standard;
 	}
 	function famOf(ep, server) { return typeOf(stdOf(ep, server)).fam; }
+	/** What an endpoint's target is called. */
+	function targetWord(fam, cap) {
+		var w = fam === 'dis' ? 'exercise' : fam === 'kafka' ? 'topic' : fam === 'j2j' ? 'session' : 'federation';
+		return cap ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+	}
+	/** The setting key (without "endpoint.") of an endpoint's target. */
+	function targetKey(fam) { return fam === 'dis' ? 'dis.exid' : fam === 'kafka' ? 'kafka.topic' : fam === 'j2j' ? 'j2j.session' : 'hla.federation'; }
 
 	/** The target the endpoint starts with (federation or exercise). */
 	function targetOf(ep, server) {
@@ -302,7 +333,8 @@
 			if (String(ep.target).trim()) { return String(ep.target).trim(); }
 			var k = kitOf(ep, server); return k ? String(k.target || '') : '';
 		}
-		return famOf(ep, server) === 'dis' ? String(ep.disExid).trim() : String(ep.federation).trim();
+		var fam = famOf(ep, server);
+		return fam === 'dis' ? String(ep.disExid).trim() : fam === 'kafka' ? String(ep.kTopic).trim() : String(ep.federation).trim();
 	}
 
 	function routerKind(rt, server) {
@@ -449,7 +481,7 @@
 		var rows = [];
 		if (kind === 'endpoint') { rows.push(['Standard', typeOf(k.standard).l]); }
 		(k.sets || []).forEach(function (r) { rows.push(r); });
-		if (kind === 'endpoint' && k.target) { rows.push([typeOf(k.standard).fam === 'dis' ? 'Exercise' : 'Federation', k.target + '  (default; this gateway can set its own below)']); }
+		if (kind === 'endpoint' && k.target) { rows.push([targetWord(typeOf(k.standard).fam, true), k.target + '  (default; this gateway can set its own below)']); }
 		var users = kitUsers(k.source, server, g);
 		var status = k.isNew ? 'NEW, made on this page by ' + k.madeBy : k.onServer ? 'ON THE SERVER' : k.where === 'Delivered with Junction' ? 'DELIVERED WITH JUNCTION' : '';
 		return el('div.ca-kitbox', null, [
@@ -476,7 +508,7 @@
 	function endpointTargets(g, ep, server) {
 		var gwFile = 'etc/junctions/' + gwId(g) + '.junction.settings';
 		var fam = famOf(ep, server);
-		var tgt = fam === 'dis' ? 'exercise' : 'federation';
+		var tgt = targetWord(fam);
 		if (ep.src === 'kit') {
 			var k = kitOf(ep, server);
 			var out = [{ role: 'gateway', path: gwFile, note: 'names the kit, sets the ' + tgt }];
@@ -553,20 +585,28 @@
 			if (k) { card.appendChild(kitBox(k, 'endpoint', server, g)); }
 			card.appendChild(ca.sub('Set in this gateway file only'));
 			card.appendChild(ca.grid([
-				ca.field(fam === 'dis' ? 'DIS exercise' : 'Federation', ca.input(ep, 'target', {
+				ca.field(fam === 'dis' ? 'DIS exercise' : targetWord(fam, true), ca.input(ep, 'target', {
 					placeholder: k && k.target ? k.target + ' (the kit\'s)' : '', vars: true,
-					validate: function (v) { return fam === 'dis' && v && !ca.hasVar(v) && !ca.isInt(v, 0, 255) ? '0 - 255' : null; } }),
-					fam === 'dis' ? 'The exercise id, 0-255 (0 = every exercise). Empty: the kit\'s default.' : 'The federation this gateway joins. Empty: the kit\'s default. It can also be changed when starting.'),
+					validate: function (v) {
+						if (fam === 'dis' && v && !ca.hasVar(v) && !ca.isInt(v, 0, 255)) { return '0 - 255'; }
+						if (fam === 'kafka' && v && !ca.hasVar(v) && !/^[A-Za-z0-9._-]{1,249}$/.test(v)) { return 'Letters, digits, ".", "_" and "-"'; }
+						return null;
+					} }),
+					fam === 'dis' ? 'The exercise id, 0-255 (0 = every exercise). Empty: the kit\'s default.'
+						: fam === 'kafka' ? 'The Kafka topic. Empty: the kit\'s default. It can also be changed when starting.'
+						: fam === 'j2j' ? 'The J2J session. Empty: the kit\'s default. It can also be changed when starting.'
+						: 'The federation this gateway joins. Empty: the kit\'s default. It can also be changed when starting.'),
 				ca.field('Display name', ca.input(ep, 'name', { placeholder: k ? k.name : '' }), null, { opt: true })
 			]));
 			card.appendChild(ca.more('More: change other kit settings for this gateway only, class filters', [
-				ca.grid([ca.field('Other settings', ca.area(ep, 'extra', { rows: 3, placeholder: fam === 'dis' ? 'dis.port=3001\ndis.sendaddress=192.168.1.255' : 'hla.lsd=<local settings designator>\nhla.rtijar=lib/rti/anrti/hlaimpl.jar' }),
+				ca.grid([ca.field('Other settings', ca.area(ep, 'extra', { rows: 3, placeholder: fam === 'dis' ? 'dis.port=3001\ndis.sendaddress=192.168.1.255'
+					: fam === 'kafka' ? 'kafka.bootstrap=broker1:9092,broker2:9092\nkafka.group=my-group' : 'hla.lsd=<local settings designator>\nhla.rtijar=lib/rti/anrti/hlaimpl.jar' }),
 					ca.rich('One `key=value` per line, keys as in the kit without `endpoint.` (e.g. `hla.lsd`). They override the kit for this gateway only.'), { wide: true })]),
 				filterBlock(ep)
 			]));
 		} else {
 			card.appendChild(ca.grid([
-				ca.field('Standard', ca.select(ep, 'standard', TYPES.map(function (x) { return { v: x.v, l: x.l }; }), { onChange: function (v) {
+				ca.field('Standard', ca.select(ep, 'standard', TYPES.filter(function (x) { return !x.kitOnly || x.v === ep.standard; }).map(function (x) { return { v: x.v, l: x.l }; }), { onChange: function (v) {
 					if (v === 'ieee1516-2025' || v === 'ieee1516-2025-fedpro') { if (/RPR_FOM_v2\.0_Link16/.test(ep.foms) || !ep.foms) { ep.foms = ca.RPR2_2025_CORE; } }
 					else if (v === 'ieee1516-2010' && /RPR-Base_v2\.0/.test(ep.foms)) { ep.foms = 'RPR_FOM_v2.0_Link16_1516-2010.xml'; }
 					if (v === 'talk') { ep.foms = ''; }
@@ -574,7 +614,7 @@
 				} }), t.help, { req: true }),
 				ca.field('Display name', ca.input(ep, 'name', { placeholder: t.l }), null, { opt: true })
 			]));
-			if (t.fam === 'dis') { disBlock(card, ep); } else { hlaBlock(card, ep); }
+			if (t.fam === 'dis') { disBlock(card, ep); } else if (t.fam === 'kafka') { kafkaBlock(card, ep, g, server); } else { hlaBlock(card, ep); }
 			card.appendChild(ca.more('More: class filters for this endpoint', [filterBlock(ep)]));
 			card.appendChild(ca.sub('Reuse'));
 			card.appendChild(ca.grid([
@@ -584,7 +624,7 @@
 			]));
 			if (ep.saveKit) {
 				card.appendChild(ca.note('The settings above go into the **kit file** `endpoints/' + kitFileName(ep) + '`. This gateway file then only names the kit and sets its '
-					+ (t.fam === 'dis' ? 'exercise' : 'federation') + '. Other gateways can pick it under **Use a kit** (listed as a new kit).'));
+					+ targetWord(t.fam) + '. Other gateways can pick it under **Use a kit** (listed as a new kit).'));
 			}
 		}
 		return card;
@@ -659,6 +699,51 @@
 			ca.field('Entity timeout', el('div.ca-inline', null, [ca.input(ep, 'timeout', { numeric: true }), el('span.ca-unit', { text: 's' })]), 'A DIS entity not heard from this long is removed.')
 		])]));
 		if (ep.standard === 'cdis') { cdisBlock(card, ep); }
+	}
+
+	/** 0.13.0: an Apache Kafka endpoint: brokers, topics, consumer group, security. */
+	function kafkaBlock(card, ep, g, server) {
+		var objects = g && routerKind(g.rt, server) !== 'pdu';
+		var sasl = ep.kSecurity === 'sasl_plaintext' || ep.kSecurity === 'sasl_ssl';
+		var tls = ep.kSecurity === 'ssl' || ep.kSecurity === 'sasl_ssl';
+		card.appendChild(ca.note(objects
+			? 'With this gateway\'s **IEM router** the records are **JSON**: one per object update or removal (keyed by the object name) and one per interaction, with FOM names.'
+			: 'With the **PDU relay** the records are **DIS PDUs** as they are, one per record, keyed by the entity id.'));
+		card.appendChild(ca.grid([
+			ca.field('Brokers', ca.input(ep, 'kBootstrap', { placeholder: 'broker1:9092,broker2:9092', vars: true,
+				validate: function (v) { return !v.trim() ? 'Give at least one host:port' : ca.hasVar(v) || v.split(',').every(function (x) { return /^\s*[^\s:]+:\d{1,5}\s*$/.test(x) || /^\s*\[[0-9a-fA-F:]+\]:\d{1,5}\s*$/.test(x); }) ? null : 'host:port, comma separated'; } }),
+				'The bootstrap servers; the client learns the rest of the cluster from them.', { req: true }),
+			ca.field('Topic', ca.input(ep, 'kTopic', { placeholder: objects ? 'simweaver.objects' : 'simweaver.dis', vars: true,
+				validate: function (v) { return !v.trim() || ca.hasVar(v) || /^[A-Za-z0-9._-]{1,249}$/.test(v.trim()) ? null : 'Letters, digits, ".", "_" and "-"'; } }),
+				'The default target. The Start dialog lists the topics the cluster has.'),
+			objects ? ca.field('Interaction topic', ca.input(ep, 'kItopic', { placeholder: 'empty: the same topic', vars: true }), 'Interactions can go to a topic of their own.', { opt: true }) : null,
+			ca.field('Direction', ca.seg(ep, 'kDirection', [{ v: 'both', l: 'Both' }, { v: 'produce', l: 'Only produce' }, { v: 'consume', l: 'Only consume' }]),
+				'Records this endpoint writes to and reads from the topic. Its own records are never read back.', { wide: true }),
+			ep.kDirection !== 'produce' ? ca.field('Consumer group', ca.input(ep, 'kGroup', { placeholder: 'simweaver-junction-<gateway>-<endpoint>', vars: true }),
+				ca.rich('Members of a group share the partitions and resume at the committed offsets. `none`: no group, every partition, never committed.'), { opt: true }) : null,
+			ep.kDirection !== 'produce' ? ca.field('Start at', ca.seg(ep, 'kStart', [{ v: 'latest', l: 'Latest' }, { v: 'earliest', l: 'Earliest' }]),
+				'Where to begin when the group has no committed offset.') : null,
+			ca.field('Security', ca.select(ep, 'kSecurity', [{ v: 'plaintext', l: 'Plaintext' }, { v: 'ssl', l: 'TLS' }, { v: 'sasl_plaintext', l: 'SASL, no TLS' }, { v: 'sasl_ssl', l: 'SASL over TLS' }]),
+				'As the broker\'s listener expects (security.protocol).'),
+			sasl ? ca.field('SASL mechanism', ca.select(ep, 'kMech', [{ v: 'PLAIN', l: 'PLAIN' }, { v: 'SCRAM-SHA-256', l: 'SCRAM-SHA-256' }, { v: 'SCRAM-SHA-512', l: 'SCRAM-SHA-512' }])) : null,
+			sasl ? ca.field('User', ca.input(ep, 'kUser', { vars: true, validate: function (v) { return v.trim() ? null : 'Give the user'; } }), null, { req: true }) : null,
+			sasl ? ca.field('Password', ca.input(ep, 'kPassword', { placeholder: '${env:KAFKA_PASSWORD}' }),
+				ca.rich('`${env:NAME}` reads it from an environment variable of the server, so it is not written in the file.')) : null,
+			tls ? ca.field('Trust store', ca.input(ep, 'kTrust', { placeholder: 'empty: the JDK\'s trusted CAs' }), 'A PKCS12 or JKS file with the brokers\' CA, relative to Rift\'s folder.', { opt: true }) : null,
+			tls && ep.kTrust.trim() ? ca.field('Trust store password', ca.input(ep, 'kTrustPw', { placeholder: '${env:KAFKA_TRUSTSTORE_PASSWORD}' }), null, { opt: true }) : null,
+			tls ? ca.field('Key store', ca.input(ep, 'kKey', { placeholder: 'only for client certificates' }), null, { opt: true }) : null,
+			tls && ep.kKey.trim() ? ca.field('Key store password', ca.input(ep, 'kKeyPw', { placeholder: '${env:KAFKA_KEYSTORE_PASSWORD}' }), null, { opt: true }) : null
+		]));
+		card.appendChild(ca.more('More: acknowledgements, compression, JSON values', [ca.grid([
+			ca.field('Acks', ca.seg(ep, 'kAcks', [{ v: 'all', l: 'all' }, { v: '1', l: 'leader' }, { v: '0', l: 'none' }]), 'How many replicas confirm a write.'),
+			ca.field('Compression', ca.seg(ep, 'kCompression', [{ v: 'none', l: 'none' }, { v: 'gzip', l: 'gzip' }]), 'Written records. gzip, snappy and lz4 are all read.'),
+			objects ? ca.field('Values', ca.seg(ep, 'kValues', [{ v: 'full', l: 'Full state' }, { v: 'changed', l: 'Only what changed' }]),
+				'Full state: every record holds all known attributes of the object, so a topic reader needs no history.') : null,
+			objects ? ca.field('Object timeout', el('div.ca-inline', null, [ca.input(ep, 'kObjTimeout', { numeric: true, placeholder: '0' }), el('span.ca-unit', { text: 's' })]),
+				'Objects from the topic not updated this long are removed. 0: kept until a remove record.', { opt: true }) : null,
+			objects ? ca.field('FOM modules', ca.fomPicker(ep, 'kFoms', 'ieee1516-2010', { vars: true }),
+				ca.rich('The object model of the JSON records. Empty: RPR FOM v2.0.'), { opt: true, wide: true }) : null
+		])]));
 	}
 
 	function secs(ep, key) {
@@ -740,8 +825,11 @@
 		if (kind === 'talk' && talkEps.length < 2) {
 			card.appendChild(ca.note('The Talk router bridges **Talk** endpoints: this gateway needs at least two (a DIS or RPR endpoint can carry the radio).', 'warn'));
 		}
-		if (kind === 'pdu' && g.eps.some(function (e) { return famOf(e, server) !== 'dis'; })) {
-			card.appendChild(ca.note('The PDU relay takes **DIS 6, DIS 7 and C-DIS** endpoints only.', 'warn'));
+		if (kind === 'pdu' && g.eps.some(function (e) { var f = famOf(e, server); return f !== 'dis' && f !== 'kafka' && f !== 'j2j'; })) {
+			card.appendChild(ca.note('The PDU relay takes **DIS 6, DIS 7, C-DIS, J2J and Kafka** endpoints only.', 'warn'));
+		}
+		if (kind === 'talk' && g.eps.some(function (e) { return famOf(e, server) === 'kafka'; })) {
+			card.appendChild(ca.note('A **Kafka** endpoint cannot be in a Talk gateway.', 'warn'));
 		}
 		if (kind !== 'talk' && talkEps.length) {
 			card.appendChild(ca.note('This gateway has Talk endpoints: choose the **Talk** router for them.', 'warn'));
@@ -977,6 +1065,32 @@
 					if (v && v !== h[2]) { put('cdis.heartbeat.' + h[0], v); }
 				});
 			}
+		} else if (t.fam === 'kafka') {
+			put('kafka.bootstrap', ep.kBootstrap.trim(), 'the Kafka brokers, host:port, comma separated');
+			if (withTarget && ep.kTopic.trim()) { put('kafka.topic', ep.kTopic.trim(), 'the default target'); }
+			if (ep.kItopic.trim()) { put('kafka.interactiontopic', ep.kItopic.trim(), 'interactions (JSON records) go here'); }
+			if (ep.kDirection !== 'both') { put('kafka.direction', ep.kDirection); }
+			if (ep.kDirection !== 'produce') {
+				if (ep.kGroup.trim()) { put('kafka.group', ep.kGroup.trim(), 'the consumer group (none: no group)'); }
+				if (ep.kStart !== 'latest') { put('kafka.start', ep.kStart, 'where to begin without a committed offset'); }
+			}
+			if (ep.kSecurity !== 'plaintext') {
+				put('kafka.security', ep.kSecurity);
+				if (ep.kSecurity.indexOf('sasl') === 0) {
+					put('kafka.sasl.mechanism', ep.kMech);
+					put('kafka.sasl.username', ep.kUser.trim());
+					put('kafka.sasl.password', ep.kPassword, '${env:NAME} takes it from the server\'s environment');
+				}
+				if (ep.kSecurity === 'ssl' || ep.kSecurity === 'sasl_ssl') {
+					if (ep.kTrust.trim()) { put('kafka.ssl.truststore', ep.kTrust.trim()); if (ep.kTrustPw) { put('kafka.ssl.truststorepassword', ep.kTrustPw); } }
+					if (ep.kKey.trim()) { put('kafka.ssl.keystore', ep.kKey.trim()); if (ep.kKeyPw) { put('kafka.ssl.keystorepassword', ep.kKeyPw); } }
+				}
+			}
+			if (ep.kAcks !== 'all') { put('kafka.acks', ep.kAcks); }
+			if (ep.kCompression !== 'none') { put('kafka.compression', ep.kCompression); }
+			if (ep.kValues !== 'full') { put('kafka.values', ep.kValues, 'JSON records: only the changed attributes'); }
+			if (String(ep.kObjTimeout).trim() && String(ep.kObjTimeout).trim() !== '0') { put('kafka.objecttimeoutseconds', String(ep.kObjTimeout).trim()); }
+			if (ca.splitList(ep.kFoms).length) { put('hla.foms', ca.splitList(ep.kFoms).join(';'), 'the object model of the JSON records, in etc/fom/ieee1516-2010'); }
 		} else {
 			var foms = ca.splitList(ep.foms);
 			if (foms.length) { put('hla.foms', foms.join(';'), 'FOM modules (files or folders) in etc/fom/' + ca.fomFolder(ep.standard === 'talk' ? ep.talkhla : ep.standard)); }
@@ -1185,7 +1299,7 @@
 					else if (!k.onServer && server && server.junction) { (missingKits[k.source] = missingKits[k.source] || []).push(id + '/' + ep.id); }
 					if (ep.name.trim()) { p.kv(pre + '.name', ep.name.trim()); }
 					if (String(ep.target).trim()) {
-						p.kv(pre + (fam === 'dis' ? '.dis.exid' : '.hla.federation'), String(ep.target).trim(), fam === 'dis' ? 'the exercise' : 'the federation');
+						p.kv(pre + '.' + targetKey(fam), String(ep.target).trim(), 'the ' + targetWord(fam));
 						if (fam === 'dis' && !ca.hasVar(ep.target) && !ca.isInt(ep.target, 0, 255)) { issues.push({ level: 'err', text: elabel + ': the exercise must be 0 - 255.' }); }
 					}
 					extraLines(ep.extra, function (key) { return pre + '.' + key.replace(/^endpoint\./, ''); }, issues, elabel)
@@ -1199,7 +1313,7 @@
 						kp.comment('Endpoint kit: ' + (ep.name.trim() || typeOf(ep.standard).l));
 						kp.comment('Made with the Config Assistant. Gateways refer to it with junction.endpoint.<id>=' + kf);
 						kp.blank();
-						endpointSettings(ep, !ca.hasVar(ep.federation) && !ca.hasVar(ep.disExid)).forEach(function (x) { kp.kv('endpoint.' + x.k, x.v, x.c); });
+						endpointSettings(ep, !ca.hasVar(ep.federation) && !ca.hasVar(ep.disExid) && !ca.hasVar(ep.kTopic)).forEach(function (x) { kp.kv('endpoint.' + x.k, x.v, x.c); });
 						addKit(kitFiles, kf, kp.text(), issues);
 						kitMeta[kf] = { role: 'epkit', from: { text: 'the **Endpoint** box `' + ep.id + '` of the gateway "' + (g.name || id) + '", saved as a kit',
 							ref: { section: 'junction', gw: gi, box: 'ep-' + ei } } };
@@ -1207,6 +1321,7 @@
 						p.kv(pre, kf);
 						ref(kf, 'new, below');
 						if (fam === 'dis') { p.kv(pre + '.dis.exid', String(ep.disExid).trim() || '1', 'the exercise'); }
+						else if (fam === 'kafka') { if (ep.kTopic.trim()) { p.kv(pre + '.kafka.topic', ep.kTopic.trim(), 'the topic'); } }
 						else if (ep.federation.trim()) { p.kv(pre + '.hla.federation', ep.federation.trim(), 'the federation'); }
 					} else {
 						own.push('endpoint `' + ep.id + '`');
@@ -1217,7 +1332,9 @@
 				var tg = targetOf(ep, server);
 				// DIS and C-DIS are told apart: a DIS 7 and a C-DIS endpoint of the same exercise are the usual relay
 				var tkey = fam + '|' + (fam === 'dis' ? (stdOf(ep, server) === 'cdis' ? 'cdis|' : 'dis|') + tg : tg.toLowerCase());
-				if (tg && fam !== 'dis' && targets[tkey]) {
+				if (tg && fam === 'kafka' && targets[tkey]) {
+					issues.push({ level: 'warn', text: label + ': endpoints `' + targets[tkey] + '` and `' + ep.id + '` both use the Kafka topic **' + tg + '**. On the same brokers that is refused (traffic would loop): use two topics.' });
+				} else if (tg && fam !== 'dis' && targets[tkey]) {
 					issues.push({ level: 'warn', text: label + ': endpoints `' + targets[tkey] + '` and `' + ep.id + '` both join **' + tg + '**. On the same RTI that is refused (traffic would loop); fine on two different RTIs.' });
 				}
 				if (tg && fam === 'dis' && targets[tkey]) {
@@ -1261,9 +1378,15 @@
 			if (kind === 'iem' && rt.src === 'new') {
 				if (!rt.oa.trim() && !rt.ia.trim()) { issues.push({ level: 'warn', text: label + ': the router allows no classes at all.' }); }
 			}
+			if (kind === 'talk') {
+				g.eps.forEach(function (e) {
+					if (famOf(e, server) === 'kafka') { issues.push({ level: 'err', text: label + ': `' + e.id + '` is a Kafka endpoint; it cannot be in a Talk gateway.' }); }
+				});
+			}
 			if (kind === 'pdu') {
 				g.eps.forEach(function (e) {
-					if (famOf(e, server) !== 'dis') { issues.push({ level: 'err', text: label + ': `' + e.id + '` is not a DIS or C-DIS endpoint; the PDU relay takes those only.' }); }
+					var f = famOf(e, server);
+					if (f !== 'dis' && f !== 'kafka' && f !== 'j2j') { issues.push({ level: 'err', text: label + ': `' + e.id + '` is not a DIS, C-DIS, J2J or Kafka endpoint; the PDU relay takes those only.' }); }
 				});
 				if (rt.src === 'new' && ca.splitList(rt.pduTypes).some(function (x) { return !ca.isInt(x, 1, 255); })) {
 					issues.push({ level: 'err', text: label + ': PDU types are numbers 1 - 255.' });
@@ -1381,6 +1504,15 @@
 					var v = String(ep[f[0]]).trim();
 					if (v && !(parseFloat(v) > 0 && /^[0-9]*\.?[0-9]+$/.test(v))) { issues.push({ level: 'err', text: label + ': the C-DIS ' + f[1] + ' must be a number above 0.' }); }
 				});
+			}
+			return;
+		}
+		if (t.fam === 'kafka') {
+			if (!ep.kBootstrap.trim()) { issues.push({ level: 'err', text: label + ': give the Kafka brokers (host:port).' }); }
+			if (!ep.kTopic.trim()) { issues.push({ level: 'info', text: label + ': no topic set; the default topic is used (simweaver.dis or simweaver.objects).' }); }
+			if (ep.kSecurity.indexOf('sasl') === 0 && !ep.kUser.trim()) { issues.push({ level: 'err', text: label + ': give the SASL user.' }); }
+			if (ep.kSecurity.indexOf('sasl') === 0 && ep.kPassword && ep.kPassword.indexOf('${') < 0) {
+				issues.push({ level: 'warn', text: label + ': the SASL password is written in the settings file. `${env:NAME}` takes it from the server\'s environment.' });
 			}
 			return;
 		}

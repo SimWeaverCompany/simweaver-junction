@@ -366,3 +366,4 @@ input.jx-changed { border-color: var(--amber); }
 .jx-var-found .jx-lsd-choices { margin-top: 4px; }
 .jx-var.wide { grid-column: 1 / -1; }
 .jx-var.wide .jx-var-row { max-width: 420px; }
+.jx-ep-cdis.warn { color: var(--jx-warn); }

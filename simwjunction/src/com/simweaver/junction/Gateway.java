@@ -413,6 +413,10 @@ public final class Gateway implements Json.Writable {
             if (e instanceof com.simweaver.junction.endpoint.j2j.J2jObjectEndpoint) {
                 j.put("j2j", ((com.simweaver.junction.endpoint.j2j.J2jObjectEndpoint) e).diagnostics());
             }
+            if (e instanceof com.simweaver.junction.endpoint.kafka.KafkaEndpoints.Diagnosable) {
+                // 0.13.0: the Kafka topics, the producer and the consumer group
+                j.put("kafka", ((com.simweaver.junction.endpoint.kafka.KafkaEndpoints.Diagnosable) e).diagnostics());
+            }
             long lastIn = e.stats().lastIn();
             long lastOut = e.stats().lastOut();
             j.put("flowingin", lastIn > 0 && now - lastIn < 5000);

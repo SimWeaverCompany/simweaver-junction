@@ -359,7 +359,7 @@ public final class JunctionManager {
             String other = seen.put(k, e.getId());
             if (other != null) {
                 return "Endpoints " + other + " and " + e.getId() + " are on the same "
-                        + (e.getType().isDis() ? "DIS network and exercise" : e.getType().isJ2j() ? "J2J session" : "federation")
+                        + (e.getType().isDis() ? "DIS network and exercise" : e.getType().isJ2j() ? "J2J session" : e.getType().isKafka() ? "Kafka topic" : "federation")
                         + " (" + eff.get(e.getId())
                         + "): traffic would loop";
             }
@@ -380,6 +380,9 @@ public final class JunctionManager {
         }
         if (t != null && t.isJ2j()) {
             return "j2j|" + target;
+        }
+        if (t != null && t.isKafka()) {
+            return "kafka|" + e.getKafka().getBootstrap().trim().toLowerCase(Locale.ROOT) + "|" + target;
         }
         return "hla|" + (e.isHla4() ? "4" : "3") + "|" + (lsd == null ? e.getLsd() : lsd).trim() + "|" + e.getRtiAddress().trim() + "|"
                 + e.getRtiJar().trim() + "|" + target;

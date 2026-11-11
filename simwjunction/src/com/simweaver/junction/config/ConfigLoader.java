@@ -259,7 +259,7 @@ public final class ConfigLoader {
             EndpointConfig ec = new EndpointConfig(epId, ep, source, runtimeDir);
             // the target as written, for the page's Discover of variable values (GROUPVAR1-Talk + Alpha-Talk -> Alpha)
             String tkey = ec.getType() != null && ec.getType().isDis() ? "dis.exid"
-                    : ec.getType() == EndpointType.J2J ? "j2j.session" : "hla.federation";
+                    : ec.getType() == EndpointType.J2J ? "j2j.session" : ec.getType() == EndpointType.KAFKA ? "kafka.topic" : "hla.federation";
             String tmpl = kitRaw == null ? null : kitRaw.getString("endpoint." + tkey, null);
             String inline = raw.getString("junction.endpoint." + epId + "." + tkey, null);
             if (inline != null) {
@@ -307,6 +307,11 @@ public final class ConfigLoader {
                     problems.add("a J2J endpoint (" + e.getId() + ") in a Talk gateway needs the Talk FOM files in endpoint.hla.foms");
                 }
             }
+            for (EndpointConfig e : endpoints.values()) {
+                if (e.getType() == EndpointType.KAFKA) {
+                    problems.add("a Kafka endpoint (" + e.getId() + ") cannot be in a Talk gateway (IEM and PDU relay gateways only)");
+                }
+            }
             if (talk < 2 && router.getTalkRadioEndpoint().isEmpty()) {
                 problems.add("a talk router needs two talk endpoints, or one and talk.radio.endpoint");
             }
@@ -317,7 +322,7 @@ public final class ConfigLoader {
         if (router.getKind() == RouterConfig.Kind.PDU) {
             for (EndpointConfig e : endpoints.values()) {
                 if (e.getType() != null && !e.getType().isPduPort()) {
-                    problems.add("a PDU relay (router.kind=pdu) takes DIS 6, DIS 7, C-DIS and J2J endpoints only; "
+                    problems.add("a PDU relay (router.kind=pdu) takes DIS 6, DIS 7, C-DIS, J2J and Kafka endpoints only; "
                             + e.getId() + " is " + e.getType().label());
                 }
             }
@@ -326,8 +331,8 @@ public final class ConfigLoader {
             }
         }
         for (EndpointConfig e : endpoints.values()) {
-            if (e.getType() == EndpointType.J2J) {
-                e.setJ2jObjects(router.getKind() != RouterConfig.Kind.PDU);   // 0.10.0: objects in IEM / Talk gateways
+            if (e.getType() == EndpointType.J2J || e.getType() == EndpointType.KAFKA) {
+                e.setJ2jObjects(router.getKind() != RouterConfig.Kind.PDU);   // 0.10.0: objects in IEM / Talk gateways (0.13.0: Kafka too)
             }
         }
         String group = p.getString("junction.group", rp.getString("router.group", "")).trim();

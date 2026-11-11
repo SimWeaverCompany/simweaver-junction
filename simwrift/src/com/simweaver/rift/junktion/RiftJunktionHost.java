@@ -124,8 +124,8 @@ public final class RiftJunktionHost implements Inspector {
     private DatasourceConfig config(EndpointRef r) {
         EndpointConfig e = r.config;
         EndpointType t = e.getType();
-        if (t == null || t.isJ2j()) {
-            return null;                                          // a J2J session: nothing Rift could join
+        if (t == null || t.isJ2j() || t.isKafka()) {
+            return null;                                          // a J2J session or Kafka topic: nothing Rift could join
         }
         SimwProperties p = new SimwProperties();
         p.set("datasource.name", "Junction: " + r.label);

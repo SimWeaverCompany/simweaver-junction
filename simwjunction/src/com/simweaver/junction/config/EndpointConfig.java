@@ -74,6 +74,8 @@ public final class EndpointConfig implements Json.Writable {
     private final boolean j2jFomsGiven;
     private final List<String> j2jDefaultFomPaths;
     private boolean j2jObjects;
+    // 0.13.0: Kafka endpoint
+    private final KafkaEndpointSettings kafka;
     // per-endpoint filters (optional): what this endpoint contributes (in) and receives (out)
     private final ClassFilter inFilter;
     private final ClassFilter outFilter;
@@ -92,7 +94,7 @@ public final class EndpointConfig implements Json.Writable {
         EndpointType t = EndpointType.fromSetting(standardSetting);
         if (t == null) {
             errors.add("endpoint " + id + ": unknown endpoint.standard '" + standardSetting
-                    + "' (ieee1516-2010, ieee1516-2025, ieee1516-2025-fedpro, dis6, dis7, cdis, talk, j2j)");
+                    + "' (ieee1516-2010, ieee1516-2025, ieee1516-2025-fedpro, dis6, dis7, cdis, talk, j2j, kafka)");
         }
         this.type = t;
         String talkStd = p.getString("endpoint.talk.hlastandard", "ieee1516-2010");
@@ -119,6 +121,9 @@ public final class EndpointConfig implements Json.Writable {
         if (t == EndpointType.J2J && dyn) {
             errors.add("endpoint " + id + ": a J2J session has a fixed model: give its FOM files in endpoint.hla.foms (not dynamic)");
         }
+        if (t == EndpointType.KAFKA && dyn) {
+            errors.add("endpoint " + id + ": a Kafka endpoint has a fixed model: give its FOM files in endpoint.hla.foms (not dynamic)");
+        }
         if (foms.length == 0 && t != null && t.isDis()) {
             if (dyn) {
                 errors.add("endpoint " + id + ": a DIS endpoint cannot take its FOM from a federation (endpoint.hla.foms=dynamic)");
@@ -127,7 +132,7 @@ public final class EndpointConfig implements Json.Writable {
         }
         // a J2J object session without endpoint.hla.foms has the RPR FOM v2.0 (checked when it opens;
         // a PDU session has no model)
-        this.j2jDefaultFomPaths = t == EndpointType.J2J && foms.length == 0
+        this.j2jDefaultFomPaths = (t == EndpointType.J2J || t == EndpointType.KAFKA) && foms.length == 0
                 ? Collections.unmodifiableList(resolveFoms(new String[] {"RPR_FOM_v2.0_Link16_1516-2010.xml"}, baseDir))
                 : Collections.<String>emptyList();
         this.fomNames = Collections.unmodifiableList(Arrays.asList(foms));
@@ -196,6 +201,12 @@ public final class EndpointConfig implements Json.Writable {
             if (!"auto".equals(transport) && !"reliable".equals(transport)) {
                 errors.add("endpoint " + id + ": endpoint.j2j.transport must be auto or reliable");
             }
+        }
+
+        // 0.13.0: Kafka
+        this.kafka = t == EndpointType.KAFKA ? new KafkaEndpointSettings(id, p, baseDir) : null;
+        if (kafka != null) {
+            errors.addAll(kafka.getErrors());
         }
 
         this.inFilter = ClassFilter.fromProperties(p, "endpoint.filter.in.");
@@ -482,12 +493,20 @@ public final class EndpointConfig implements Json.Writable {
         return j2jReliableOnly;
     }
 
-    /** @return true when the J2J endpoint carries objects (IEM or Talk gateway), false for DIS PDUs (PDU relay) */
+    /**
+     * @return true when the J2J (or, 0.13.0, Kafka) endpoint carries objects (IEM or Talk gateway),
+     *         false for DIS PDUs (PDU relay)
+     */
     public boolean isJ2jObjects() {
         return j2jObjects;
     }
 
-    /** @return the FOM files of a J2J object session: {@code endpoint.hla.foms}, else the RPR FOM v2.0 */
+    /** @return the {@code endpoint.kafka.*} settings of a Kafka endpoint, else null */
+    public KafkaEndpointSettings getKafka() {
+        return kafka;
+    }
+
+    /** @return the FOM files of a J2J object session or Kafka object endpoint: {@code endpoint.hla.foms}, else the RPR FOM v2.0 */
     public List<String> getJ2jFomPaths() {
         return fomPaths.isEmpty() ? j2jDefaultFomPaths : fomPaths;
     }
@@ -517,6 +536,10 @@ public final class EndpointConfig implements Json.Writable {
         }
         if (type == EndpointType.J2J) {
             return j2jSession;
+        }
+        if (type == EndpointType.KAFKA) {
+            return !kafka.getTopic().isEmpty() ? kafka.getTopic()
+                    : j2jObjects ? KafkaEndpointSettings.DEFAULT_OBJECT_TOPIC : KafkaEndpointSettings.DEFAULT_PDU_TOPIC;
         }
         return federation;
     }
@@ -565,6 +588,14 @@ public final class EndpointConfig implements Json.Writable {
             o.put("j2jexid", j2jExerciseId);
             o.put("j2jtransport", j2jReliableOnly ? "reliable" : "auto");
             o.put("j2jkind", j2jObjects ? "objects" : "pdu");
+            if (j2jObjects) {
+                o.put("foms", fomNames.isEmpty() ? Collections.singletonList("RPR_FOM_v2.0_Link16_1516-2010.xml") : fomNames);
+            }
+        }
+        if (type == EndpointType.KAFKA) {
+            o.put("iskafka", true);
+            o.put("kafka", kafka.toJson());
+            o.put("kafkakind", j2jObjects ? "objects" : "pdu");
             if (j2jObjects) {
                 o.put("foms", fomNames.isEmpty() ? Collections.singletonList("RPR_FOM_v2.0_Link16_1516-2010.xml") : fomNames);
             }

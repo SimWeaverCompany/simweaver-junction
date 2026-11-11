@@ -13,7 +13,7 @@ Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the env
 
 With API authentication on (0.11.0) every call needs `Authorization: Bearer <token>`, as all of `/api` does ([rest-api.md](rest-api.md), 14).
 
-API state: Junction 0.12.2, November 2026.
+API state: Junction 0.13.0, November 2026.
 
 ---
 
@@ -105,7 +105,7 @@ An HLA endpoint with `endpoint.hla.foms=dynamic` (FOM from the federation) has `
 
 An endpoint whose target setting contains group variables also has `targettemplate`, the setting as written (`"GROUPVAR2-COMMS"`), while `defaulttarget` has the variables replaced by their defaults. The page's Discover for variables uses it.
 
-DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress`. C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). J2J endpoints (0.10.0, `"standard": "j2j"`) add `"isj2j": true`, `j2jsession` (also `defaulttarget`), `j2jdis`, `j2jexid` and `j2jtransport` (`auto` / `reliable`). Talk routers have `talkmode` (`full` / `messages`), `talktrackchannels`, `talkmessages`, `talkmatch`, `talkchannels`, `talkmirrorclients`, `talkradiomap`, `talkradioendpoint`, `talkradioentityid`, `talksamplerate`, `talkchannelmap`, `talkchanneluuidmap`.
+DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress`. C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). J2J endpoints (0.10.0, `"standard": "j2j"`) add `"isj2j": true`, `j2jsession` (also `defaulttarget`), `j2jdis`, `j2jexid` and `j2jtransport` (`auto` / `reliable`). Kafka endpoints (0.13.0, `"standard": "kafka"`) add `"iskafka": true`, `kafkakind` (`pdu` with a PDU relay, `objects` with an IEM router; the records are DIS PDUs or JSON), `foms` (`objects` only) and `kafka`: `bootstrap`, `topic` (as `defaulttarget`, after the gateway's own setting), `interactiontopic`, `group` (`""` = the default), `start`, `direction`, `acks`, `compression`, `values`, `security` and, with SASL, `saslmechanism` and `saslusername`. Passwords are never in the JSON. Talk routers have `talkmode` (`full` / `messages`), `talktrackchannels`, `talkmessages`, `talkmatch`, `talkchannels`, `talkmirrorclients`, `talkradiomap`, `talkradioendpoint`, `talkradioentityid`, `talksamplerate`, `talkchannelmap`, `talkchanneluuidmap`.
 
 ### 2.3 Compatibility
 
@@ -128,13 +128,14 @@ Lists are capped at 300 entries; the counts are complete. `members.valuerules` a
 
 ### 2.4 Targets
 
-`GET /junction/configs/{cfgid}/endpoints/{epid}/targets` asks the endpoint's RTI for its federations, listens 1.5 s on a DIS network, or (Talk, with `?federation=`) joins briefly and lists the channels; a J2J endpoint lists the sessions of the J2J network:
+`GET /junction/configs/{cfgid}/endpoints/{epid}/targets` asks the endpoint's RTI for its federations, listens 1.5 s on a DIS network, or (Talk, with `?federation=`) joins briefly and lists the channels; a J2J endpoint lists the sessions of the J2J network, a Kafka endpoint the topics of its cluster with their partition counts (0.13.0):
 
 ```json
 {"endpoint":"blue","result":{"kind":"federation","targets":["Blue","FederationX-blue"]},"default":"Blue"}
 {"endpoint":"dis","result":{"kind":"exercise","targets":[{"id":"1","pdus":412}]},"default":"1"}
 {"endpoint":"site1","result":{"kind":"channel","targets":[{"id":"Battalion","type":"VoiceChannel"}]},"default":"TalkSite1"}
 {"endpoint":"j2j","result":{"kind":"session","targets":[{"id":"exercise-pdu","model":"DIS 7, exercise 1","members":3}]},"default":"exercise-pdu"}
+{"endpoint":"kafka","result":{"kind":"topic","targets":[{"id":"simweaver.objects","partitions":3},{"id":"test.dis","partitions":3}]},"default":"simweaver.objects"}
 ```
 
 `result.error` is set when the probe failed (RTI missing, port in use, …).
@@ -188,7 +189,7 @@ POST /junction/gateways
 
 `targets`, `vars`, `instance` and `lsds` are optional.
 
-- `targets` gives an endpoint's federation (HLA, Talk), exercise id (DIS, 0-255) or session (J2J). Missing ones use the configuration's default, and a target may contain group variable tokens.
+- `targets` gives an endpoint's federation (HLA, Talk), exercise id (DIS, 0-255), session (J2J) or topic (Kafka, 0.13.0). Missing ones use the configuration's default, and a target may contain group variable tokens.
 - The call returns when every endpoint has joined or opened, so HLA joins can take a while.
 - The reply includes `warning` when another running gateway already uses one of the targets.
 - `lsds` gives an HLA endpoint the LSD (1516-2025: the RTI configuration name) to connect with: one of the configured choices (`endpoint.hla.lsd=default;crc2`) or any other text, `""` for the RTI's default. Missing endpoints use the configured default, the first choice. Group variable tokens in it are replaced. Send only what differs from the default, so a group variable in the setting keeps working.
@@ -200,7 +201,7 @@ POST /junction/gateways
 | `CONFIG_NOT_FOUND` | 404 | No such configuration |
 | `CONFIG_INVALID` | 400 | Configuration errors; unknown endpoint in `targets`; a `vars` key that is not `GROUPVARn` |
 | `VARIABLES_REQUIRED` | 400 | A variable the settings use has no value |
-| `TARGET_CONFLICT` | 409 | Two endpoints of the gateway on the same federation / DIS network and exercise |
+| `TARGET_CONFLICT` | 409 | Two endpoints of the gateway on the same federation / DIS network and exercise / J2J session / Kafka topic |
 | `INSTANCE_RUNNING` | 409 | This configuration already runs as that instance |
 | `INSTANCE_INVALID` | 400 | Not a usable instance name |
 | `LSD_INVALID` | 400 | An `lsds` key that is not an HLA endpoint of the gateway; an LSD longer than 512 characters or with control characters |
@@ -247,6 +248,34 @@ POST /junction/gateways
 | `fomnotice` | Only when there is something to say, e.g. a dynamic endpoint's federation FDD changed after the start (a federate joined with more modules): restart the gateway to take in the new classes |
 
 J2J endpoints (0.10.0) have `j2j`: `session`, `model` (e.g. `"DIS 7, exercise 1"`), `transport`, `members` (the other members: `node`, `gateway`, `instance`, `endpoint`, `model`, `state` `active` / `lost` / `mismatch`, `statemessage`, `local`, `since`), `sent`, `received`, `copies` (sent to other servers), `notsent` (no route, or the reliable buffer full) and `loopsdropped` (received from the session shortly before, not sent back). A J2J endpoint whose server does not run J2J fails to open with `CONNECT_FAILED`.
+
+Kafka endpoints (0.13.0) have `kafka`:
+
+```json
+"kafka": { "kind": "objects", "bootstrap": "localhost:9092", "topics": ["simweaver.objects"], "direction": "both",
+           "group": "simweaver-junction-hla3-kafka-kafka",
+           "producer": { "state": "connected", "sent": 11380, "sentbytes": 12079897, "requests": 287, "waiting": 0,
+                         "dropped": 0, "expired": 0, "failed": 0, "retries": 0 },
+           "consumer": { "state": "consuming", "group": "simweaver-junction-hla3-kafka-kafka", "generation": 1,
+                         "memberid": "simweaver-junction-hla3-kafka-7829…", "topics": ["simweaver.objects"],
+                         "partitions": ["simweaver.objects/0", "simweaver.objects/1", "simweaver.objects/2"], "lag": 0,
+                         "received": 11380, "receivedbytes": 12079897, "fetches": 771, "rebalances": 1, "commits": 54,
+                         "resets": 0, "unsupportedbatches": 0, "corruptbatches": 0 },
+           "values": "full", "ownobjects": 43, "topicobjects": 0, "owndropped": 11380, "malformed": 0,
+           "unknownclasses": 0, "valueissues": 0, "timedout": 0, "lastissue": null }
+```
+
+| Field | Meaning |
+|---|---|
+| `kind` | `pdu` (DIS PDUs) or `objects` (JSON) |
+| `producer` | Only when the endpoint writes. `state` `idle` (nothing sent yet), `connected` or `failing`; `waiting` records not yet confirmed; `dropped` the queue was full (100 000 records); `expired` not confirmed within 30 s; `failed` refused by the broker; `lasterror` / `lasterrorat` when there was one |
+| `consumer` | Only when the endpoint reads. `state` `connecting`, `joining` (the group), `consuming`, `failing` or `closed`; `group` / `generation` / `memberid` only with a group; `partitions` assigned to this member; `lag` records in them not read yet; `resets` positions reset because the offset was out of range; `unsupportedbatches` record batches it cannot read (zstd), skipped |
+| `owndropped` | Records this endpoint wrote itself, read back and dropped |
+| `malformed` | Records that are no DIS PDU / no JSON object of the format |
+| `ownobjects` / `topicobjects` | `objects` only: the objects this endpoint wrote / read from the topic |
+| `unknownclasses` / `valueissues` / `timedout` / `lastissue` | `objects` only: classes not in the model, values that did not fit (the rest of the record was used), objects removed by `objecttimeoutseconds`, the last of these |
+
+A Kafka endpoint stays `JOINED` while the brokers are unreachable; its `message` says which side is failing and why. One whose brokers cannot be reached at the start fails to open with `CONNECT_FAILED`. Inspect (5) gives 400 `UNSUPPORTED_STANDARD` for Kafka and J2J endpoints.
 
 DIS and C-DIS endpoints (0.9.18) also have `dis`: `disversion`, `exercise`, `sendexercise`, `destination`, `echoes` (own PDUs dropped), `otherexercise`, `malformed`, the objects heard and sent; with the PDU relay `relayedin` / `relayedout`. A C-DIS endpoint adds `"protocol": "C-DIS"`, `cdissettings` (as `cdis` in 2.2), `cdisobjects` (objects the decoder keeps state for) and the codec's counters:
 

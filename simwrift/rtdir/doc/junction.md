@@ -1,12 +1,12 @@
 # SimWeaver Junction — gateways in Rift
 
 Junction bridges federations and networks: HLA Evolved (IEEE 1516-2010), HLA 4 (IEEE 1516-2025,
-also over the Federate Protocol), DIS 6 and DIS 7, C-DIS (Compressed DIS, SISO-STD-023-2024) and Talk. It runs inside the Rift server,
+also over the Federate Protocol), DIS 6 and DIS 7, C-DIS (Compressed DIS, SISO-STD-023-2024), Talk and Apache Kafka topics. It runs inside the Rift server,
 has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/api/junction`, see
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.12.2. Java 11, no libraries apart from the HLA RTIs.
+Version 0.13.0. Java 11, no libraries apart from the HLA RTIs (Kafka included: Junction has its own Kafka client).
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -33,6 +33,7 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
    - [C-DIS endpoints](#c-dis-endpoints)
    - [The PDU relay](#the-pdu-relay)
    - [J2J sessions](#j2j-sessions-0100)
+   - [Apache Kafka topics](#apache-kafka-topics-0130)
 10. [RTI libraries per endpoint](#10-rti-libraries-per-endpoint)
 11. [The page](#11-the-page)
 12. [Limits and things to verify](#12-limits-and-things-to-verify)
@@ -45,8 +46,8 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
 | Term | Meaning |
 |---|---|
 | **Gateway** (junction) | Two or more **endpoints** and one **router**, from one `*.junction.settings` file. Started from the page or the REST API; several can run at once. |
-| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), a Talk federation, or (0.10.0) a session of the J2J network shared with gateways on other SimWeaver servers. Has a **target** chosen at start: federation name, DIS exercise id or J2J session. |
-| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `talk`: Talk channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7, C-DIS and J2J endpoints (section 9). |
+| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), a Talk federation, (0.10.0) a session of the J2J network shared with gateways on other SimWeaver servers, or (0.13.0) an Apache Kafka topic. Has a **target** chosen at start: federation name, DIS exercise id, J2J session or Kafka topic. |
+| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `talk`: Talk channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7, C-DIS, J2J and Kafka endpoints (section 9). |
 | **Kit** | A reusable endpoint (`endpoints/*.endpoint.settings`) or router (`routers/*.router.settings`) that gateway files refer to and override. |
 | **Group** | Gateways with the same `junction.group`, started and stopped together, with **group variables** (`GROUPVAR1` …) filled in at the start. |
 
@@ -153,7 +154,7 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | Key | Default | Meaning |
 |---|---|---|
 | `endpoint.name` | the id | Shown on the page |
-| `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `talk`, `j2j` |
+| `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `talk`, `j2j`, `kafka` |
 | **HLA** | | |
 | `endpoint.hla.foms` | DIS: RPR v2; Talk: `dynamic` | `;`-separated files or folders; relative names are looked up in `endpoint.hla.fomrootdir`. `dynamic`: the FOM is taken from the federation (see below) |
 | `endpoint.hla.createfoms` | | `dynamic` only: FOM files to create the federation with when it is not running (see below). Empty: the federation must be running |
@@ -174,6 +175,7 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | **DIS** | | see section 9 |
 | **C-DIS** | | `endpoint.cdis.*`, see *C-DIS endpoints* in section 9 |
 | **J2J** | | `endpoint.j2j.*`, see *J2J sessions* in section 9 |
+| **Kafka** | | `endpoint.kafka.*`, see *Apache Kafka topics* in section 9 |
 | **Filters** | | |
 | `endpoint.filter.in.*` / `endpoint.filter.out.*` | all | Per-endpoint class filters (same keys as the router's `objects.allow` …): what this endpoint contributes / receives |
 
@@ -687,7 +689,7 @@ The gateway page shows the update mode and how much of the DIS volume was sent (
 | `router.kind` | `iem` | `pdu` for the relay |
 | `router.pdu.types` | all | `;`-separated PDU type numbers to pass, e.g. `1;2;3;25;26;27` |
 
-- Only DIS 6, DIS 7, C-DIS and J2J endpoints (a configuration with others is invalid).
+- Only DIS 6, DIS 7, C-DIS, J2J and Kafka endpoints (a configuration with others is invalid).
 - An endpoint receives only its exercise (`0`: all), as always, and drops what its own sender sent, so relayed PDUs do not come back.
 - The class filters, names, value rules and RPR conversion of the IEM router do not apply.
 - The page shows the PDUs relayed; the status has them per direction and per PDU type.
@@ -752,6 +754,78 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
 - **One gateway per federation and session:** two gateways that both bridge the same federation into one session would each send the other's copies back in. (A PDU session filters such loops; an object session does not.)
 - **Talk:** the J2J endpoint is a Talk side: the session works like a Talk federation in between. With `talk.createmissingchannels=true` the first message on a channel the session lacks creates it there (as in a federation), and every other member's gateway maps it by name to its own federation's channel. Lobby messages pass.
 
+### Apache Kafka topics (0.13.0)
+
+A **Kafka endpoint** (`endpoint.standard=kafka`) writes a gateway's traffic to an Apache Kafka topic and reads what others write there. Junction has its own Kafka client (no Kafka library is needed); it speaks the Kafka protocol to brokers of Kafka 1.0 or later. The target of the endpoint is the **topic**. What the records hold depends on the gateway's router, as for J2J:
+
+| Gateway | Records | Sample |
+|---|---|---|
+| PDU relay (`router.kind=pdu`) | **DIS PDUs**, one per record, as they are: key `site:application:entity` of the PDU's first entity id (octets 12-17: the entity of an Entity State PDU, the shooter of a Fire PDU, the emitter of an Emission PDU …), so an entity's PDUs stay in one partition and in order. Header `content-type: application/x-dis` | `DIS7<->Kafka` (`dis7-kafka`) |
+| IEM (`router.kind=iem`) | **JSON**: one record per object update or removal (key: the object's name) and one per interaction, with the FOM's class, attribute and parameter names. To the router the Kafka endpoint is like a federation, so filters, names, value rules and RPR v2 ⇄ v3 conversion work as between federations | `HLA3<->Kafka` (`hla3-kafka`) |
+
+A Kafka endpoint cannot be in a Talk gateway. The samples and the kits `kafka` and `kafka-sasl-ssl` are in `etc/junctions.dist`.
+
+```
+# endpoints/kafka.endpoint.settings
+endpoint.standard=kafka
+endpoint.kafka.bootstrap=localhost:9092
+endpoint.kafka.topic=
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `endpoint.kafka.bootstrap` | — | The brokers to start from, `host:port`, comma separated (IPv6 as `[addr]:port`). The client learns the rest of the cluster from them |
+| `endpoint.kafka.topic` | `simweaver.dis` (PDU relay) / `simweaver.objects` (IEM) | The topic: the default target. The start dialog can name another (*Discover* lists the cluster's topics with their partition counts) |
+| `endpoint.kafka.interactiontopic` | the topic | JSON records: interactions to a topic of their own |
+| `endpoint.kafka.direction` | `both` | `produce`: only write; `consume`: only read |
+| `endpoint.kafka.group` | `simweaver-junction-<gateway>-<endpoint>` | The consumer group (below). `none`: no group |
+| `endpoint.kafka.start` | `latest` | Where reading begins when the group has no committed offset (and always without a group): `latest` or `earliest` |
+| `endpoint.kafka.acks` | `all` | How many replicas confirm a write: `all`, `1` (the leader) or `0` (none: fire and forget) |
+| `endpoint.kafka.compression` | `none` | Written records: `none` or `gzip`. Reading takes gzip, snappy and lz4 too |
+| `endpoint.kafka.lingerms` | `5` | How long the producer collects records into one request (0-10000) |
+| `endpoint.kafka.key` | `entity` | PDU records: `none` writes no key (the brokers spread the records over the partitions) |
+| `endpoint.kafka.values` | `full` | JSON records: `full`: every update has all attributes the object has had, so each record stands on its own; `changed`: only the attributes of the update |
+| `endpoint.kafka.objecttimeoutseconds` | `0` | JSON records: objects read from the topic and not updated for this long are removed (0: kept until a remove record) |
+| `endpoint.hla.foms` | RPR FOM v2.0 | JSON records: the object model, FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`). Not `dynamic` |
+| `endpoint.kafka.autocreatetopics` | `true` | Ask the brokers to create a missing topic (when they allow it: `auto.create.topics.enable`) |
+| `endpoint.kafka.clientid` | `simweaver-junction` | The client id the brokers log and use for quotas |
+| `endpoint.kafka.security` | `plaintext` | `plaintext`, `ssl` (TLS), `sasl_plaintext` or `sasl_ssl`, as the brokers' listener expects |
+| `endpoint.kafka.sasl.mechanism` | `PLAIN` | `PLAIN`, `SCRAM-SHA-256` or `SCRAM-SHA-512` |
+| `endpoint.kafka.sasl.username` / `sasl.password` | | The SASL user. Write the password as `${env:NAME}` so it is read from the server's environment instead of the file |
+| `endpoint.kafka.ssl.truststore` / `truststorepassword` | the JDK's CAs | A PKCS12 or JKS file with the brokers' CA (relative to the runtime folder) |
+| `endpoint.kafka.ssl.keystore` / `keystorepassword` | | A client certificate, when the brokers ask for one |
+| `endpoint.kafka.ssl.hostnameverification` | `true` | The broker's certificate must name the host it is reached by |
+
+**JSON records** (IEM gateways)
+
+```
+{"v":1,"kind":"object","op":"update","class":"HLAobjectRoot.BaseEntity.PhysicalEntity.Platform.Aircraft",
+ "name":"GRIPEN 11","source":"stockholm/kafka","time":"2026-11-11T15:00:00.123Z",
+ "attributes":{"EntityType":{"EntityKind":1,"Domain":2,"CountryCode":205,"Category":1,"Subcategory":4,"Specific":0,"Extra":0},
+               "Marking":{"MarkingEncodingType":"ASCII","MarkingData":"GRIPEN 11\u0000\u0000"},"ForceIdentifier":"Friendly",
+               "Spatial":{"DeadReckoningAlgorithm":"DRM_FPW","SpatialFPW":{"WorldLocation":{"X":3276306.78,"Y":1030891.54,"Z":5364042.27}, …}}, …}}
+{"v":1,"kind":"object","op":"remove","class":"…","name":"GRIPEN 11","source":"stockholm/kafka","time":"…"}
+{"v":1,"kind":"interaction","class":"HLAinteractionRoot.WeaponFire","source":"stockholm/kafka","time":"…","parameters":{…}}
+```
+
+- `source` is `<gateway>/<endpoint>` of the writer; `time` when it was written (UTC).
+- **Values**, by datatype: integers and floats are numbers (`"NaN"`, `"Infinity"` as strings); enumerations the enumerator's name; character arrays strings; octet arrays and opaque data strings with one character per octet (text stays readable, other octets are `\u00XX` escapes); other arrays arrays; fixed records objects (field name to value); variant records objects with the discriminant's name and enumerator and the alternative's name and value. Nothing is lost: what is written reads back to the same octets.
+- **Reading** takes records from any producer, not only Junction: class names with or without `HLAobjectRoot.` / `HLAinteractionRoot.`, any subset of the attributes or parameters (fields missing inside a value get their default), numbers given as strings and enumerators given as numbers. An update of an object not seen before discovers it. Records that are no JSON object, classes not in the model and values that do not fit are counted (and the last one shown) on the page; the rest of the record is used.
+- An object is known by its writer and name: two writers may use the same name. When a gateway stops, its Kafka endpoint writes a remove record for each of its objects, so the other readers remove them.
+- With `values=full` a topic with `cleanup.policy=compact` keeps each object's latest state; a reader that starts at `earliest` then gets every object without the history.
+
+**Consumer groups and offsets**
+
+- An endpoint that reads joins its **consumer group** (Kafka's classic group protocol, range assignment). The members of a group share the topic's partitions: two instances of a gateway with the same group each get a part of the records. Give each reader its own group (the default does: the group includes the gateway's runtime name, which includes the instance) when every reader should get every record.
+- Offsets are committed every 5 seconds and when the gateway stops, so a restarted gateway goes on where it stopped. Without a committed offset, reading begins at `endpoint.kafka.start`. With `group=none` the endpoint reads every partition from `start` and commits nothing.
+- **Its own records** are never read back: every record carries the header `simweaver.source` with an id of the endpoint (new at each start), and records with its own id are dropped (counted as *own records*). Records another endpoint wrote are passed on as usual.
+
+**Loops and failures**
+
+- Two endpoints of one gateway on the same topic (and brokers) are refused at the start (`TARGET_CONFLICT`); a second running gateway on a topic gets a warning. Two gateways that bridge the same DIS network or federation into one topic pass each other's records back and forth: give each network one gateway per topic.
+- **Brokers unreachable when the gateway starts:** the endpoint does not open (`CONNECT_FAILED` with the reason, e.g. *the broker closed the connection during SASL … (user or password wrong?)*). Once open, the endpoint stays *joined* through broker outages, leader changes and rebalances: the producer keeps up to 100 000 records and retries for 30 seconds (then they are counted as *expired*); the consumer reconnects and rejoins its group. The page shows *producer failing* / *consumer failing* with the last error meanwhile.
+- **On the page** a Kafka endpoint shows what its records are (DIS PDUs or JSON objects), the consumer's lag (records in its partitions not read yet), records waiting or not sent, the objects it wrote and read, and its group; the tooltip has the producer's and consumer's counters and last errors.
+
 ---
 
 ## 10. RTI libraries per endpoint
@@ -774,6 +848,7 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
 2. **Gateway configurations**, grouped, with **Start group** / **Stop group**. A group lists its running instances, each with its own **■ Stop** (section 7). The Start group dialog and a gateway's **Start** dialog ask for the instance name, prefilled with the next free number. A gateway's **Start** dialog asks for each endpoint's target and offers:
    - federations the RTI knows (**Discover**);
    - exercises heard on the DIS network (**Listen**);
+   - J2J sessions and Kafka topics (**Discover**);
    - Talk channels;
    - group variables, when the gateway uses any;
    - the LSD of each HLA endpoint (section 4, *LSD choices*).
@@ -802,6 +877,7 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
 - **Link 16:** the J-message contents are defined in the restricted MIL-STD-6016; the gateway copies them, and Rift shows them as hex. The RPR v3 FOMs here have no Link-16 module, so between RPR v2 and v3 a Link 16 interaction goes as its nearest v3 superclass (`RawBinaryRadioSignal`, without the message data), unless both FOMs include the module. Check against your Link 16 simulators which `SISOSTD002Version` they send.
 - **FOM from the federation** (section 4) relies on the RTI providing `HLAcurrentFDD` as an `HLAunicodeString` with the merged FDD, and updating it when modules are added. The test RTIs do (`-Dfakerti.fddformat=2025` makes them report it in the 1516-2025 format, as an HLA 4 RTI may); verify it with your RTI, including the *FDD has changed* notice. `endpoint.hla.fddclass` / `fddattribute` cover an RTI that names them differently.
 - **Name templates** (section 5) apply to the copies the router registers. A reference to an object the gateway does not bridge passes with its original name.
+- **Kafka** (section 9): records compressed with zstd are not read (they are skipped and counted); writing is gzip or none. Reading is *read uncommitted*; there is no idempotent or transactional producer (a record may be written twice when a broker fails after storing it) and no static group membership. Checked against an in-memory Kafka broker (franz-go's kfake) and the franz-go client: produce, consume, gzip / snappy / lz4, the partitioner, groups mixed with that client, SASL PLAIN and SCRAM, TLS, broker restarts. Verify it with your Kafka version and its security settings.
 - **Value rules** (section 5) have no wildcards and no per-direction scope yet. They do not change values that the gateway builds itself: the IFF mode objects of `RprIffBridge` and Talk channels.
 
 ---
@@ -836,4 +912,6 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.junction.J2jTalkSelfTest` | Talk over J2J: two Talk federations on two servers, mirrored clients, a channel created in the session and mapped by name both ways, the lobby (needs the tester's Talk FOM; skips without) |
 | `com.simweaver.j2j.J2jSessionSelfTest` | PDU sessions on three J2J servers (one reached through another): members, model agreement, reliable PDUs all and in order over two hops, Entity State best effort with the newest arriving, local members, the loop filter, the J2J page's view, a lost member and its return, a reload, leaving |
 | `com.simweaver.rift.datasources.CdisDatasourceSelfTest` | The Rift C-DIS datasource: settings, a full update and partial updates over UDP into the database, another exercise, a broken datagram |
+| `com.simweaver.kafka.KafkaSelfTest` | The Kafka client (0.13.0) against an in-memory broker: the protocol's primitives, the partitioner (the Java client's test vectors), SCRAM (RFC 7677), record batches with CRC32C, gzip / snappy / lz4 (vectors of another client), JSON values over every RPR datatype both ways, the settings and their mistakes; produce and consume in the newest and the oldest protocol versions it speaks, keys to partitions, headers, committed offsets and a restart, a consumer group splitting partitions and rebalancing, SASL PLAIN and SCRAM with good and bad passwords |
+| `com.simweaver.junction.KafkaBridgeSelfTest` | Kafka endpoints: the settings and their mistakes, the defaults per router; DIS 7 ⇄ topic ⇄ DIS 6 through two PDU relays (keys, headers, own records dropped); HLA ⇄ topic ⇄ HLA as JSON (an aircraft with its values, every record with all of them, updates, a WeaponFire, records of another producer, malformed records counted, deleting, removal when the writing gateway stops); a cluster that cannot be reached |
 | `com.simweaver.junction.router.ValueMapSelfTest` | Value rules: the settings and their mistakes, RPR v2 and v3 models, nested values, enumerations, routes as is and v2 ⇄ v3, interaction parameters, and a DIS ⇄ HLA gateway that replaces entity and munition types both ways |
