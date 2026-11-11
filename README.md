@@ -9,7 +9,20 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.12.0 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.12.2 · BSD 3-Clause License · © 2026 Simweaver AB
+
+![The Rift map: a DIS exercise around Gotland, with aircraft, ships and ground units of two forces and their radar and jammer beams](simwrift/rtdir/doc/img/rift-map.png)
+
+*The Rift map: a DIS exercise around Gotland, with the radar and jammer beams of the emitters.*
+
+<p>
+  <img src="simwrift/rtdir/doc/img/rift-gateways.png" width="49%" alt="Junction gateways: the DIS exercise bridged into an HLA RPR federation and on into a NETN federation, with live traffic rates">
+  <img src="simwrift/rtdir/doc/img/rift-j2j.png" width="49%" alt="The J2J page: five servers in a network, with a PDU session shared by three of them">
+</p>
+
+*Left: Junction gateways bridging the same exercise from DIS 6 into an HLA RPR federation, and from
+there into NETN with UniqueId and Callsign added. Right: the J2J network of five servers, with a
+DIS session shared by three of them (one of them reached through another).*
 
 ---
 

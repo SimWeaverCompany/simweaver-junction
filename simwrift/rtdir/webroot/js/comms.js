@@ -466,7 +466,11 @@
 			b.addEventListener('click', function () { openChat(c.id); });
 			tabs.appendChild(b);
 		});
-		if (!chatOpen && list.length) { openChat(list[0].id); }
+		if (!chatOpen && list.length) {
+			// the busiest chat channel first (the lobby is listed first but is often quiet)
+			var best = list.slice().sort(function (a, b) { return (b.chatcount || 0) - (a.chatcount || 0); })[0];
+			openChat(best.id);
+		}
 		if (!list.length) {
 			var t = ui.clear($('cm-transcript'));
 			t.appendChild(el('div.cm-hint.cm-pad', { text: 'Talk chat channels and the lobby show their messages here.' }));

@@ -75,6 +75,7 @@ public final class DisBridgeSelfTest {
         emitters(fomRoot, rtiDir);
         iffAndDesignator(fomRoot, rtiDir);
         echo(fomRoot);
+        emittersBeforeDeclare(fomRoot);
         takenName(fomRoot, rtiDir);
         System.out.println(checks + " checks, " + failures + " failures");
         System.exit(failures == 0 ? 0 : 1);
@@ -832,6 +833,70 @@ public final class DisBridgeSelfTest {
         check("own PDUs recognised as echoes " + diag, ((Number) diag.get("echoes")).longValue() > 0);
         check("and not discovered", heard.isEmpty());
         e.close(true);
+    }
+
+    // ------------------------------------------------------------------ emitters heard before declare
+
+    /**
+     * 0.12.2: an emitter already sending when the gateway starts (heard while the other endpoints are
+     * still joining, so before the router declares) is bridged once the router has declared; before,
+     * its systems and beams stayed without a class for as long as it kept sending.
+     */
+    private static void emittersBeforeDeclare(File fomRoot) throws Exception {
+        int port = freePort();
+        try (DatagramSocket sim = new DatagramSocket(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0))) {
+            SimwProperties p = new SimwProperties();
+            p.set("endpoint.standard", "dis7");
+            p.set("endpoint.hla.foms", new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath());
+            p.set("endpoint.dis.interface", "127.0.0.1");
+            p.set("endpoint.dis.port", String.valueOf(port));
+            p.set("endpoint.dis.sendaddress", "127.0.0.1:" + sim.getLocalPort());
+            EndpointConfig cfg = new EndpointConfig("early", p, "test", new File("."));
+            DisEndpoint e = new DisEndpoint(cfg, "3", "early-emitters");     // target: exercise 3 (the PDUs')
+            final List<Integer> classes = Collections.synchronizedList(new ArrayList<Integer>());
+            e.open(new EndpointListener() {
+                public void discovered(Endpoint from, long key, int objectClass, String name, String producer) {
+                    classes.add(objectClass);
+                }
+                public void reflected(Endpoint from, long key, int[] a, byte[][] v, byte[] tag, String producer) {
+                }
+                public void removed(Endpoint from, long key, byte[] tag) {
+                }
+                public void received(Endpoint from, int ic, int[] a, byte[][] v, byte[] tag, String producer) {
+                }
+                public void provideRequested(Endpoint from, long key, int[] attributes) {
+                }
+                public void registered(Endpoint from, long gwId, long key, String name) {
+                }
+                public void registrationFailed(Endpoint from, long gwId, String reason) {
+                }
+                public void stateChanged(Endpoint from, EndpointState state, String message) {
+                }
+            });
+            byte[] ee = eePdu(true, new int[][] {{1, 1}});
+            for (int i = 0; i < 5; i++) {
+                sim.send(new DatagramPacket(ee, ee.length, InetAddress.getLoopbackAddress(), port));
+                sleep(40);
+            }
+            sleep(200);
+            check("emitter heard before declare: not yet discovered", classes.isEmpty());
+
+            InformationExchangeModel m = e.model();
+            int es = m.getObjectClass(EMITTER).getId();
+            int rb = m.getObjectClass(RADAR).getId();
+            Interest sub = new Interest();
+            sub.addAttributes(es, Collections.singletonList(m.getClassAttribute(EMITTER, "EmitterType").getId()));
+            sub.addAttributes(rb, Collections.singletonList(m.getClassAttribute(RADAR, "BeamAzimuthCenter").getId()));
+            e.declare(new Interest(), sub);
+            long until = System.currentTimeMillis() + 2000;
+            while (System.currentTimeMillis() < until && !(classes.contains(es) && classes.contains(rb))) {
+                sim.send(new DatagramPacket(ee, ee.length, InetAddress.getLoopbackAddress(), port));
+                sleep(100);
+            }
+            check("emitter heard before declare: its system is bridged after the declare", classes.contains(es));
+            check("emitter heard before declare: its beam is bridged after the declare", classes.contains(rb));
+            e.close(true);
+        }
     }
 
     // ------------------------------------------------------------------ a DIS name taken in HLA

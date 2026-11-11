@@ -357,6 +357,9 @@ public final class DisEndpoint implements Endpoint, PduPort {
             }
             nativeRadios.values().removeIf(n -> n.objectClass == 0);
             nativeIffs.values().removeIf(n -> n.objectClass == 0);
+            // 0.12.2: emitter systems and beams too (they were missed: an exercise already running
+            // when the gateway started never had its emitters bridged)
+            nativeEmitters.values().removeIf(n -> n.objectClass == 0);
         }
     }
 
@@ -1096,7 +1099,8 @@ public final class DisEndpoint implements Endpoint, PduPort {
             if (cdis != null) {
                 cdis.expire(now);
             }
-            stats.sample(now);
+            // (0.12.2) no stats.sample here: the gateway samples every endpoint once a second; a
+            // second sampler made the in rate of bursty DIS input flicker between 0 and twice the rate
         } catch (RuntimeException e) {
             warnOnce("tick", "heartbeat failed: " + e);
         }

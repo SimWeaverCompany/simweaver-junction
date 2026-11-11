@@ -162,7 +162,10 @@ dl.mv-card-rows dd { margin: 0; color: var(--fg); font-family: var(--mono); font
 .pane-map[hidden] { display: none; }
 
 /* ---------- the map page (map.html) ---------- */
-.mp-page { flex: 1; display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; height: calc(100vh - 56px); }
+/* the page is exactly the window: the map fills what the header leaves, the list scrolls in its own
+   column (a long list must not stretch the page and the map below the window, 0.12.2) */
+.mp-body { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.mp-page { flex: 1 1 0; display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; }
 .mp-side { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--rule-strong); background: var(--bg-panel); }
 .mp-side-head { padding: 10px 12px 8px 12px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 6px; }
 .mp-ds { font-family: var(--mono); font-weight: 700; color: var(--amber); font-size: 13px; overflow-wrap: anywhere; }
@@ -185,7 +188,7 @@ dl.mv-card-rows dd { margin: 0; color: var(--fg); font-family: var(--mono); font
 .mp-side-foot { padding: 6px 12px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 10.5px; color: var(--fg-faint); }
 .mp-main { position: relative; min-height: 0; }
 @media (max-width: 760px) {
-  .mp-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 34vh; height: calc(100vh - 110px); }
+  .mp-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 34vh; }
   .mp-side { order: 2; border-right: none; border-top: 1px solid var(--rule-strong); }
 }
 
