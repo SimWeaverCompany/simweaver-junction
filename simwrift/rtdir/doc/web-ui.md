@@ -178,6 +178,9 @@ The server keeps the latest 10 000 interactions per datasource; older ones leave
 history.
 
 **Map** (in the object panel: **☰ List | ◉ Map**, or **⧉ Map tab** for a page of its own)
+
+![The Map tab: a DIS exercise with radar and jammer beams](img/rift-map.png)
+
 - The objects of the current filter (class tree, search, *+ related*) that have a position, on a
   map: symbols coloured by force (friendly blue, opposing red, neutral green, other yellow),
   sized by zoom, with a speed line in the heading. The shape tells what kind of object it is
@@ -309,6 +312,8 @@ configure.
 The top bar's **J2J** opens `j2j.html`: the J2J network of SimWeaver servers this server
 belongs to (installation guide, 2.8). Everything on it updates live.
 
+![The J2J page: five servers, one PDU session](img/rift-j2j.png)
+
 - **Network:** this server's id, the ports it listens on, the network key's id and fingerprint
   (compare fingerprints with the other sites, never the key), whether the members' lists agree,
   and how many members are reached directly, through others, or not. **⟳ Reload member list**
@@ -395,6 +400,8 @@ What you filled in is remembered in this browser; **Start over** clears a sectio
 The top bar's **Junction gateways** opens `junction.html`: gateways that bridge HLA federations,
 DIS and C-DIS networks and Talk federations, configured in `etc/junctions`. Their endpoints also
 show up in the datasource list, marked *JUNCTION*. See [junction.md](junction.md).
+
+![Junction gateways: DIS into HLA, HLA into NETN](img/rift-gateways.png)
 
 ---
 
