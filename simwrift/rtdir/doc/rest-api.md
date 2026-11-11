@@ -10,7 +10,7 @@ over HTTPS:
 The SimWeaver Rift Web UI is built only on this API, so anything the Web UI shows, another
 tool can get the same way.
 
-API state: SimWeaver Rift 0.12.2, November 2026.
+API state: SimWeaver Rift 0.13.0, November 2026.
 
 ---
 

@@ -79,6 +79,9 @@ public final class TargetProbe {
         if (t.isJ2j()) {
             return sessions();
         }
+        if (t.isKafka()) {
+            return topics(cfg);
+        }
         if (t == EndpointType.TALK && federation != null && !federation.trim().isEmpty()) {
             return talkChannels(cfg, runtimeDir, federation.trim(), lsd);
         }
@@ -117,6 +120,25 @@ public final class TargetProbe {
             l.add(Json.object().put("id", s.get("name")).put("model", s.get("model")).put("members", members == null ? 0 : members.size()));
         }
         return new Result("session", l, null);
+    }
+
+    /** Kafka (0.13.0): the cluster's topics with their partition counts (internal topics left out). */
+    private static Result topics(EndpointConfig cfg) {
+        try (com.simweaver.kafka.client.KafkaCluster c = new com.simweaver.kafka.client.KafkaCluster(cfg.getKafka().client("probe"))) {
+            c.settings().connectTimeoutMs = 3000;
+            c.settings().requestTimeoutMs = 5000;
+            Map<String, com.simweaver.kafka.client.KafkaCluster.TopicInfo> got = c.refresh(null, false);
+            List<Object> l = new ArrayList<Object>();
+            for (com.simweaver.kafka.client.KafkaCluster.TopicInfo ti : new TreeMap<String, com.simweaver.kafka.client.KafkaCluster.TopicInfo>(got).values()) {
+                if (ti.name == null || ti.name.startsWith("__")) {
+                    continue;
+                }
+                l.add(Json.object().put("id", ti.name).put("partitions", ti.partitions()));
+            }
+            return new Result("topic", l, null);
+        } catch (com.simweaver.kafka.KafkaException e) {
+            return new Result("topic", Collections.emptyList(), e.getMessage());
+        }
     }
 
     private static ConnectSettings settings(EndpointConfig cfg, String lsd) {

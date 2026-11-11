@@ -384,7 +384,7 @@ own coloured label (*Gateway file*, *Endpoint kit*, *Router kit*, *Existing kit*
 used on both sides. **show ↗** on a box jumps to its file; **Show in the form** on a file goes back to
 its box.
 
-Start from one of the suggested situations (for example *HLA ⇄ DIS 7* or *DIS 7 network*) and adjust the
+Start from one of the suggested situations (for example *HLA ⇄ DIS 7*, *HLA ⇄ Kafka* or *DIS 7 network*) and adjust the
 fields; each field explains itself. The **Files to create** panel shows each file's path and content
 as you type, with **Copy**, **Path** and **Download** buttons, and lists what to fix or check: for
 example a missing FOM, a gateway whose two endpoints would join the same federation, or a file that
@@ -398,8 +398,15 @@ What you filled in is remembered in this browser; **Start over** clears a sectio
 ## Junction gateways
 
 The top bar's **Junction gateways** opens `junction.html`: gateways that bridge HLA federations,
-DIS and C-DIS networks and Talk federations, configured in `etc/junctions`. Their endpoints also
-show up in the datasource list, marked *JUNCTION*. See [junction.md](junction.md).
+DIS and C-DIS networks, Talk federations, J2J sessions and Apache Kafka topics, configured in
+`etc/junctions`. Their HLA and DIS endpoints also show up in the datasource list, marked *JUNCTION*.
+See [junction.md](junction.md).
+
+A Kafka endpoint (0.13.0) shows its topic, what its records are (*DIS PDUS* or *JSON OBJECTS*), the
+consumer's lag and group, and the objects it wrote and read; hover over the line for the producer's
+and consumer's counters and last errors. *PRODUCER FAILING* or *CONSUMER FAILING* means the brokers
+cannot be reached or refuse it: the endpoint keeps trying. The Start dialog's **Discover** lists the
+cluster's topics.
 
 ![Junction gateways: DIS into HLA, HLA into NETN](img/rift-gateways.png)
 

@@ -332,13 +332,17 @@ public final class JunktionApi implements ApiCallHandlerWithBody {
                 errors.put(e.getId(), "a J2J session passes DIS PDUs as they are: it has no object model");
                 continue;
             }
+            if (e.getType() != null && e.getType().isKafka() && !e.isJ2jObjects()) {
+                errors.put(e.getId(), "a Kafka endpoint in a PDU relay passes DIS PDUs as they are: it has no object model");
+                continue;
+            }
             if (e.isDynamicFom() && e.getCreateFomPaths().isEmpty()) {
                 errors.put(e.getId(), "takes its FOM from the federation when the gateway starts (endpoint.hla.foms=dynamic):"
                         + " open Compatibility on the running gateway");
                 continue;
             }
             // a dynamic endpoint with endpoint.hla.createfoms (0.9.21): those modules stand for the federation's FOM
-            List<String> foms = e.isDynamicFom() ? e.getCreateFomPaths() : e.getType() != null && e.getType().isJ2j() ? e.getJ2jFomPaths() : e.getFomPaths();
+            List<String> foms = e.isDynamicFom() ? e.getCreateFomPaths() : e.getType() != null && (e.getType().isJ2j() || e.getType().isKafka()) ? e.getJ2jFomPaths() : e.getFomPaths();
             try {
                 InformationExchangeModel m = e.isHla4() ? InformationExchangeModel.fromHla4(foms)
                         : InformationExchangeModel.fromHlaEvolved(foms);

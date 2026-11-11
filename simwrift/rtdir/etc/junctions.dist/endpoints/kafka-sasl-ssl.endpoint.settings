@@ -1,0 +1,20 @@
+# Endpoint kit Kafka-SASL-SSL (0.13.0): an Apache Kafka topic on a cluster that wants TLS and a
+# user (SASL). As endpoints/kafka.endpoint.settings otherwise.
+endpoint.name=Kafka (SASL over TLS)
+endpoint.standard=kafka
+endpoint.kafka.bootstrap=kafka1.example.org:9093,kafka2.example.org:9093
+endpoint.kafka.topic=
+endpoint.kafka.security=sasl_ssl
+# PLAIN, SCRAM-SHA-256 or SCRAM-SHA-512
+endpoint.kafka.sasl.mechanism=SCRAM-SHA-512
+endpoint.kafka.sasl.username=simweaver
+# ${env:NAME} reads the value from the server's environment, so the password is not in this file
+endpoint.kafka.sasl.password=${env:KAFKA_PASSWORD}
+# the brokers' CA (PKCS12 or JKS, relative to Rift's folder). Empty: the JDK's trusted CAs
+#endpoint.kafka.ssl.truststore=etc/kafka/truststore.p12
+#endpoint.kafka.ssl.truststorepassword=${env:KAFKA_TRUSTSTORE_PASSWORD}
+# a client certificate, only when the brokers ask for one
+#endpoint.kafka.ssl.keystore=etc/kafka/client.p12
+#endpoint.kafka.ssl.keystorepassword=${env:KAFKA_KEYSTORE_PASSWORD}
+# true (default): the broker's certificate must name the host it is reached by
+#endpoint.kafka.ssl.hostnameverification=true

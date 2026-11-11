@@ -1,0 +1,11 @@
+# Gateway HLA3<->Kafka (0.13.0): an HLA Evolved RPR v2 federation written to an Apache Kafka topic
+# as JSON (one record per object update or removal, one per interaction, with FOM names), and the
+# objects and interactions other writers put there registered and sent in the federation.
+junction.name=HLA3<->Kafka
+junction.description=RPR v2 federation as JSON records in the Kafka topic simweaver.objects
+junction.endpoints=hla;kafka
+junction.endpoint.hla=endpoints/hla3-rpr2.endpoint.settings
+junction.endpoint.kafka=endpoints/kafka.endpoint.settings
+junction.endpoint.kafka.kafka.topic=simweaver.objects
+junction.router=routers/hla3-all.router.settings
+junction.autostart=false

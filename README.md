@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.12.2 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.13.0 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ![The Rift map: a DIS exercise around Gotland, with aircraft, ships and ground units of two forces and their radar and jammer beams](simwrift/rtdir/doc/img/rift-map.png)
 
@@ -57,6 +57,7 @@ DIS session shared by three of them (one of them reached through another).*
   - DIS 6 and DIS 7
   - C-DIS (Compressed DIS, SISO-STD-023-2024), full and partial updates
   - Talk (the FOM is taken from the running federation while tapping into communications federations, see below)
+  - Apache Kafka topics (0.13.0), with Junction's own Kafka client
 - **RPR FOM v2.0 ⇄ v3.0**, converted by a rules table plus code for the structural
   differences: IFF modes, articulated parts and jamming.
 - **DIS ⇄ RPR**, including:
@@ -66,6 +67,9 @@ DIS session shared by three of them (one of them reached through another).*
   - designators, IFF;
   - Link 16 Signal PDUs.
 - **DIS 7 ⇄ C-DIS PDU relay**: all 22 C-DIS PDU types passed PDU by PDU, not through the RPR model.
+- **Apache Kafka** (0.13.0): a gateway writes DIS PDUs, or HLA objects and interactions as JSON
+  with the FOM's names, to a Kafka topic, and passes on what others write there. Consumer groups
+  with committed offsets, gzip / snappy / lz4, SASL PLAIN and SCRAM, TLS. No Kafka library needed.
 - **Class filters**, instance renaming and object reference rewriting.
 - **Value rules**, e.g. one entity type replaced by another in passing.
 - **NETN properties** (0.12.0): RPR and DIS objects going into a NETN federation get a NETN
@@ -126,7 +130,7 @@ DIS session shared by three of them (one of them reached through another).*
 
 ```
 simwcommon/        shared library: HLA codec and RTI sessions, DIS <-> RPR, FOM model (IEM),
-                   settings, REST/SSE server, JSON, logging, geo
+                   settings, REST/SSE server, JSON, logging, geo, the J2J network, a Kafka client
 simwjunction/      the Junction gateways: endpoints, routers, RPR conversion, Talk bridge, REST API
 simwrift/          the Rift server, datasources, decoders, map, and the main class
   rtdir/           the runtime folder: what gets installed
@@ -203,7 +207,7 @@ All in `simwrift/rtdir/doc/`:
 | `simweaver-rift-install-and-config.md` | Installation, server settings, datasources, maps and overlays, logging, the J2J network, API tokens |
 | `web-ui.md` | The web UI: datasources, objects, interactions, the map view, Infra, J2J |
 | `rest-api.md` | Rift's REST API and SSE events, and how to authenticate |
-| `junction.md` | Junction: gateways, endpoints, routers, value rules, Talk, groups, RPR v2 ⇄ v3, DIS, J2J sessions |
+| `junction.md` | Junction: gateways, endpoints, routers, value rules, Talk, groups, RPR v2 ⇄ v3, DIS, J2J sessions, Kafka topics |
 | `junction-rest-api.md` | Junction's REST API |
 | `j2j-rest-api.md` | The REST API of the J2J page |
 | `j2j-wire-protocol.md` | The J2J protocol between the servers, with test vectors |

@@ -1,0 +1,32 @@
+# Endpoint kit Kafka (0.13.0): an Apache Kafka topic, written to and read from by Junction's own
+# Kafka client. What the records hold follows the gateway's router:
+#   router.kind=pdu   one DIS PDU per record, as it is (key site:app:entity)
+#   router.kind=iem   one JSON record per object update / removal (key: the object name) and per
+#                     interaction, with the FOM's class and attribute names (doc/junction.md, section 9)
+# A Kafka endpoint cannot be in a Talk gateway.
+endpoint.name=Kafka
+endpoint.standard=kafka
+# the brokers to start from, host:port, comma separated
+endpoint.kafka.bootstrap=localhost:9092
+# the topic (the default target). Empty: simweaver.dis (PDU relay) or simweaver.objects (IEM router)
+endpoint.kafka.topic=
+# JSON records: interactions to a topic of their own (empty: the same topic)
+#endpoint.kafka.interactiontopic=simweaver.interactions
+# both, produce (only write) or consume (only read)
+endpoint.kafka.direction=both
+# the consumer group. Empty: simweaver-junction-<gateway>-<endpoint>; none: no group (every partition,
+# no committed offsets)
+#endpoint.kafka.group=
+# where to begin when the group has no committed offset: latest or earliest
+endpoint.kafka.start=latest
+# writing: acks all, 1 or 0; compression none or gzip (gzip, snappy and lz4 are all read)
+#endpoint.kafka.acks=all
+#endpoint.kafka.compression=none
+# JSON records: full (every record holds all known attributes) or changed (only what changed)
+#endpoint.kafka.values=full
+# JSON records: objects from the topic not updated for this many seconds are removed (0: never)
+#endpoint.kafka.objecttimeoutseconds=0
+# JSON records: the object model (FOM modules in etc/fom/ieee1516-2010). Empty: RPR FOM v2.0
+#endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
+# plaintext, ssl, sasl_plaintext or sasl_ssl: see endpoints/kafka-sasl-ssl.endpoint.settings
+endpoint.kafka.security=plaintext

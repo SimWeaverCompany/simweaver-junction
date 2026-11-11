@@ -25,12 +25,14 @@
 
 	function isDis(ep) { return !!ep.isdis; }
 	function isJ2j(ep) { return !!ep.isj2j; }
+	function isKafka(ep) { return !!ep.iskafka; }
 	/** what an endpoint's target is called */
-	function noun(ep) { return isDis(ep) ? 'exercise' : isJ2j(ep) ? 'session' : 'federation'; }
+	function noun(ep) { return isDis(ep) ? 'exercise' : isJ2j(ep) ? 'session' : isKafka(ep) ? 'topic' : 'federation'; }
 
 	function validTarget(ep, v) {
 		if (isDis(ep)) { return /^\d{1,3}$/.test(v) && Number(v) <= 255; }
 		if (isJ2j(ep)) { return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(v); }
+		if (isKafka(ep)) { return /^[A-Za-z0-9._-]{1,249}$/.test(v) && v !== '.' && v !== '..'; }
 		return v.length > 0;
 	}
 
@@ -45,6 +47,7 @@
 			f.msg.classList.toggle('err', !good && f.touched);
 			f.msg.textContent = good ? (isDis(ep) && v === '0' ? 'Exercise 0: PDUs of every exercise are received; sent PDUs use exercise 0.' : '')
 				: (isDis(ep) ? 'An exercise id 0-255 is required.' : isJ2j(ep) ? 'A session name is required: 1-64 letters, digits, ".", "_" and "-".'
+					: isKafka(ep) ? 'A topic name is required: 1-249 letters, digits, ".", "_" and "-".'
 					: 'A federation name is required.');
 			markPicked(f);
 			ok = ok && good;
@@ -83,23 +86,29 @@
 		var ep = f.ep;
 		var token = ++f.token;
 		ui.clear(f.list).appendChild(ui.loadingRow(isDis(ep) ? 'Listening on the DIS network…' : isJ2j(ep) ? 'Asking the J2J network for its sessions…'
-			: 'Asking the RTI for its federations…'));
+			: isKafka(ep) ? 'Asking the Kafka cluster for its topics…' : 'Asking the RTI for its federations…'));
 		var req = jx.fetchTargets(state.cfg.id, ep.id, null, f.lsd ? f.lsd.value() : null).then(function (r) {
 			if (token !== f.token) { return; }
 			ui.clear(f.list);
 			if (r.error) {
-				f.list.appendChild(ui.errorRow(isDis(ep) ? 'Could not listen' : isJ2j(ep) ? 'Could not list sessions' : 'Could not list federations', new Error(r.error)));
+				f.list.appendChild(ui.errorRow(isDis(ep) ? 'Could not listen' : isJ2j(ep) ? 'Could not list sessions' : isKafka(ep) ? 'Could not list topics'
+					: 'Could not list federations', new Error(r.error)));
 				return;
 			}
 			if (r.targets.length === 0) {
-				f.list.appendChild(ui.emptyBlock(isDis(ep) ? 'Nothing heard' : isJ2j(ep) ? 'No sessions yet' : 'No federations found',
+				f.list.appendChild(ui.emptyBlock(isDis(ep) ? 'Nothing heard' : isJ2j(ep) ? 'No sessions yet' : isKafka(ep) ? 'No topics yet' : 'No federations found',
 					isDis(ep) ? 'No DIS PDUs arrived in 1.5 s. Type the exercise id.'
 						: isJ2j(ep) ? 'No gateway in the J2J network has joined a session. Type a name: the first member starts the session.'
+						: isKafka(ep) ? 'The cluster has no topics. Type a name: it is created when the broker allows it.'
 						: 'Nothing runs on this RTI right now. Type the federation name.'));
 				return;
 			}
 			var dflt = String(ep.defaulttarget || '');
 			f.list.appendChild(el('ul.fed-list', null, r.targets.map(function (t) {
+				if (t && typeof t === 'object' && t.partitions !== undefined) {
+					return option(f, String(t.id), t.id + '  (' + t.partitions + ')',
+						String(t.id) === dflt ? 'CONFIG' : null);
+				}
 				if (t && typeof t === 'object' && t.model !== undefined) {
 					return option(f, String(t.id), t.id + '  · ' + (t.model || '?') + ' · ' + t.members + (t.members === 1 ? ' member' : ' members'),
 						String(t.id) === dflt ? 'CONFIG' : null);
@@ -141,7 +150,7 @@
 		var f = { ep: ep, touched: false, token: 0, chToken: 0 };
 		var id = 'sd-t-' + ep.id;
 		f.input = el('input', { id: id, type: 'text', autocomplete: 'off', spellcheck: 'false',
-			placeholder: isDis(ep) ? 'exercise id 0-255' : isJ2j(ep) ? 'session name' : 'federation name' });
+			placeholder: isDis(ep) ? 'exercise id 0-255' : isJ2j(ep) ? 'session name' : isKafka(ep) ? 'topic name' : 'federation name' });
 		f.input.value = ep.defaulttarget === undefined || ep.defaulttarget === null ? '' : String(ep.defaulttarget);
 		f.input.addEventListener('input', function () { f.touched = true; validate(); });
 		f.input.addEventListener('change', function () { if (ep.istalk) { loadChannels(f); } });
@@ -178,7 +187,7 @@
 	}
 
 	function badgeOf(ep) {
-		var m = { 'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO', dis6: 'DIS6', dis7: 'DIS7', cdis: 'C-DIS', talk: 'TALK', j2j: 'J2J' };
+		var m = { 'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO', dis6: 'DIS6', dis7: 'DIS7', cdis: 'C-DIS', talk: 'TALK', j2j: 'J2J', kafka: 'KAFKA' };
 		return m[ep.standard] || String(ep.standard || '?').toUpperCase();
 	}
 

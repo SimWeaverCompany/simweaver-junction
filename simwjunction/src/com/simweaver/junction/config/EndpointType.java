@@ -29,7 +29,13 @@ public enum EndpointType {
      * A session of the J2J network (0.10.0): gateways on other SimWeaver servers sharing DIS PDUs
      * as they are, for the PDU relay ({@code router.kind=pdu}). Setting: {@code j2j}.
      */
-    J2J("j2j", "J2J session", false, false);
+    J2J("j2j", "J2J session", false, false),
+    /**
+     * An Apache Kafka cluster (0.13.0): DIS PDUs as they are in a topic (PDU relay,
+     * {@code router.kind=pdu}), or the objects and interactions of an HLA object model as JSON
+     * records (IEM gateways). Setting: {@code kafka}.
+     */
+    KAFKA("kafka", "Apache Kafka", false, false);
 
     private final String setting;
     private final String label;
@@ -68,9 +74,14 @@ public enum EndpointType {
         return this == J2J;
     }
 
-    /** @return true for the kinds a PDU relay takes: DIS 6, DIS 7, C-DIS and J2J sessions */
+    /** @return true for a Kafka endpoint */
+    public boolean isKafka() {
+        return this == KAFKA;
+    }
+
+    /** @return true for the kinds a PDU relay takes: DIS 6, DIS 7, C-DIS, J2J sessions and Kafka */
     public boolean isPduPort() {
-        return isDis() || this == J2J;
+        return isDis() || this == J2J || this == KAFKA;
     }
 
     /** @return true for C-DIS */
@@ -117,6 +128,9 @@ public enum EndpointType {
                 return TALK;
             case "j2j":
                 return J2J;
+            case "kafka":
+            case "apache-kafka":
+                return KAFKA;
             default:
                 return null;
         }
