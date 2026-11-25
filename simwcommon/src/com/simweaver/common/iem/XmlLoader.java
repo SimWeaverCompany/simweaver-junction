@@ -80,7 +80,7 @@ final class XmlLoader {
         }
         Path path = toPath(spec.trim(), index);
         if (!Files.exists(path)) {
-            throw new IemException("FOM entry #" + index + ": file not found: " + path.toAbsolutePath());
+            throw new IemException("FOM entry #" + index + ": " + com.simweaver.common.config.FileAccess.whyMissing(path));   // 0.14.0: says why
         }
         if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
             throw new IemException("FOM entry #" + index + ": not a readable file: " + path.toAbsolutePath());

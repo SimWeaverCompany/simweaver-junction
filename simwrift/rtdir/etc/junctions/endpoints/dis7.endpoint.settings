@@ -6,7 +6,9 @@ endpoint.dis.interface=
 endpoint.dis.port=3000
 # the default exercise (0 = receive every exercise; PDUs are then sent as exercise 1)
 endpoint.dis.exid=1
-# send: unicast, broadcast or multicast address (empty: the group, else the broadcast address of the interface)
+# send: unicast, broadcast or multicast addresses (empty: the group, else the broadcast address of
+# the interface); several with ; between them, each host or host:port (port default: dis.port),
+# every PDU goes to all of them, e.g. 10.0.0.5;10.0.0.6:3001;239.1.2.3
 # endpoint.dis.sendaddress=192.168.1.255
 # endpoint.dis.ttl=8
 # the gateway's own DIS ids: siteid-appid-n for HLA entities without a free EntityIdentifier

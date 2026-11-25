@@ -10,6 +10,7 @@ import com.simweaver.common.hla.session.RtiSessionListener;
 import com.simweaver.common.iem.InformationExchangeModel;
 import com.simweaver.junction.config.ConfigLoader;
 import com.simweaver.junction.config.GatewayConfig;
+import com.simweaver.junction.config.NameCriteria;
 import com.simweaver.junction.config.RouterConfig;
 import com.simweaver.junction.router.CopyNames;
 
@@ -33,6 +34,9 @@ import java.util.concurrent.TimeUnit;
  * the template, its tokens, cutting to a length, the settings and their mistakes, and a gateway
  * between two HLA Evolved federations (test RTI) that renames only into one of them, with
  * references mapped both ways in a simple attribute, an array, a record and interaction parameters.
+ * 0.14.0: which objects get the template ({@code router.names.select / except .classes / .names}),
+ * the others keeping their name (with the usual suffix on a clash), and references inside RPR v3
+ * variant records (VariableParametersArray) through a gateway, both ways.
  *
  * <pre>java -cp out/classes:out/test com.simweaver.junction.NamingSelfTest [&lt;fom root&gt; [&lt;fake rti folder&gt;]]</pre>
  */
@@ -54,7 +58,10 @@ public final class NamingSelfTest {
         File rtiDir = new File(args.length > 1 ? args[1] : "fakerti/build").getAbsoluteFile();
         templates();
         settings();
+        criteriaSettings();
         gateway(fomRoot, rtiDir);
+        criteria(fomRoot, rtiDir);
+        variants(fomRoot, rtiDir);
         System.out.println(checks + " checks, " + failures + " failures");
         System.exit(failures == 0 ? 0 : 1);
     }
@@ -292,6 +299,233 @@ public final class NamingSelfTest {
         ex.s.close();
     }
 
+
+    // ------------------------------------------------------------------ 0.14.0: which objects get the template
+
+    private static void criteriaSettings() throws Exception {
+        NameCriteria all = NameCriteria.ALL;
+        check("no rules: everything matches", all.isAll() && all.matches("HLAobjectRoot.X", "x"));
+        NameCriteria c = new NameCriteria(Arrays.asList("BaseEntity.PhysicalEntity.Platform.*"), Arrays.asList("BaseEntity.PhysicalEntity.Platform.Spacecraft"),
+                Collections.<String>emptyList(), Arrays.asList("*-keep", "re:(?i)^test.*"));
+        check("a class in the subtree", c.matches(AIRCRAFT, "Tank-12"));
+        check("the root may be left out", c.matches("BaseEntity.PhysicalEntity.Platform.Aircraft", "Tank-12"));
+        check("the more specific except wins", !c.matches("HLAobjectRoot.BaseEntity.PhysicalEntity.Platform.Spacecraft", "S1"));
+        check("a class outside the select list", !c.matches(TX, "Tank-12-radio"));
+        check("an excepted name (glob)", !c.matches(AIRCRAFT, "Hawk-keep"));
+        check("an excepted name (regex, any case)", !c.matches(AIRCRAFT, "TEST-1") && c.matches(AIRCRAFT, "Atest"));
+        NameCriteria n = new NameCriteria(Collections.<String>emptyList(), Collections.<String>emptyList(), Arrays.asList("Blue-?", "re:^[A-Z]{3}\\d+$"),
+                Collections.<String>emptyList());
+        check("select names: glob ? is one character, globs match the whole name",
+                n.matches(AIRCRAFT, "Blue-1") && !n.matches(AIRCRAFT, "Blue-12") && !n.matches(AIRCRAFT, "xBlue-1"));
+        check("select names: regex", n.matches(TX, "ABC123") && !n.matches(TX, "AB123"));
+        check("globs are case-sensitive and dots literal", !n.matches(AIRCRAFT, "blue-1")
+                && new NameCriteria(Collections.<String>emptyList(), Collections.<String>emptyList(), Arrays.asList("a.b"), Collections.<String>emptyList()).matches(AIRCRAFT, "a.b")
+                && !new NameCriteria(Collections.<String>emptyList(), Collections.<String>emptyList(), Arrays.asList("a.b"), Collections.<String>emptyList()).matches(AIRCRAFT, "axb"));
+        NameCriteria onlyExcept = new NameCriteria(Collections.<String>emptyList(), Arrays.asList("EmbeddedSystem.*"),
+                Collections.<String>emptyList(), Collections.<String>emptyList());
+        check("only an except list: everything else matches", onlyExcept.matches(AIRCRAFT, "a") && !onlyExcept.matches(TX, "r"));
+
+        SimwProperties p = new SimwProperties();
+        p.set("router.names.template", "RED-{name}");
+        p.set("router.names.select.classes", "BaseEntity.PhysicalEntity.*");
+        p.set("router.names.except.names", "*-keep");
+        p.set("router.names.select.classes.ext", "EmbeddedSystem.*");
+        p.set("router.names.except.names.int", "");
+        RouterConfig r = new RouterConfig("t", p, "inline", null);
+        check("criteria valid " + r.getErrors() + " " + r.getWarnings(), r.getErrors().isEmpty() && r.getWarnings().isEmpty());
+        check("general criteria for others", r.getNameCriteria("third").matches(AIRCRAFT, "A") && !r.getNameCriteria("third").matches(AIRCRAFT, "A-keep")
+                && !r.getNameCriteria("third").matches(TX, "R"));
+        check("a scoped class list replaces the general one, the general name list stays", r.getNameCriteria("ext").matches(TX, "R")
+                && !r.getNameCriteria("ext").matches(AIRCRAFT, "A") && !r.getNameCriteria("ext").matches(TX, "R-keep"));
+        check("an empty scoped list cancels the general one", r.getNameCriteria("int").matches(AIRCRAFT, "A-keep"));
+        check("criteria scopes count as name scopes " + r.getNameScopes(), r.getNameScopes().containsAll(Arrays.asList("ext", "int")));
+        String json = com.simweaver.common.json.Json.toJson(r);
+        check("shown in the router JSON " + json, json.contains("\"namecriteria\"") && json.contains("\"selectclasses\":[\"EmbeddedSystem.*\"]"));
+
+        SimwProperties bad = new SimwProperties();
+        bad.set("router.names.select.names", "re:([unclosed");
+        bad.set("router.names.except.classes.x", "Platform.*");
+        RouterConfig rb = new RouterConfig("t", bad, "inline", null);
+        check("a bad regex is an error " + rb.getErrors(), rb.getErrors().toString().contains("router.names.select.names") && rb.getErrors().toString().contains("regular expression"));
+        SimwProperties nt = new SimwProperties();
+        nt.set("router.names.except.classes.x", "Platform.*");
+        RouterConfig rn = new RouterConfig("t", nt, "inline", null);
+        check("criteria without a template warn " + rn.getWarnings(), rn.getWarnings().toString().contains("have no effect: no router.names.template for x"));
+    }
+
+    /**
+     * int -> ext with RED-{name} for platforms, but not for names ending in -keep: the aircraft is
+     * renamed, the excepted aircraft and the radio keep their names, the radio's host reference names
+     * the renamed copy, and an unmatched name taken in ext gets the usual @origin suffix.
+     */
+    private static void criteria(File fomRoot, File rtiDir) throws Exception {
+        String rpr2 = new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath();
+        File jar = new File(rtiDir, "fakerti-1516e.jar");
+        File dir = Files.createTempDirectory("junction-naming-crit").toFile();
+        File junctions = new File(dir, "etc/junctions");
+        junctions.mkdirs();
+        SimwProperties p = new SimwProperties();
+        p.set("junction.name", "Criteria");
+        p.set("junction.endpoints", "int;ext");
+        for (String[] e : new String[][] {{"int", "CritInt"}, {"ext", "CritExt"}}) {
+            p.set("junction.endpoint." + e[0] + ".standard", "ieee1516-2010");
+            p.set("junction.endpoint." + e[0] + ".hla.foms", rpr2);
+            p.set("junction.endpoint." + e[0] + ".hla.federation", e[1]);
+            p.set("junction.endpoint." + e[0] + ".hla.rtijar", jar.getPath());
+        }
+        p.set("junction.router.names.template.ext", "RED-{name}");
+        p.set("junction.router.names.select.classes.ext", "BaseEntity.PhysicalEntity.Platform.*");
+        p.set("junction.router.names.except.names", "*-keep");
+        GatewayConfig gc = new ConfigLoader(junctions, dir).gateway(new File(junctions, "crit.junction.settings"), p);
+        check("criteria gateway valid " + gc.getErrors() + " " + gc.getWarnings(), gc.isValid());
+        RtiLibrary lib = RtiLibrary.isolated(Collections.singletonList(jar));
+        InformationExchangeModel m = InformationExchangeModel.fromHlaEvolved(Collections.singletonList(rpr2));
+        HlaCodec codec = new HlaCodec(m);
+        Fed in = new Fed(lib, "CritInt", "IntSim", rpr2);
+        Fed ex = new Fed(lib, "CritExt", "ExtSim", rpr2);
+        int acI = in.s.objectClass(AIRCRAFT), txI = in.s.objectClass(TX);
+        int[] acAttr = {in.s.attribute(acI, "EntityType")};
+        int[] txAttr = {in.s.attribute(txI, "HostObjectIdentifier"), in.s.attribute(txI, "RadioIndex")};
+        in.s.publishObjectClass(acI, acAttr);
+        in.s.publishObjectClass(txI, txAttr);
+        int acE = ex.s.objectClass(AIRCRAFT), txE = ex.s.objectClass(TX);
+        ex.s.subscribeObjectClass(acE, new int[] {ex.s.attribute(acE, "EntityType")});
+        ex.s.subscribeObjectClass(txE, new int[] {ex.s.attribute(txE, "HostObjectIdentifier"), ex.s.attribute(txE, "RadioIndex")});
+        ex.s.publishObjectClass(txE, new int[] {ex.s.attribute(txE, "HostObjectIdentifier"), ex.s.attribute(txE, "RadioIndex")});
+        // both federations already have an object named Spare-1 when the gateway starts
+        ex.reserve("Spare-1");
+        ex.s.registerObject(txE, "Spare-1");
+        in.reserve("Spare-1");
+        long spare = in.s.registerObject(txI, "Spare-1");
+        Gateway gw = new Gateway(gc, Collections.<String, String>emptyMap(), dir, null);
+        gw.start();
+        check("criteria gateway running", gw.getState() == Gateway.State.RUNNING);
+        sleep(300);
+
+        in.reserve("Tank-12");
+        long tank = in.s.registerObject(acI, "Tank-12");
+        in.s.updateAttributes(tank, acAttr, new byte[][] {encode(codec, m, AIRCRAFT, "EntityType", entityType())}, null);
+        in.reserve("Hawk-keep");
+        long hawk = in.s.registerObject(acI, "Hawk-keep");
+        in.s.updateAttributes(hawk, acAttr, new byte[][] {encode(codec, m, AIRCRAFT, "EntityType", entityType())}, null);
+        in.reserve("Tank-12-radio");
+        long radio = in.s.registerObject(txI, "Tank-12-radio");
+        in.s.updateAttributes(radio, txAttr, new byte[][] {encode(codec, m, TX, "HostObjectIdentifier", HValue.ofText("Tank-12")),
+            encode(codec, m, TX, "RadioIndex", HValue.ofInt(1))}, null);
+        in.s.updateAttributes(spare, txAttr, new byte[][] {encode(codec, m, TX, "HostObjectIdentifier", HValue.ofText("Hawk-keep")),
+            encode(codec, m, TX, "RadioIndex", HValue.ofInt(2))}, null);
+        Map<String, Long> seen = new LinkedHashMap<String, Long>();
+        for (int i = 0; i < 4; i++) {
+            String[] d = ex.take("discovered", 4000);
+            if (d != null) {
+                seen.put(d[3], Long.parseLong(d[1]));
+            }
+        }
+        check("ext: the platform renamed, the excepted platform and the radio as they are, a clash with @int " + seen.keySet(),
+                seen.keySet().equals(new java.util.HashSet<String>(Arrays.asList("RED-Tank-12", "Hawk-keep", "Tank-12-radio", "Spare-1@int"))));
+        Long rk = seen.get("Tank-12-radio");
+        byte[] host = rk == null ? null : ex.waitValue(rk, ex.s.attribute(txE, "HostObjectIdentifier"), 3000);
+        check("the unrenamed radio's host reference names the renamed copy", host != null
+                && "RED-Tank-12".equals(codec.decode(m.getClassAttribute(TX, "HostObjectIdentifier").getDataType(), host).asTrimmedText()));
+        Long sk = seen.get("Spare-1@int");
+        byte[] host2 = sk == null ? null : ex.waitValue(sk, ex.s.attribute(txE, "HostObjectIdentifier"), 3000);
+        check("a reference to an object that kept its name stays as it is", host2 != null
+                && "Hawk-keep".equals(codec.decode(m.getClassAttribute(TX, "HostObjectIdentifier").getDataType(), host2).asTrimmedText()));
+        gw.stop();
+        in.s.close();
+        ex.s.close();
+    }
+
+    /**
+     * RPR v3, int -> ext renamed (V3-{name}): an aircraft's VariableParametersArray (an array of
+     * VariableParameterVariantStruct) holds references in its EntityAssociation and Separation
+     * alternatives; they name the copies in ext. A Detonation's VariableParametersArray from ext
+     * naming the copies arrives in int with the originals.
+     */
+    private static void variants(File fomRoot, File rtiDir) throws Exception {
+        List<String> v3 = new ArrayList<String>();
+        File[] fs = new File(fomRoot, "ieee1516-2010/rpr3").listFiles((d, n) -> n.endsWith(".xml"));
+        Arrays.sort(fs);
+        for (File f : fs) {
+            v3.add(f.getPath());
+        }
+        String aircraft = "HLAobjectRoot.BaseEntity.PhysicalEntity.Platform.Aircraft";
+        String det = "HLAinteractionRoot.Detonation";
+        File jar = new File(rtiDir, "fakerti-1516e.jar");
+        File dir = Files.createTempDirectory("junction-naming-v3").toFile();
+        File junctions = new File(dir, "etc/junctions");
+        junctions.mkdirs();
+        SimwProperties p = new SimwProperties();
+        p.set("junction.name", "Variants");
+        p.set("junction.endpoints", "int;ext");
+        for (String[] e : new String[][] {{"int", "V3Int"}, {"ext", "V3Ext"}}) {
+            p.set("junction.endpoint." + e[0] + ".standard", "ieee1516-2010");
+            p.set("junction.endpoint." + e[0] + ".hla.foms", String.join(";", v3));
+            p.set("junction.endpoint." + e[0] + ".hla.federation", e[1]);
+            p.set("junction.endpoint." + e[0] + ".hla.rtijar", jar.getPath());
+        }
+        p.set("junction.router.names.template.ext", "V3-{name}");
+        GatewayConfig gc = new ConfigLoader(junctions, dir).gateway(new File(junctions, "v3.junction.settings"), p);
+        check("RPR v3 gateway valid " + gc.getErrors(), gc.isValid());
+        RtiLibrary lib = RtiLibrary.isolated(Collections.singletonList(jar));
+        InformationExchangeModel m = InformationExchangeModel.fromHlaEvolved(v3);
+        HlaCodec codec = new HlaCodec(m);
+        com.simweaver.common.hla.codec.TypeAnalysis ta = new com.simweaver.common.hla.codec.TypeAnalysis(codec);
+        Gateway gw = new Gateway(gc, Collections.<String, String>emptyMap(), dir, null);
+        gw.start();
+        check("RPR v3 gateway running", gw.getState() == Gateway.State.RUNNING);
+        Fed in = new Fed(lib, "V3Int", "IntSim", v3);
+        Fed ex = new Fed(lib, "V3Ext", "ExtSim", v3);
+        int acI = in.s.objectClass(aircraft);
+        int[] acAttr = {in.s.attribute(acI, "EntityType"), in.s.attribute(acI, "VariableParametersArray")};
+        in.s.publishObjectClass(acI, acAttr);
+        int acE = ex.s.objectClass(aircraft);
+        int vpE = ex.s.attribute(acE, "VariableParametersArray");
+        ex.s.subscribeObjectClass(acE, new int[] {ex.s.attribute(acE, "EntityType"), vpE});
+        for (Fed f : new Fed[] {in, ex}) {
+            int ic = f.s.interactionClass(det);
+            f.s.publishInteractionClass(ic);
+            f.s.subscribeInteractionClass(ic);
+        }
+        sleep(500);
+        in.reserve("Lead");
+        long lead = in.s.registerObject(acI, "Lead");
+        in.s.updateAttributes(lead, new int[] {acAttr[0]}, new byte[][] {encode(codec, m, aircraft, "EntityType", entityType())}, null);
+        in.reserve("Wing");
+        long wing = in.s.registerObject(acI, "Wing");
+        com.simweaver.common.iem.DataType vpType = m.getClassAttribute(aircraft, "VariableParametersArray").getDataType();
+        HValue vp = new com.simweaver.common.hla.codec.RefSamples(codec, ta, () -> "Lead").sample(vpType);
+        check("the test value holds references in variant alternatives " + ta.references(vp), ta.references(vp).size() >= 2);
+        in.s.updateAttributes(wing, acAttr, new byte[][] {encode(codec, m, aircraft, "EntityType", entityType()), codec.encode(vpType, vp)}, null);
+        Map<String, Long> seen = new LinkedHashMap<String, Long>();
+        for (int i = 0; i < 2; i++) {
+            String[] d = ex.take("discovered", 4000);
+            if (d != null) {
+                seen.put(d[3], Long.parseLong(d[1]));
+            }
+        }
+        check("ext discovers V3-Lead and V3-Wing " + seen.keySet(), seen.containsKey("V3-Lead") && seen.containsKey("V3-Wing"));
+        Long wk = seen.get("V3-Wing");
+        byte[] got = wk == null ? null : ex.waitValue(wk, vpE, 3000);
+        List<String> refs = got == null ? Collections.<String>emptyList() : ta.references(codec.decode(vpType, got));
+        check("the references inside the variant records name the copy " + refs, !refs.isEmpty() && refs.stream().allMatch("V3-Lead"::equals)
+                && refs.size() == ta.references(vp).size());
+
+        // ext -> int: a Detonation whose VariableParametersArray names the copies; int sees the originals
+        int detE = ex.s.interactionClass(det), detI = in.s.interactionClass(det);
+        com.simweaver.common.iem.DataType dvt = m.getClassParameter(det, "VariableParametersArray").getDataType();
+        HValue dv = new com.simweaver.common.hla.codec.RefSamples(codec, ta, () -> "V3-Wing").sample(dvt);
+        ex.s.sendInteraction(detE, new int[] {ex.s.parameter(detE, "VariableParametersArray")}, new byte[][] {codec.encode(dvt, dv)}, null);
+        String[] rx = in.take("received", 4000);
+        byte[] pv = rx == null ? null : in.lastInteraction.get(in.s.parameter(detI, "VariableParametersArray"));
+        List<String> back = pv == null ? Collections.<String>emptyList() : ta.references(codec.decode(dvt, pv));
+        check("int receives the detonation with the original names in its variant records " + back,
+                !back.isEmpty() && back.stream().allMatch("Wing"::equals));
+        gw.stop();
+        in.s.close();
+        ex.s.close();
+    }
+
     /** The name the template gives: RED-{name}-{hexguid}, the GUID derived from gateway, origin and name. */
     private static String expected(String gateway, String origin, String name, int max) {
         UUID g = UUID.nameUUIDFromBytes((gateway + "|" + origin + "|" + name).getBytes(StandardCharsets.UTF_8));
@@ -327,9 +561,13 @@ public final class NamingSelfTest {
         volatile Map<Integer, byte[]> lastInteraction;
 
         Fed(RtiLibrary lib, String federation, String name, String fom) throws Exception {
+            this(lib, federation, name, Collections.singletonList(fom));
+        }
+
+        Fed(RtiLibrary lib, String federation, String name, List<String> foms) throws Exception {
             s = lib.createSession(RtiSession.Version.HLA_1516E);
             s.connect(ConnectSettings.defaults(), this);
-            s.join(federation, "Tester", name, Collections.singletonList(fom), true);
+            s.join(federation, "Tester", name, foms, true);
         }
 
         void reserve(String name) throws Exception {

@@ -217,12 +217,13 @@ public final class EndpointConfig implements Json.Writable {
         }
         for (int i = 0; i < createFomPaths.size(); i++) {
             if (!new File(createFomPaths.get(i)).exists()) {
-                errors.add("endpoint " + id + ": FOM module of endpoint.hla.createfoms not found: " + createFomPaths.get(i));
+                errors.add("endpoint " + id + ": FOM module of endpoint.hla.createfoms: "
+                        + com.simweaver.common.config.FileAccess.whyMissing(new File(createFomPaths.get(i)).toPath()));
             }
         }
         for (int i = 0; i < fomPaths.size(); i++) {
             if (!new File(fomPaths.get(i)).exists()) {
-                errors.add("endpoint " + id + ": FOM module not found: " + fomPaths.get(i));
+                errors.add("endpoint " + id + ": FOM module: " + com.simweaver.common.config.FileAccess.whyMissing(new File(fomPaths.get(i)).toPath()));
             }
         }
         if (t == EndpointType.HLA4_FEDPRO && rtiAddress.isEmpty()) {
@@ -230,6 +231,11 @@ public final class EndpointConfig implements Json.Writable {
         }
         if (t != null && t.isDis() && (disExerciseId < 0 || disExerciseId > 255)) {
             errors.add("endpoint " + id + ": endpoint.dis.exid must be 0-255");
+        }
+        if (t != null && t.isDis() && !com.simweaver.junction.config.GroupVariables.TOKEN.matcher(disSendAddress).find()) {
+            for (String problem : com.simweaver.common.dis.DisNetwork.sendAddressProblems(disSendAddress)) {
+                errors.add("endpoint " + id + ": endpoint.dis.sendaddress: " + problem);     // 0.14.0: a ';' list
+            }
         }
         if (t != null && t.isDis() && (disSiteId < 1 || disSiteId > 65534 || disApplicationId < 1 || disApplicationId > 65534)) {
             errors.add("endpoint " + id + ": endpoint.dis.siteid and endpoint.dis.appid must be 1-65534");
@@ -436,7 +442,7 @@ public final class EndpointConfig implements Json.Writable {
         return disEntityTimeoutSecs;
     }
 
-    /** @return where DIS PDUs are sent ("" = derived from the interface) */
+    /** @return where DIS PDUs are sent: a ';' list of host[:port] (0.14.0); "" = derived from the interface */
     public String getDisSendAddress() {
         return disSendAddress;
     }

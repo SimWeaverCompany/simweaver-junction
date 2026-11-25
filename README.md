@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.13.0 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.14.0 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ![The Rift map: a DIS exercise around Gotland, with aircraft, ships and ground units of two forces and their radar and jammer beams](simwrift/rtdir/doc/img/rift-map.png)
 
@@ -70,7 +70,9 @@ DIS session shared by three of them (one of them reached through another).*
 - **Apache Kafka** (0.13.0): a gateway writes DIS PDUs, or HLA objects and interactions as JSON
   with the FOM's names, to a Kafka topic, and passes on what others write there. Consumer groups
   with committed offsets, gzip / snappy / lz4, SASL PLAIN and SCRAM, TLS. No Kafka library needed.
-- **Class filters**, instance renaming and object reference rewriting.
+- **Class filters**, instance renaming (for all objects, or chosen by class and name pattern)
+  and object reference rewriting, also inside records, arrays and variant records.
+- **Several DIS send addresses** (0.14.0): unicast, broadcast and multicast mixed, each PDU to all.
 - **Value rules**, e.g. one entity type replaced by another in passing.
 - **NETN properties** (0.12.0): RPR and DIS objects going into a NETN federation get a NETN
   `UniqueId` and a `Callsign` from their Marking.
@@ -103,6 +105,14 @@ DIS session shared by three of them (one of them reached through another).*
   (`Authorization: Bearer swt_…`), and the web UI signs in once on a login page with it.
 - Tokens are made on the server (`run.sh --new-token=<name>`); the server keeps only their
   hashes, and deleting a token's lines from its file revokes it at once.
+
+**MCP: tools for AI assistants** (0.14.0, off unless configured)
+
+- With `mcp.enabled=true`, AI assistants and agents can ask the server over the **Model Context
+  Protocol**: which objects there are and where, range, bearing, closing speed and closest
+  approach between them, recent fire and detonations, gateway and J2J health, the exercises and
+  federations heard. Read only, behind the API tokens, every call logged.
+- Both protocol eras (2026-07-28 and the 2025 handshake), tested with the official MCP SDK client.
 
 **Infra: what the server has contact with** (0.9.20)
 

@@ -219,6 +219,17 @@ public class Server {
             extra.put("/api/maps", new MapHttpHandler(maps, "/api/maps"));        // NEW: binary tiles
             extra.put("/api/auth", apiAuth.handler());                            // 0.11.0: sign in / out, whoami
             extra.put("/api/audio", new com.simweaver.rift.comms.CommsAudioHandler(datasourceManager::getComms, "/api/audio"));  // 0.12.0: Comms audio
+            // 0.14.0: MCP, tools for AI assistants (off unless mcp.enabled=true)
+            com.simweaver.rift.mcp.RiftMcp mcp = com.simweaver.rift.mcp.RiftMcp.fromSettings(cfg, Version.PRODUCT_NAME,
+                    Version.getVersion(), datasourceManager, apiRequestEntryPoint, apiAuth);
+            System.out.println("MCP:           " + mcp.summary());
+            for (String p : mcp.problems()) {
+                System.out.println("MCP:           " + p);
+                Events.log(log, java.util.logging.Level.WARNING, "mcp.config", p);
+            }
+            if (mcp.handler() != null) {
+                extra.put("/api/mcp", mcp.handler());
+            }
             apiAuth.logStart();
             XrServer.run(webPort,apiRequestEntryPoint,webRoot,"/","/api",keyStorePath,keyStorePass,eventHub,extra,
                     apiAuth.filter());

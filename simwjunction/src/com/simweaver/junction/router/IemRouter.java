@@ -595,7 +595,8 @@ public final class IemRouter implements Router {
         String original = g.originName.isEmpty() ? g.origin.id() + "-" + g.id : g.originName;
         int max = cfg.getNameMaxLength(d.id());
         String template = cfg.getNameTemplate(d.id());
-        if (template != null) {                          // router.names.template[.<destination>]
+        if (template != null && cfg.getNameCriteria(d.id()).matches(originClassName(g), g.originName)) {
+            // router.names.template[.<destination>]; 0.14.0: only for the objects router.names.select / except let through
             return new NameCandidates(CopyNames.fromTemplate(template, max, original, guidOf(g, original), g.origin.id()));
         }
         String n = CopyNames.unreserved(original, g.origin.id());   // "HLA..." names are reserved for the RTI
@@ -617,6 +618,16 @@ public final class IemRouter implements Router {
             }
         }
         return new NameCandidates(CopyNames.limited(names, max));
+    }
+
+    /** The qualified name of the object's class in the model it comes from, or null. */
+    private static String originClassName(GwObject g) {
+        try {
+            com.simweaver.common.iem.ObjectClass c = g.origin.model() == null ? null : g.origin.model().getObjectClass(g.originClass);
+            return c == null ? null : c.getQualifiedName();
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /**

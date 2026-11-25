@@ -5,6 +5,9 @@ junction.name=DIS7<->Kafka
 junction.description=DIS 7 on port 3000 shared through the Kafka topic simweaver.dis (DIS PDUs as they are)
 junction.endpoints=dis;kafka
 junction.endpoint.dis=endpoints/dis7.endpoint.settings
+# where dis sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.dis.dis.sendaddress=192.168.1.255
 junction.endpoint.kafka=endpoints/kafka.endpoint.settings
 junction.endpoint.kafka.kafka.topic=simweaver.dis
 junction.router=routers/pdu-relay.router.settings

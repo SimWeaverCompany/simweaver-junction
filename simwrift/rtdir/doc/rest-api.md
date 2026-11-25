@@ -10,7 +10,7 @@ over HTTPS:
 The SimWeaver Rift Web UI is built only on this API, so anything the Web UI shows, another
 tool can get the same way.
 
-API state: SimWeaver Rift 0.13.0, November 2026.
+API state: SimWeaver Rift 0.14.0, November 2026.
 
 ---
 
@@ -31,6 +31,7 @@ API state: SimWeaver Rift 0.13.0, November 2026.
 13. [J2J](#13-j2j-0100)
 14. [Authentication](#14-authentication-0110)
 15. [Comms](#15-comms-0120)
+16. [MCP](#16-mcp-0140)
 
 ---
 
@@ -124,6 +125,7 @@ discovered, updated or removed, or an interaction received.
 | `GET` | [`/api/datasources/{dsid}/comms/chat?channel=…`](#152-get-commschatchannel) | A chat transcript |
 | `GET` | [`/api/audio/stream?ds=…&channels=…`](#153-get-apiaudiostreamdschannels) | The audio of some channels, as a binary stream |
 | `GET` / `POST` | [`/api/j2j/…`](#13-j2j-0100) | The J2J network of Junction servers (J2J page): see [j2j-rest-api.md](j2j-rest-api.md) |
+| `POST` | [`/api/mcp`](#16-mcp-0140) | MCP: read-only tools for AI assistants (0.14.0, off unless `mcp.enabled`) |
 
 ---
 
@@ -1331,6 +1333,71 @@ curl -k -N "https://localhost:8843/api/audio/stream?ds=$DS&channels=f-251000000"
 
 Only channels with activity in that second, or a sender talking, are listed. A `rev` other than
 the one of the last listing means channels, senders or names changed: get 15.1 again.
+
+---
+
+## 16. MCP (0.14.0)
+
+`POST /api/mcp` is a **Model Context Protocol** server (MCP, [modelcontextprotocol.io](https://modelcontextprotocol.io)) for AI assistants: read-only tools over what the datasources see, the gateways, J2J and Infra. Off unless `mcp.enabled=true`; settings and who may call it: [install guide 2.11](simweaver-rift-install-and-config.md).
+
+### 16.1 Transport
+
+- Streamable HTTP, JSON replies only: one JSON-RPC 2.0 message per `POST`, one JSON reply (`Content-Type: application/json; charset=utf-8`, `Cache-Control: no-store`). Notifications and responses are answered `202` without a body. No SSE stream, no sessions: `GET` and `DELETE` are `405` (`Allow: POST`). Batches (a JSON array) are `400`.
+- **Protocol revisions:** `2026-07-28` (stateless: each request carries `params._meta["io.modelcontextprotocol/protocolVersion"]`, client info and capabilities, and the headers `MCP-Protocol-Version`, `Mcp-Method` and, for `tools/call`, `Mcp-Name`, which must match the body: else `-32020` HeaderMismatch, HTTP 400; `server/discover` is answered), and `2025-11-25`, `2025-06-18`, `2025-03-26` with the `initialize` handshake (no session id is assigned). A version the server does not know: `-32022`, with `data.supported`. Clients of the official MCP SDKs negotiate this themselves.
+- **Capabilities:** `tools` only (`listChanged: false`). `tools/list` carries `ttlMs` (300000) and `cacheScope: "private"` in 2026-07-28.
+- **Access:** with API authentication, `Authorization: Bearer <token>` only (the session cookie gives `401`); without it, local clients only unless `mcp.allowremotewithoutauth`. A foreign `Origin`: `403`. More than `mcp.ratelimit.perminute` requests per token (or address): `429` with `Retry-After`. Bodies over 1 MB: `413`.
+
+### 16.2 Tool results
+
+Each tool returns its answer as `structuredContent` (a JSON object, described by the tool's `outputSchema`) and the same as compact JSON text in `content[0].text`. Every answer has `asof`, the UTC time it is valid for; positions are dead reckoned to it.
+
+- Units: metres, m/s, degrees (true), seconds; `*_nm` and `*_kt` give nautical miles and knots. Times are ISO 8601 UTC.
+- Values are compact: enumerators by name, entity types in words with their country and code (`"CV9040A (SWE) [1.1.205.2.1.5.0]"`), references as `"<name> (<label>, <id>)"`, records as objects, arrays as lists (at most 50 elements, then `"… n more"`).
+- Errors the assistant can correct (an unknown object, an ambiguous name, a class that does not exist, a datasource not given when several run, arguments that do not fit the schema) are tool results with `isError: true` and a text saying what to do, often with the candidates. An answer larger than `mcp.maxresultkb` is such an error too ("narrow the filter or lower the limit"). An unknown tool name is the JSON-RPC error `-32602`.
+- **Objects** are named by their id (`o12`), instance name, marking / label, or entity id (`1-2-3`, `1:2:3`); a unique part of a name or label is enough. **Datasources** by id, name, configuration or federation; may be left out when only one runs.
+
+### 16.3 Tools
+
+| Tool | Arguments | Answers |
+|---|---|---|
+| `server_overview` | | Server (version, uptime, CPU, heap), the datasources with their object counts, gateways by state and the running ones, J2J state and members, Infra counts |
+| `health_check` | `scope`: `all`, `datasources`, `gateways`, `j2j` | Findings with `severity` (`error`, `warning`, `info`), `subject`, `text`, `since`: datasources not joined or lost in the last hour, gateways failed or degraded, endpoints not joined or without traffic while others flow, send errors (per DIS send address), registration failures, queue drops, conversion failures, router problems, Kafka producer / consumer failing, C-DIS errors, J2J members not reachable or with another member list; `ok`, `counts` |
+| `list_datasources` | | The running datasources, and the configurations that can be started |
+| `list_classes` | `datasource` | Object classes with counts (most first), interaction classes among the last 5000 received |
+| `find_objects` | `datasource`, `class`, `text`, `force`, `near` (`object` or `lat`/`lon`), `radius_m`, `include_carried`, `sort` (`name`, `range`, `lastupdated`), `offset`, `limit` (25, at most 200) | `total`, `returned`, `next_offset`, and per object: `id`, `name`, `label`, `class`, `entity_type`, `country`, `entity_type_code`, `entity_id`, `force`, `damage`, `carried_by`, `lat`, `lon`, `alt_m`, `heading_deg`, `course_deg`, `speed_mps`, `speed_kt`, `climb_mps`, `frozen`, `position_age_s` (or `position_of`: the carrier whose position it has), `last_update_age_s`; with `near` also `range_m`, `range_nm`, `bearing_deg`. Without a class, objects carried by others (embedded systems, beams) are left out |
+| `get_object` | `datasource`, `object`, `attributes` (names; default all) | The summary as above, every attribute in compact form, `carries` (hosted objects, parts, beams), `refers_to` (references it holds), `referred_to_by` (a count) |
+| `relation` | `datasource`, `from`, `to` or `to_point` (`lat`, `lon`, `alt_m`) | `range_m` / `range_nm` (slant), `horizontal_m`, `bearing_deg`, `relative_bearing_deg` (to the heading of `from`, + = right), `elevation_deg`, `closing_mps` / `closing_kt` (+ = closing), `cpa`: `in_s`, `at`, `range_m`, `range_nm`, `assumes` (both keep course and speed) |
+| `recent_interactions` | `datasource`, `class`, `all_classes`, `involving` (an object), `since_s` (120), `limit` (20) | Newest first: `id`, `time`, `age_s`, `class`, `sender`, `summary`, `event`, parameters in one line each. By default only fire, detonation and explosion classes |
+| `get_interaction` | `datasource`, `interaction` (`i4812`) | Every parameter in compact form |
+| `list_gateways` | `state`, `text` | Per gateway: id, name (configuration, `-<instance>` after the first), title, state, router, endpoints with target, state and rates, objects |
+| `get_gateway` | `gateway` (id, name, configuration or title) | As `GET /api/junction/gateways/{gid}`, without counters that are 0 and without history series |
+| `j2j_status` | | State, this server, the network, the other members (state, round trip, loss, member list), the sessions |
+| `infra_list` | `kind` (`all`, `dis`, `hla`, a family), `text`, `heard_by` | The exercises and federations heard: key, family, name, who hears it, status, rate, senders / entities (DIS) or federation / federates / MOM (HLA) |
+| `infra_item` | `item` (key or name) | One of them: DIS senders and PDU types, HLA federates with their MOM rates and what was observed (at most 50 of each) |
+
+### 16.4 Example (2026-07-28)
+
+```sh
+curl -k https://localhost:8843/api/mcp -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -H "MCP-Protocol-Version: 2026-07-28" -H "Mcp-Method: tools/call" -H "Mcp-Name: relation" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"relation",
+       "arguments":{"from":"VIPER1","to":"BANDIT2"},
+       "_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+                "io.modelcontextprotocol/clientInfo":{"name":"curl","version":"8"}}}}'
+```
+
+```json
+{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete",
+  "content":[{"type":"text","text":"{\"asof\":\"2026-11-23T04:33:56.253Z\",…}"}],
+  "structuredContent":{"asof":"2026-11-23T04:33:56.253Z","datasource":"DIS6 - exercise 1 - 2026NOV23-0433Z",
+    "from":{"id":"o1","label":"VIPER1","class":"Aircraft","lat":57.5,"lon":18.50071,"alt_m":3000.0,"heading_deg":90.0,"speed_kt":388.8},
+    "to":{"id":"o2","label":"BANDIT2","class":"Aircraft","lat":57.5,"lon":18.999403,"alt_m":3000.0,"heading_deg":270.0,"speed_kt":388.8},
+    "range_m":29913.0,"range_nm":16.15,"horizontal_m":29913.0,"bearing_deg":89.8,"relative_bearing_deg":-0.2,"elevation_deg":-0.1,
+    "closing_mps":400.0,"closing_kt":777.5,
+    "cpa":{"in_s":74.8,"at":"2026-11-23T04:35:11.036Z","range_m":0.0,"range_nm":0.0,"assumes":"both keep their present course and speed"}},
+  "isError":false,
+  "_meta":{"io.modelcontextprotocol/serverInfo":{"name":"SimWeaver Junction & Rift Server","version":"0.14.0"}}}}
+```
 
 ---
 

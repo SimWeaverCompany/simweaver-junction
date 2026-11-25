@@ -548,6 +548,22 @@ public final class ApiAuth {
         return site == null || site.equalsIgnoreCase("same-origin") || site.equalsIgnoreCase("none");
     }
 
+    /**
+     * 0.14.0: whether a page of {@code origin} may call this server: its own origin
+     * ({@code https://<host>}) or one of {@code api.auth.origins}. Used by the MCP endpoint, which
+     * refuses requests from other sites' pages (DNS rebinding).
+     */
+    public boolean isAllowedOrigin(String origin, String host) {
+        if (origin == null) {
+            return true;
+        }
+        String o = trimSlash(origin.trim().toLowerCase(Locale.ROOT));
+        if (host != null && o.equals("https://" + host.trim().toLowerCase(Locale.ROOT))) {
+            return true;
+        }
+        return allowedOrigins.contains(o);
+    }
+
     static String bearer(String header) {
         String h = header.trim();
         if (h.length() < 7 || !h.substring(0, 7).equalsIgnoreCase("Bearer ")) {

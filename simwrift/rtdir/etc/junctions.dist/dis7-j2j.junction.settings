@@ -5,6 +5,9 @@ junction.name=DIS7<->J2J
 junction.description=DIS 7 on port 3000 shared with the other members of a J2J session (DIS PDUs as they are)
 junction.endpoints=dis;j2j
 junction.endpoint.dis=endpoints/dis7.endpoint.settings
+# where dis sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.dis.dis.sendaddress=192.168.1.255
 junction.endpoint.j2j=endpoints/j2j-pdu.endpoint.settings
 junction.router=routers/pdu-relay.router.settings
 junction.autostart=false

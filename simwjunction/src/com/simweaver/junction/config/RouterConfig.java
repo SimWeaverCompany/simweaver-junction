@@ -51,6 +51,9 @@ public final class RouterConfig implements Json.Writable {
     private final Map<String, String> nameTemplates;
     /** router.names.maxlength[.endpoint]: scope "" = every destination; 0 = no limit */
     private final Map<String, Integer> nameMaxLengths;
+    /** 0.14.0: router.names.select / except .classes / .names [.endpoint]: which objects get the template, per scope */
+    private final Map<String, NameCriteria> nameCriteria;
+    private final java.util.Set<String> criteriaScopes;
     private final int queueCapacity;
     private final String rprMapping;
     private final boolean deleteOnStop;
@@ -180,6 +183,63 @@ public final class RouterConfig implements Json.Writable {
             }
         }
         this.nameMaxLengths = Collections.unmodifiableMap(lengths);
+        // 0.14.0: which objects get the template; a scoped key replaces the general one of its kind
+        String[] nameKinds = {"router.names.select.classes", "router.names.except.classes", "router.names.select.names", "router.names.except.names"};
+        Map<String, Map<String, List<String>>> byKind = new LinkedHashMap<String, Map<String, List<String>>>();
+        java.util.Set<String> cScopes = new java.util.TreeSet<String>();
+        for (String kind : nameKinds) {
+            Map<String, List<String>> scoped = new LinkedHashMap<String, List<String>>();
+            for (String key : p.getKeysWithPrefix(kind)) {
+                String scope = key.equals(kind) ? "" : key.startsWith(kind + ".") ? key.substring(kind.length() + 1) : null;
+                if (scope == null) {
+                    continue;
+                }
+                List<String> values = new ArrayList<String>();
+                for (String v : p.getStringArray(key)) {
+                    if (!v.trim().isEmpty()) {
+                        values.add(v.trim());
+                        if (kind.endsWith(".names")) {
+                            String problem = NameCriteria.problem(v);
+                            if (problem != null) {
+                                errors.add("router " + id + ": " + key + ": " + problem);
+                            }
+                        }
+                    }
+                }
+                scoped.put(scope, values);
+                cScopes.add(scope);
+            }
+            byKind.put(kind, scoped);
+        }
+        Map<String, NameCriteria> criteria = new LinkedHashMap<String, NameCriteria>();
+        java.util.Set<String> all = new java.util.TreeSet<String>(cScopes);
+        all.add("");
+        for (String scope : all) {
+            List<List<String>> lists = new ArrayList<List<String>>();
+            for (String kind : nameKinds) {
+                Map<String, List<String>> scoped = byKind.get(kind);
+                List<String> l = scoped.containsKey(scope) ? scoped.get(scope) : scoped.get("");
+                lists.add(l == null ? Collections.<String>emptyList() : l);
+            }
+            try {
+                criteria.put(scope, new NameCriteria(lists.get(0), lists.get(1), lists.get(2), lists.get(3)));
+            } catch (IllegalArgumentException e) {
+                criteria.put(scope, NameCriteria.ALL);           // the error is listed above
+            }
+        }
+        this.nameCriteria = Collections.unmodifiableMap(criteria);
+        cScopes.remove("");
+        this.criteriaScopes = Collections.unmodifiableSet(cScopes);
+        if (kind != Kind.PDU) {
+            for (String scope : all) {
+                NameCriteria c = criteria.get(scope);
+                String t = templates.containsKey(scope) ? templates.get(scope) : templates.get("");
+                if (!c.isAll() && (t == null || t.isEmpty())) {
+                    warnings.add("router " + id + ": router.names.select / except" + (scope.isEmpty() ? "" : " ." + scope)
+                            + " have no effect: no router.names.template" + (scope.isEmpty() ? "" : " for " + scope));
+                }
+            }
+        }
         if (namePolicy == NamePolicy.RTI && !templates.isEmpty()) {
             warnings.add("router " + id + ": router.names.template is used instead of router.names.policy=rti where it applies");
         }
@@ -391,10 +451,20 @@ public final class RouterConfig implements Json.Writable {
         return n == null ? 0 : n;
     }
 
-    /** @return the endpoint ids that have a template or length of their own */
+    /**
+     * 0.14.0: which objects get the name template in that endpoint
+     * ({@code router.names.select / except .classes / .names}, scoped keys before general ones).
+     */
+    public NameCriteria getNameCriteria(String destination) {
+        NameCriteria c = nameCriteria.get(destination);
+        return c != null ? c : nameCriteria.getOrDefault("", NameCriteria.ALL);
+    }
+
+    /** @return the endpoint ids that have a template, length or name criterion of their own */
     public java.util.Set<String> getNameScopes() {
         java.util.Set<String> s = new java.util.TreeSet<String>(nameTemplates.keySet());
         s.addAll(nameMaxLengths.keySet());
+        s.addAll(criteriaScopes);
         s.remove("");
         return s;
     }
@@ -701,6 +771,15 @@ public final class RouterConfig implements Json.Writable {
         }
         if (!nameMaxLengths.isEmpty()) {
             o.put("namemaxlengths", new LinkedHashMap<String, Object>(nameMaxLengths));
+        }
+        Map<String, Object> nc = new LinkedHashMap<String, Object>();
+        for (Map.Entry<String, NameCriteria> e : nameCriteria.entrySet()) {
+            if (!e.getValue().isAll() || !criteriaScopes.isEmpty()) {
+                nc.put(e.getKey(), e.getValue());
+            }
+        }
+        if (!nc.isEmpty()) {
+            o.put("namecriteria", nc);                   // 0.14.0: "" = every destination
         }
         o.put("valuemap", valueRules);
         if (kind == Kind.IEM) {

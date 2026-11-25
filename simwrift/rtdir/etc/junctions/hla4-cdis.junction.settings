@@ -4,5 +4,8 @@ junction.description=HLA 4 RPR v2 federation (Link 16 included) bridged to C-DIS
 junction.endpoints=hla;cdis
 junction.endpoint.hla=endpoints/hla4-rpr2.endpoint.settings
 junction.endpoint.cdis=endpoints/cdis.endpoint.settings
+# where cdis sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.cdis.dis.sendaddress=192.168.1.255
 junction.router=routers/hla4-all.router.settings
 junction.autostart=false

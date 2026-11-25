@@ -676,6 +676,31 @@
 		])]));
 	}
 
+	/** 0.14.0: the first bad entry of a ';' list of send addresses (host or host:port, [IPv6]:port), or null. */
+	function sendAddressProblem(v) {
+		if (ca.hasVar(v)) { return null; }
+		var parts = String(v || '').split(';');
+		for (var i = 0; i < parts.length; i++) {
+			var e = parts[i].trim(), host = e, port = null, m;
+			if (!e) { continue; }
+			if (e.charAt(0) === '[') {
+				m = /^\[([0-9A-Fa-f:.]+)\](?::(\d+))?$/.exec(e);
+				if (!m) { return e + ': write IPv6 as [address] or [address]:port'; }
+				host = m[1]; port = m[2] || null;
+			} else if (e.indexOf(':') > 0 && e.indexOf(':') === e.lastIndexOf(':')) {
+				host = e.substring(0, e.indexOf(':')); port = e.substring(e.indexOf(':') + 1);
+			}
+			if (port !== null && !ca.isInt(port, 1, 65535)) { return e + ': the port must be 1 - 65535'; }
+			if (/^[0-9.]+$/.test(host)) {
+				var o = host.split('.');
+				if (o.length !== 4 || o.some(function (x) { return x === '' || +x > 255; })) { return e + ': not an IPv4 address'; }
+			} else if (host.indexOf(':') < 0 && !/^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\.?$/.test(host)) {
+				return e + ': neither an IP address nor a host name';
+			}
+		}
+		return null;
+	}
+
 	function disBlock(card, ep) {
 		card.appendChild(ca.grid([
 			ca.field('Receive on', ca.seg(ep, 'disIf', [{ v: 'all', l: 'All interfaces' }, { v: 'address', l: 'One interface' }, { v: 'multicast', l: 'Multicast group' }]),
@@ -689,7 +714,8 @@
 				'0 receives every exercise (and sends as exercise 1).')
 		]));
 		card.appendChild(ca.more('More: sending, DIS ids, timing', [ca.grid([
-			ca.field('Send address', ca.input(ep, 'sendaddr', { placeholder: 'e.g. 192.168.1.255 or host:port' }), 'Unicast, broadcast or multicast. Empty: see above.', { opt: true }),
+			ca.field('Send address', ca.input(ep, 'sendaddr', { placeholder: 'e.g. 192.168.1.255, or 10.0.0.5;10.0.0.6:3001', vars: true, validate: sendAddressProblem }),
+				'Unicast, broadcast or multicast; several with ; between them (each PDU goes to all). host or host:port. Empty: see above.', { opt: true }),
 			ep.disIf === 'multicast' ? ca.field('Multicast TTL', ca.input(ep, 'ttl', { numeric: true })) : null,
 			ca.field('Gateway site id', ca.input(ep, 'siteid', { numeric: true })),
 			ca.field('Gateway application id', ca.input(ep, 'appid', { numeric: true }), 'Entities from HLA get siteid-appid-n when their own id is taken.'),
@@ -1049,7 +1075,7 @@
 			put('dis.interface', iface, 'receive on: empty = all interfaces, an address or name, or group@interface');
 			put('dis.port', String(ep.disPort).trim() || '3000');
 			if (withTarget) { put('dis.exid', String(ep.disExid).trim() || '1', 'the default exercise (0 = every exercise; PDUs are then sent as exercise 1)'); }
-			if (ep.sendaddr.trim()) { put('dis.sendaddress', ep.sendaddr.trim(), 'send: unicast, broadcast or multicast address'); }
+			if (ep.sendaddr.trim()) { put('dis.sendaddress', ep.sendaddr.trim(), 'send: unicast, broadcast or multicast addresses, ; between them'); }
 			if (ep.disIf === 'multicast' && String(ep.ttl).trim() && String(ep.ttl).trim() !== '8') { put('dis.ttl', String(ep.ttl).trim()); }
 			put('dis.siteid', String(ep.siteid).trim() || '900', 'the gateway\'s own DIS ids');
 			put('dis.appid', String(ep.appid).trim() || '1');

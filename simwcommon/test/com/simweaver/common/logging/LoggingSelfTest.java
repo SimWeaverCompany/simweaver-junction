@@ -286,9 +286,13 @@ public final class LoggingSelfTest {
             check("actor = client address", "127.0.0.1".equals(during.get()));
             check("event by= client address", c.records.size() == 1
                     && "127.0.0.1".equals(Events.tagOf(c.records.get(0)).fields().get("by")));
-            get("http://127.0.0.1:" + port + "/api/x", "10.1.2.3, 10.0.0.1\u0007");
-            check("X-Forwarded-For noted", "127.0.0.1 (forwarded for 10.1.2.3, 10.0.0.1)".equals(during.get())
-                    || "127.0.0.1 (forwarded for 10.1.2.3, 10.0.0.1?)".equals(during.get()));
+            get("http://127.0.0.1:" + port + "/api/x", "10.1.2.3, 10.0.0.1");
+            check("X-Forwarded-For noted: " + during.get(), "127.0.0.1 (forwarded for 10.1.2.3, 10.0.0.1)".equals(during.get()));
+            during.set(null);
+            int refused = get("http://127.0.0.1:" + port + "/api/x", "10.1.2.3\u0007");
+            // a control character is replaced; newer JDKs' HTTP servers refuse such a request (400) before it gets here
+            check("a control character in it is not logged: " + refused + " " + during.get(), "127.0.0.1 (forwarded for 10.1.2.3?)".equals(during.get())
+                    || (during.get() == null && refused == 400));
             // the executor's thread is reused: the actor must not stick to it
             AtomicReference<String> after = new AtomicReference<String>();
             server.getExecutor().execute(() -> after.set(RequestContext.actor()));
@@ -304,6 +308,24 @@ public final class LoggingSelfTest {
     }
 
     private static int get(String url, String forwardedFor) throws IOException {
+        if (forwardedFor != null) {
+            // 0.14.0: written by hand: newer JDKs leave out a header value with control characters
+            URL u = new URL(url);
+            try (java.net.Socket so = new java.net.Socket(u.getHost(), u.getPort())) {
+                so.setSoTimeout(5000);
+                String req = "GET " + u.getPath() + " HTTP/1.1\r\nHost: " + u.getHost() + ":" + u.getPort()
+                        + "\r\nX-Forwarded-For: " + forwardedFor + "\r\nConnection: close\r\n\r\n";
+                so.getOutputStream().write(req.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1));
+                so.getOutputStream().flush();
+                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(so.getInputStream(),
+                        java.nio.charset.StandardCharsets.ISO_8859_1));
+                String status = r.readLine();
+                while (r.readLine() != null) {
+                    // drain
+                }
+                return status == null ? -1 : Integer.parseInt(status.split(" ")[1]);
+            }
+        }
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection(java.net.Proxy.NO_PROXY);
         if (forwardedFor != null) {
             c.setRequestProperty("X-Forwarded-For", forwardedFor);
