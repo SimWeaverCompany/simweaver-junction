@@ -57,6 +57,9 @@ public class DatasourceManager implements DataSourceCallbackSink {
     // 0.9.22: {configuration name, federation or ""} per datasource, for the log events
     private final Map<UUID, String[]> labels = new ConcurrentHashMap<>();
 
+    // 0.14.0: datasources that lost their RTI connection (and were removed), newest first, at most 20
+    private final java.util.ArrayDeque<String[]> recentLosses = new java.util.ArrayDeque<>();
+
     // NEW: version, CPU and memory for GET /api/serverinfo (the web UI's top bar)
     private final ServerInfo serverInfo = new ServerInfo("SimWeaver Rift", Version::getVersion);
 
@@ -245,7 +248,9 @@ public class DatasourceManager implements DataSourceCallbackSink {
         SetupResult r = createDatasource(config, federation, lsd);
         String fed = federation == null || federation.trim().isEmpty() ? null : federation.trim();
         if (r.dataSource != null) {
-            labels.put(r.dataSource.getId(), new String[] {config.getName(), fed == null ? "" : fed});
+            labels.put(r.dataSource.getId(), new String[] {config.getName(), fed == null ? "" : fed,
+                    config.getStandard() == null ? "" : config.getStandard().name(),
+                    config.getStandard() == null ? "" : config.getStandard().getLabel(), java.time.Instant.now().toString()});
             Events.notice(LOG, "datasource.created", "Datasource " + config.getName() + (fed == null ? "" : " (" + fed + ")")
                     + " created", "id", r.dataSource.getId(), "config", config.getName(), "standard", config.getStandard() == null ? null : config.getStandard().name(),
                     "federation", fed, "lsd", lsd == null || lsd.isEmpty() ? null : lsd);
@@ -447,12 +452,59 @@ public class DatasourceManager implements DataSourceCallbackSink {
                         "id", datasourceId, "config", label[0], "federation", label[1].isEmpty() ? null : label[1],
                         "by", "rti");
                 setState(datasourceId, "CONNECTION_LOST", "The connection to the RTI was lost");
+                synchronized (recentLosses) {                              // 0.14.0: for the MCP health check
+                    recentLosses.addFirst(new String[] {java.time.Instant.now().toString(), label[0], label[1],
+                            reason == null ? "" : reason});
+                    while (recentLosses.size() > 20) {
+                        recentLosses.removeLast();
+                    }
+                }
                 RiftEventPublisher publisher = publishers.get(datasourceId);
                 if (publisher != null) publisher.datasourceRemoved();
                 dataSources.remove(dataSource);                            // FIX: safe while iterating (copy-on-write list)
                 discard(datasourceId, dataSource.getDatabase());
             }
         }
+    }
+
+    /**
+     * 0.14.0 (MCP tools): the running datasources: id, name, config, standard, standardlabel,
+     * federation (HLA) or "", created, state, statemessage, objects, database state.
+     */
+    public List<Map<String, Object>> describeDatasources() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (DataSource ds : dataSources) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            Object own = com.simweaver.common.rest.JsonParser.parse(Json.toJson(ds));
+            String[] label = labels.getOrDefault(ds.getId(), new String[] {"?", "", "", "", ""});
+            m.put("id", ds.getId().toString());
+            m.put("name", own instanceof Map ? ((Map<?, ?>) own).get("name") : null);
+            m.put("config", label[0]);
+            m.put("standard", label.length > 2 ? label[2] : "");
+            m.put("standardlabel", label.length > 3 ? label[3] : "");
+            m.put("federation", label[1]);
+            m.put("created", label.length > 4 ? label[4] : null);
+            m.put("state", getDatasourceState(ds.getId()));
+            m.put("statemessage", getDatasourceStateMessage(ds.getId()));
+            RiftDatabase db = ds.getDatabase();
+            m.put("objects", db == null ? 0 : db.getInstanceCount());
+            m.put("database", db == null ? null : db.getState().name());
+            out.add(m);
+        }
+        return out;
+    }
+
+    /** 0.14.0: {time, config, federation, reason} of the datasources lost lately, newest first. */
+    public List<String[]> recentLosses() {
+        synchronized (recentLosses) {
+            return new ArrayList<>(recentLosses);
+        }
+    }
+
+    /** 0.14.0: the configurations (reloaded), for the MCP tools. */
+    public synchronized List<DatasourceConfig> getConfigs() {
+        reloadConfigs();
+        return new ArrayList<>(configs);
     }
 
     @Override

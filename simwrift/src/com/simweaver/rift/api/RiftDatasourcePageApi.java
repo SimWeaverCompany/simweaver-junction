@@ -242,7 +242,7 @@ public final class RiftDatasourcePageApi {
         return new ArrayList<>(all);
     }
 
-    private static boolean classMatch(String classNameQ, List<String> classes, boolean subclasses) {
+    static boolean classMatch(String classNameQ, List<String> classes, boolean subclasses) {
         if (classes.isEmpty()) return true;
         for (String c : classes) {
             if (classNameQ.equals(c) || (subclasses && classNameQ.startsWith(c) && classNameQ.length() > c.length()
@@ -254,7 +254,7 @@ public final class RiftDatasourcePageApi {
     }
 
     /** Case-insensitive search in label, instance name and the list-view attribute texts (and entity type names). */
-    private static boolean textMatch(RiftInstance o, String lower, RiftJson json) {
+    static boolean textMatch(RiftInstance o, String lower, RiftJson json) {
         if (contains(RiftJson.labelOf(o), lower) || contains(o.getInstanceName(), lower)) return true;
         Map<String, ? extends RiftMemberView> attrs = o.attributes();
         for (String name : json.listAttributes(o)) {

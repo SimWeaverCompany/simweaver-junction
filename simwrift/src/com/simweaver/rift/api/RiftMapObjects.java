@@ -100,7 +100,7 @@ final class RiftMapObjects {
         return b[0] <= b[2] ? lon >= b[0] && lon <= b[2] : lon >= b[0] || lon <= b[2];      // across 180
     }
 
-    private static LocalKinematics position(RiftInstance o, Map<RiftInstance, LocalKinematics> pos, long now) {
+    static LocalKinematics position(RiftInstance o, Map<RiftInstance, LocalKinematics> pos, long now) {
         if (pos.containsKey(o)) {
             return pos.get(o);
         }
@@ -113,7 +113,7 @@ final class RiftMapObjects {
     }
 
     /** The host an object is on or part of (HostObjectIdentifier, IsPartOf), or null. */
-    private static RiftInstance host(RiftDatabase db, RiftInstance o, Map<RiftInstance, RiftInstance> hostOf, Map<RiftInstance, String> via) {
+    static RiftInstance host(RiftDatabase db, RiftInstance o, Map<RiftInstance, RiftInstance> hostOf, Map<RiftInstance, String> via) {
         if (hostOf.containsKey(o)) {
             return hostOf.get(o);
         }
@@ -140,7 +140,7 @@ final class RiftMapObjects {
     }
 
     /** The top-most positioned host of an object (following hosts of hosts), or null. */
-    private static RiftInstance topHost(RiftDatabase db, RiftInstance o, Map<RiftInstance, LocalKinematics> pos,
+    static RiftInstance topHost(RiftDatabase db, RiftInstance o, Map<RiftInstance, LocalKinematics> pos,
             Map<RiftInstance, RiftInstance> hostOf, Map<RiftInstance, String> via, long now) {
         RiftInstance top = null;
         RiftInstance cur = o;

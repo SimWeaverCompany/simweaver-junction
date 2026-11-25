@@ -883,6 +883,42 @@ When the file does not list a type down to its last number, the nearest broader 
 
 **Licence:** SISO-REF-010 is © SISO Inc. and distributed unchanged under the licence in its own `<copyright>` element, with the attribution *Reprinted with permission from SISO Inc.* (`etc/enumerations/NOTICE.txt`). The BSD 3-Clause License of SimWeaver does not cover it.
 
+### 2.11 MCP: tools for AI assistants (0.14.0)
+
+The server can answer AI assistants and agents over the **Model Context Protocol** (MCP): Claude Desktop, Claude Code, an IDE assistant or a model running on your own computers can then ask it what the simulation looks like — which objects there are, where they are, how far apart and closing how fast, what fired at what, which gateway has trouble. The tools only read; nothing an assistant does through them changes a datasource, a gateway or a setting. It is **off** by default.
+
+```properties
+# etc/server.root.settings
+mcp.enabled=true
+# optional:
+mcp.tools=                          # the tools offered, ; between them; empty = all 14
+mcp.ratelimit.perminute=120         # requests per token (or address) and minute; 0 = no limit
+mcp.maxresultkb=64                  # a larger answer is refused, asking the assistant to narrow its question
+mcp.allowremotewithoutauth=false    # without API authentication: answer other computers too
+```
+
+The start-up lines say `MCP: POST /api/mcp, 14 tools, API tokens` (or *this machine only*).
+
+**Who may ask.** The endpoint is `https://<server>:<port>/api/mcp`.
+
+- With API authentication on (2.9), every request needs `Authorization: Bearer <token>`. Make the assistant a token of its own (`--new-token=assistant`), so its calls are logged under that name and it can be revoked alone. The Web UI's session cookie is not accepted there: a browser page cannot use a signed-in user's session to drive the tools.
+- Without API authentication, only clients on the server's own computer are answered, unless `mcp.allowremotewithoutauth=true`. Do not set it on a network you do not control.
+- Requests from another web site's pages (an `Origin` that is not this server's) are refused either way.
+
+**Connecting an assistant.** Most assistants take a server URL and a header. For example, for Claude Code:
+
+```
+claude mcp add --transport http simweaver https://rift:8843/api/mcp --header "Authorization: Bearer swt_…"
+```
+
+A self-signed certificate must be trusted by the assistant's computer (or its runtime, e.g. `NODE_EXTRA_CA_CERTS` for Node-based clients). Assistants that only start local programs (stdio) need a small bridge program that forwards to the URL.
+
+**The tools.** `server_overview` (start here), `health_check`, `list_datasources`, `list_classes`, `find_objects`, `get_object`, `relation` (range, bearing, closing speed and closest point of approach on the WGS84 ellipsoid), `recent_interactions`, `get_interaction`, `list_gateways`, `get_gateway`, `j2j_status`, `infra_list`, `infra_item`. Each answer is as of the moment it is asked (positions dead reckoned to then), in metres, m/s and degrees, with knots and nautical miles alongside. [rest-api.md](rest-api.md) section 16 describes them.
+
+**What the assistant sees** is what the Web UI shows: object names, markings and attribute values from the simulation, gateway and federation names, addresses of DIS senders. An assistant using a model in the cloud sends what it asks for there. Use `mcp.tools` to leave tools out, or keep the server's MCP off, where that matters.
+
+**Log events** (2.7): every tool call is logged as `mcp.call` (INFO; WARNING when it failed), with `tool`, `caller` (the token), `arguments` (cut at 300 characters), `ms`, `bytes` and `error`.
+
 ---
 
 ## 3. Security
@@ -892,6 +928,8 @@ Without API authentication (2.9, off by default) the REST API and the Web UI hav
 With API authentication on, a token is a password: anyone who holds it can do everything the API offers. Give each user or program its own, keep them out of scripts that others can read, and revoke one by deleting its lines as soon as it may have leaked. The server keeps only their hashes. Traffic is always HTTPS, so tokens and session cookies never cross the network in clear text; with a self-signed certificate, check its fingerprint once on each client, or an attacker in between could read them.
 
 J2J (2.8) links are encrypted and authenticated with the network key (AES-256-GCM, keys from an X25519 exchange, so recorded traffic stays secret even if the key leaks later). Whoever holds `etc/j2j/network.key` and is in the member list is trusted as a member: keep the file readable by the server's account only, and make a new key when someone leaves. The J2J port must be reachable by the other members only.
+
+MCP (2.11) is off by default and only reads. With it on, an assistant holding a token can read everything the Web UI shows; text from the simulation (names, markings, chat) reaches the assistant's model and could try to steer it, so the tools describe such text as data, and none of them can change anything.
 
 Syslog over UDP or TCP is not encrypted, and UDP messages can be lost without notice. Use `syslog.protocol=tls` when the log crosses networks you do not trust (2.7). The `by=` of an event is the client's address as the server sees it: without API authentication it says *from where*, not *who*; with it, also which token.
 

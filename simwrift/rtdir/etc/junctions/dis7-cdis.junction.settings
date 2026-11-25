@@ -3,6 +3,12 @@ junction.name=DIS7<->CDIS
 junction.description=DIS 7 on port 3000 relayed to C-DIS (SISO-STD-023-2024) on port 3100, all 22 C-DIS PDU types
 junction.endpoints=dis;cdis
 junction.endpoint.dis=endpoints/dis7.endpoint.settings
+# where dis sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.dis.dis.sendaddress=192.168.1.255
 junction.endpoint.cdis=endpoints/cdis.endpoint.settings
+# where cdis sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.cdis.dis.sendaddress=192.168.1.255
 junction.router=routers/pdu-relay.router.settings
 junction.autostart=false

@@ -254,8 +254,10 @@
 	/** C-DIS endpoints (0.9.18): update mode, compression and decoder counters. */
 	function cdisLine(node, dis) {
 		var c = dis && dis.cdis, cs = dis && dis.cdissettings;
-		node.hidden = !c;
-		if (!c) { node.textContent = ''; return; }
+		var sends = sendLine(dis);
+		node.hidden = !c && !sends.text;
+		node.classList.toggle('warn', !!sends.failing);
+		if (!c) { node.textContent = sends.text; node.title = sends.title; return; }
 		var ratio = c.encodeddisoctets ? Math.round(100 * c.encodedcdisoctets / c.encodeddisoctets) + ' %' : '—';
 		node.textContent = 'C-DIS ' + ((cs && cs.updatemode) || 'full').toUpperCase() + ' · SENT AT ' + ratio + ' OF DIS'
 			+ (c.waitingforfull ? ' · ' + c.waitingforfull + ' WAITING FOR A FULL UPDATE' : '')
@@ -266,7 +268,23 @@
 			+ 'Decoded: ' + count(c.decoded) + ' PDUs, ' + count(c.decodedcdisoctets) + ' C-DIS octets → ' + count(c.decodeddisoctets) + ' DIS octets\n'
 			+ 'Not sent (no C-DIS form): ' + count(c.notconvertible) + ' · unknown C-DIS PDUs: ' + count(c.unknownpdus)
 			+ ' · timed out: ' + count(c.timedout)
-			+ (c.lasterror ? '\nLast error: ' + c.lasterror : '');
+			+ (c.lasterror ? '\nLast error: ' + c.lasterror : '')
+			+ (sends.title ? '\n\n' + sends.title : '');
+		if (sends.text) { node.textContent += ' · ' + sends.text; }
+	}
+
+	/** 0.14.0: several DIS send addresses, or send errors: "SENDS TO 3 ADDRESSES · 1 FAILING". */
+	function sendLine(dis) {
+		var sa = (dis && dis.sendaddresses) || [];
+		var failing = sa.filter(function (a) { return a.errors > 0; });
+		if (sa.length < 2 && !failing.length) { return { text: '', title: '', failing: 0 }; }
+		return {
+			text: 'SENDS TO ' + (sa.length === 1 ? sa[0].address : sa.length + ' ADDRESSES') + (failing.length ? ' · ' + failing.length + ' FAILING' : ''),
+			title: 'Send addresses (each PDU goes to all):\n' + sa.map(function (a) {
+				return a.address + ' · ' + count(a.sent) + ' sent' + (a.errors ? ' · ' + count(a.errors) + ' errors' + (a.lasterror ? ' (last: ' + a.lasterror + ')' : '') : '');
+			}).join('\n'),
+			failing: failing.length
+		};
 	}
 
 	/** 0.10.0: a J2J endpoint's session: its model and the other members (J2J page for more). */

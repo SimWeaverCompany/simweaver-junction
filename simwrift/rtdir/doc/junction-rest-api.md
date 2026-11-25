@@ -13,7 +13,7 @@ Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the env
 
 With API authentication on (0.11.0) every call needs `Authorization: Bearer <token>`, as all of `/api` does ([rest-api.md](rest-api.md), 14).
 
-API state: Junction 0.13.0, November 2026.
+API state: Junction 0.14.0, November 2026.
 
 ---
 
@@ -99,13 +99,15 @@ API state: Junction 0.13.0, November 2026.
 | `availability` | Per endpoint: is its RTI library there (checked without connecting). |
 | `running` | Running gateways of this configuration. |
 
+An IEM router with name templates has `nametemplates` and `namemaxlengths` (scope → value, `""` = every destination); with `router.names.select / except` (0.14.0) also `namecriteria`: scope → `{"selectclasses": […], "exceptclasses": […], "selectnames": […], "exceptnames": […]}` (only the lists that are set; `""` = every destination).
+
 HLA endpoints have `lsd`, the default LSD (the first entry of `endpoint.hla.lsd`; `""` = the RTI's default), and `lsds`, every choice with the default first.
 
 An HLA endpoint with `endpoint.hla.foms=dynamic` (FOM from the federation) has `"foms": ["dynamic"]` and `"dynamicfom": true`; its `compatibility` (2.3) cannot be compiled before the gateway runs and is reported as an error saying so.
 
 An endpoint whose target setting contains group variables also has `targettemplate`, the setting as written (`"GROUPVAR2-COMMS"`), while `defaulttarget` has the variables replaced by their defaults. The page's Discover for variables uses it.
 
-DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress`. C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). J2J endpoints (0.10.0, `"standard": "j2j"`) add `"isj2j": true`, `j2jsession` (also `defaulttarget`), `j2jdis`, `j2jexid` and `j2jtransport` (`auto` / `reliable`). Kafka endpoints (0.13.0, `"standard": "kafka"`) add `"iskafka": true`, `kafkakind` (`pdu` with a PDU relay, `objects` with an IEM router; the records are DIS PDUs or JSON), `foms` (`objects` only) and `kafka`: `bootstrap`, `topic` (as `defaulttarget`, after the gateway's own setting), `interactiontopic`, `group` (`""` = the default), `start`, `direction`, `acks`, `compression`, `values`, `security` and, with SASL, `saslmechanism` and `saslusername`. Passwords are never in the JSON. Talk routers have `talkmode` (`full` / `messages`), `talktrackchannels`, `talkmessages`, `talkmatch`, `talkchannels`, `talkmirrorclients`, `talkradiomap`, `talkradioendpoint`, `talkradioentityid`, `talksamplerate`, `talkchannelmap`, `talkchanneluuidmap`.
+DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress` (0.14.0: may be a `;`-separated list of `host[:port]`). C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). J2J endpoints (0.10.0, `"standard": "j2j"`) add `"isj2j": true`, `j2jsession` (also `defaulttarget`), `j2jdis`, `j2jexid` and `j2jtransport` (`auto` / `reliable`). Kafka endpoints (0.13.0, `"standard": "kafka"`) add `"iskafka": true`, `kafkakind` (`pdu` with a PDU relay, `objects` with an IEM router; the records are DIS PDUs or JSON), `foms` (`objects` only) and `kafka`: `bootstrap`, `topic` (as `defaulttarget`, after the gateway's own setting), `interactiontopic`, `group` (`""` = the default), `start`, `direction`, `acks`, `compression`, `values`, `security` and, with SASL, `saslmechanism` and `saslusername`. Passwords are never in the JSON. Talk routers have `talkmode` (`full` / `messages`), `talktrackchannels`, `talkmessages`, `talkmatch`, `talkchannels`, `talkmirrorclients`, `talkradiomap`, `talkradioendpoint`, `talkradioentityid`, `talksamplerate`, `talkchannelmap`, `talkchanneluuidmap`.
 
 ### 2.3 Compatibility
 
@@ -121,7 +123,7 @@ DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`
                   "droppedmembers": {"HLAobjectRoot...Aircraft.HeadLightsOn": "no attribute HeadLightsOn on ..."},
                   "transcodedmembers": {"HLAobjectRoot.BaseEntity.Spatial": "SpatialVariantStruct -> SpatialVariantStruct"},
                   "valuerulemembers": {} } } ],
-  "errors": { "v3": "FOM module not found: ..." } }
+  "errors": { "v3": "endpoint v3: FOM module: file not found: ..." } }
 ```
 
 Lists are capped at 300 entries; the counts are complete. `members.valuerules` and `valuerulemembers` (member → datatype) are the members the router's value rules (`router.valuemap.*`) apply to; a rule that does not fit an endpoint's FOM appears in `errors` under that endpoint.
@@ -277,7 +279,7 @@ Kafka endpoints (0.13.0) have `kafka`:
 
 A Kafka endpoint stays `JOINED` while the brokers are unreachable; its `message` says which side is failing and why. One whose brokers cannot be reached at the start fails to open with `CONNECT_FAILED`. Inspect (5) gives 400 `UNSUPPORTED_STANDARD` for Kafka and J2J endpoints.
 
-DIS and C-DIS endpoints (0.9.18) also have `dis`: `disversion`, `exercise`, `sendexercise`, `destination`, `echoes` (own PDUs dropped), `otherexercise`, `malformed`, the objects heard and sent; with the PDU relay `relayedin` / `relayedout`. A C-DIS endpoint adds `"protocol": "C-DIS"`, `cdissettings` (as `cdis` in 2.2), `cdisobjects` (objects the decoder keeps state for) and the codec's counters:
+DIS and C-DIS endpoints (0.9.18) also have `dis`: `disversion`, `exercise`, `sendexercise`, `destination` (0.14.0: every send address, `, ` between them), `sendaddresses` (0.14.0: per address `address`, `sent`, `errors`, and after an error `lasterror`, `lasterrorat`), `echoes` (own PDUs dropped), `otherexercise`, `malformed`, the objects heard and sent; with the PDU relay `relayedin` / `relayedout`. A C-DIS endpoint adds `"protocol": "C-DIS"`, `cdissettings` (as `cdis` in 2.2), `cdisobjects` (objects the decoder keeps state for) and the codec's counters:
 
 ```json
 "cdis": { "encoded": 102, "encodeddisoctets": 14688, "encodedcdisoctets": 4794, "encoderatio": 0.326,

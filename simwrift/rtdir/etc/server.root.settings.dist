@@ -61,6 +61,18 @@ syslog.enabled=false
 # behind a reverse proxy with another address: its origin, so the pages may change things
 #api.auth.origins=https://rift.example.org
 
+# ---------------------------------------------------------------- MCP for AI assistants (0.14.0)
+# Off by default. On: POST /api/mcp answers AI assistants (Model Context Protocol) with read-only
+# tools over the datasources, gateways, J2J and Infra (install guide, 2.11). With API
+# authentication on they need a token; without it only clients on this computer are answered.
+#mcp.enabled=true
+# the tools offered, ; between them (empty = all)
+#mcp.tools=server_overview;health_check;find_objects;get_object;relation
+#mcp.ratelimit.perminute=120
+#mcp.maxresultkb=64
+# without API authentication, also answer other computers (only on a network you control)
+#mcp.allowremotewithoutauth=false
+
 # ---------------------------------------------------------------- Junction gateways
 junction.enabled=true
 # the gateway configurations (default: junctions in the configuration folder, see etcdir)

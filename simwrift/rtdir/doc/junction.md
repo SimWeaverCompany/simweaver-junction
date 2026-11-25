@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.13.0. Java 11, no libraries apart from the HLA RTIs (Kafka included: Junction has its own Kafka client).
+Version 0.14.0. Java 11, no libraries apart from the HLA RTIs (Kafka included: Junction has its own Kafka client).
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -231,6 +231,8 @@ Samples: the kits `endpoints/hla3-dynamic-fom.endpoint.settings` (federation `Bl
 | `router.names.policy` | `same-or-suffix` | `same-or-suffix` (name, then `name@origin`, `#2` …), `prefix:<text>`, `same-only`, `rti` (the RTI names it) |
 | `router.names.template[.<endpoint>]` | | Names of the copies from a template, e.g. `RED-{name}-{hexguid}`; with `.<endpoint>` only for copies in that endpoint (below) |
 | `router.names.maxlength[.<endpoint>]` | `0` (no limit) | Longest name of a copy, in characters (below) |
+| `router.names.select.classes` / `.except.classes` `[.<endpoint>]` | all | 0.14.0: which classes get the template: class patterns (below) |
+| `router.names.select.names` / `.except.names` `[.<endpoint>]` | all | 0.14.0: which instance names get the template: globs or `re:` regular expressions (below) |
 | `router.queue.capacity` | `50000` | Events waiting for the router; updates are dropped (and counted) when full, the rest waits |
 | `router.rpr.mapping` | `mappings/rpr2-rpr3.mapping` | RPR conversion table |
 | `router.deleteobjectsonstop` | `true` | Delete the copies when the gateway stops |
@@ -304,12 +306,37 @@ router.names.template=GW-{name}
 - **The GUID** is derived from the gateway (its id and instance), the origin endpoint and the object's name. So a copy gets the same name again after a reconnect, or after the gateway is stopped and started, and references held on the other side stay valid. Two instances of one gateway give different GUIDs.
 - **Maximum length.** `router.names.maxlength` cuts the final name to that many characters. When a name is taken, `#2`, `#3` and `#4` are tried, and they fit inside the limit: the name is cut shorter to make room. The limit also applies to the names of the name policy (`name@origin#2` keeps its `@origin#2`). `0` means no limit, and `.<endpoint>` sets it for one destination.
 - **Names starting with `HLA`** are reserved for the RTI. Such a result gets the origin endpoint's id in front (`ext.HLA…`).
-- **References follow automatically, both ways**, with no extra settings. Every `RTIobjectId` in a routed attribute or parameter is rewritten to the name the object has at the receiver: simple values, fields of records, elements of arrays and variant records, at any depth.
+- **References follow automatically, both ways**, with no extra settings. Every `RTIobjectId` in a routed attribute or parameter is rewritten to the name the object has at the receiver: simple values, fields of records, elements of arrays and variant records, at any depth. 0.14.0 checks every such attribute and parameter of RPR v2 (56, both HLA versions), RPR v3 (75, among them the variant records in `VariableParametersArray` and `ExtendedDamageStatus`) and NETN v4 (`ReferenceRewriteSelfTest`). Values of other datatypes are not names and are not rewritten: `EntityIdentifierStruct` (DIS-style ids), NETN `UniqueId`; Talk channel ids are handled by the Talk router (section 6). `endpoint.hla.referencetypes` adds datatypes of your own FOM that hold instance names.
   - A Detonation in `ext` aimed at `RED-Tank-12-…` reaches `int` as `Tank-12`.
   - Fire from `Tank-12` in `int` reaches `ext` with `RED-Tank-12-…` as the shooter.
   - A name the gateway has not seen (an object that is not bridged) passes unchanged.
 - **Not used for DIS endpoints**, which name their objects by entity id. The gateway warns when a template is keyed to one, or to an endpoint the gateway does not have.
 - `router.names.policy=rti` lets the RTI choose names; a template applies instead where it is set.
+
+**Which objects get the template (0.14.0).** Without the keys below every object gets it. With them, only the objects that match do; the others keep their own name (the name policy, by default `same-or-suffix`: their name, or `name@origin` when it is taken).
+
+```properties
+router.names.template.ext=RED-{name}
+# only platforms and lifeforms, not spacecraft ...
+router.names.select.classes=BaseEntity.PhysicalEntity.Platform.*;BaseEntity.PhysicalEntity.Lifeform.*
+router.names.except.classes=BaseEntity.PhysicalEntity.Platform.Spacecraft
+# ... and not the ones whose name ends in -keep or starts with test (any case)
+router.names.except.names=*-keep;re:(?i)^test.*
+```
+
+| Key | Matches |
+|---|---|
+| `router.names.select.classes` | Only these classes get the template |
+| `router.names.except.classes` | Never these classes |
+| `router.names.select.names` | Only objects with these names |
+| `router.names.except.names` | Never objects with these names |
+
+- **Classes** are the object's class where it comes from, written as the class patterns above: the root may be left out, `A.B` is exactly that class, `A.B.*` it and every subclass, `**.Aircraft` every class named Aircraft, `*` inside a segment a glob. The most specific pattern wins, *except* on a tie. Without a select list every class can match.
+- **Names** are the object's own instance name where it comes from (for DIS: `site-app-entity`). A pattern is a glob over the whole name (`*` any run of characters, `?` one, everything else literal and case-sensitive, as HLA names are) or `re:` and a Java regular expression (`re:(?i)…` for any case). Without a select list every name can match; any matching except pattern excludes. A regular expression that does not compile is an error, and the gateway does not start.
+- An object needs to pass both: its class and its name. Lists are `;`-separated.
+- **Per destination.** Each key can end in `.<endpoint>` (the destination, as for the template) and then replaces the general key of the same kind for that destination; an empty value cancels it there. In a gateway file write `junction.router.names.select.classes.<endpoint>` and so on.
+- The keys only choose among objects; they do nothing without a template for that destination (the gateway warns).
+- References follow either way: a reference to a renamed object names the copy, a reference to an object that kept its name stays as it is.
 
 ### NETN properties (0.12.0)
 
@@ -589,7 +616,7 @@ A DIS endpoint is a DIS 6, DIS 7 or C-DIS network seen as an RPR v2 federation.
 | `endpoint.dis.interface` | all | Address or interface name; a multicast group `239.1.2.3` or `239.1.2.3@eth0` |
 | `endpoint.dis.port` | `3000` | |
 | `endpoint.dis.exid` | `1` | Default exercise; `0` receives every exercise (PDUs are then sent as exercise 1) |
-| `endpoint.dis.sendaddress` | group, else broadcast of the interface | Unicast, broadcast or multicast; `host:port` also |
+| `endpoint.dis.sendaddress` | group, else broadcast of the interface | Where PDUs go: unicast, broadcast or multicast addresses, `;` between several (below) |
 | `endpoint.dis.ttl` | `8` | Multicast TTL |
 | `endpoint.dis.siteid` / `appid` | `900` / `1` | The gateway's own DIS ids |
 | `endpoint.dis.entityids` | `keep` | `keep`: an HLA entity is sent with its `EntityIdentifier` when that id is free on the network; `assign`: always `siteid-appid-n` |
@@ -654,6 +681,20 @@ Appearance and capabilities come from the RPR attributes.
 A copied entity starts with a provisional id of the gateway and takes its `EntityIdentifier` when it arrives. A radio becomes `<host>/radio-<RadioIndex>` once its host is known, an emitter system `<host>/emitter-<n>`, a beam `<system>/beam-<m>`. References to the old names keep working.
 
 Between an RPR v3 federation and DIS, emitters go through the v2 ⇄ v3 conversion (section 8). Every shared attribute converts, the jamming technique (v2 32 bits, v3 `JammingTechniqueStruct`) in code. The v3-only `BlankingSectors`, `AngleDeceptionData` and `FalseTargetsData` have no place in v2 or DIS and are dropped.
+
+**Several send addresses (0.14.0).** `endpoint.dis.sendaddress` takes a `;`-separated list, and every PDU is sent to each address, from the same socket:
+
+```properties
+# two simulators by unicast, the rest of the lab by broadcast, a range by multicast
+endpoint.dis.sendaddress=10.0.0.5;sim-07:3001;192.168.1.255;239.1.2.3
+```
+
+- Each entry is `host` or `host:port` (`[address]:port` for IPv6); without a port, `endpoint.dis.port`. Unicast, broadcast and multicast can be mixed; multicast goes out of the endpoint's interface with `endpoint.dis.ttl`.
+- IP addresses are used as they are. Host names are looked up once, when the endpoint opens; one that cannot be resolved stops the gateway with `CONFIG_INVALID`. An entry that cannot be an address or name (a port out of range, `10.0.0.300`) is a configuration error.
+- One failing address does not stop the others. Errors are counted per address (gateway status `dis.sendaddresses`: `address`, `sent`, `errors`, `lasterror`, `lasterrorat`) and reported once per address in the log. `OUT` counts PDUs, not copies.
+- C-DIS encodes each PDU once and sends that to every address.
+- The kits and the gateway samples with DIS endpoints show the key as a comment: `# endpoint.dis.sendaddress=…` in the kit, `# junction.endpoint.<id>.dis.sendaddress=…` in the gateway file (for that gateway only).
+- Unicast to a simulator on another computer is not heard by Inspect (it listens on this computer's port).
 
 PDUs are sent from a socket of their own, so the endpoint recognises and drops its own broadcasts and multicasts. Inspect uses a Rift DIS datasource on the same port (address reuse): fine for broadcast and multicast, not for unicast.
 

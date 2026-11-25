@@ -88,9 +88,9 @@ public final class GatewayConfig implements Json.Writable {
             for (String scope : router.getNameScopes()) {
                 EndpointConfig ep = endpoints == null ? null : endpoints.get(scope);
                 if (ep == null) {
-                    w.add("router.names.template / maxlength ." + scope + ": the gateway has no endpoint '" + scope + "'");
+                    w.add("router.names.* ." + scope + ": the gateway has no endpoint '" + scope + "'");
                 } else if (ep.getType() != null && ep.getType().isDis()) {
-                    w.add("router.names.template / maxlength ." + scope + ": DIS names its objects by entity id; not used there");
+                    w.add("router.names.* ." + scope + ": DIS names its objects by entity id; not used there");
                 }
             }
         }

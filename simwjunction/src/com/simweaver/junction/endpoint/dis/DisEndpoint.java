@@ -134,7 +134,8 @@ public final class DisEndpoint implements Endpoint, PduPort {
     private volatile DisNetwork network;
     private volatile MulticastSocket rx;
     private volatile MulticastSocket tx;
-    private volatile InetSocketAddress destination;
+    /** 0.14.0: every send address (endpoint.dis.sendaddress, a ';' list); each PDU goes to all, from the one sender socket */
+    private volatile List<Destination> destinations = Collections.emptyList();
     private volatile Set<InetAddress> localAddresses = Collections.emptySet();
     private volatile Thread receiver;
 
@@ -247,10 +248,28 @@ public final class DisEndpoint implements Endpoint, PduPort {
         return stats;
     }
 
-    /** @return where PDUs go, e.g. "255.255.255.255:3000" (after open) */
+    /** One send address and what happened there. */
+    private static final class Destination {
+        final InetSocketAddress address;
+        final String text;
+        final java.util.concurrent.atomic.AtomicLong sent = new java.util.concurrent.atomic.AtomicLong();
+        final java.util.concurrent.atomic.AtomicLong errors = new java.util.concurrent.atomic.AtomicLong();
+        volatile String lastError;
+        volatile long lastErrorAt;
+
+        Destination(InetSocketAddress address) {
+            this.address = address;
+            this.text = DisNetwork.text(address);
+        }
+    }
+
+    /** @return where PDUs go, e.g. "255.255.255.255:3000", several separated by ", " (after open) */
     public String destinationText() {
-        InetSocketAddress d = destination;
-        return d == null ? "" : d.getAddress().getHostAddress() + ":" + d.getPort();
+        List<String> l = new ArrayList<String>();
+        for (Destination d : destinations) {
+            l.add(d.text);
+        }
+        return String.join(", ", l);
     }
 
     /** @return the exercise id PDUs are sent with (after open) */
@@ -281,7 +300,11 @@ public final class DisEndpoint implements Endpoint, PduPort {
         writer = new RprToDis(protocolVersion, sendExercise, cfg.getDisSiteId(), cfg.getDisApplicationId());
         try {
             network = DisNetwork.parse(cfg.getDisInterface(), cfg.getDisPort());
-            destination = network.destination(cfg.getDisSendAddress());
+            List<Destination> ds = new ArrayList<Destination>();
+            for (InetSocketAddress a : network.destinations(cfg.getDisSendAddress())) {
+                ds.add(new Destination(a));
+            }
+            destinations = Collections.unmodifiableList(ds);
         } catch (IllegalArgumentException e) {
             fail(new EndpointException(EndpointException.CONFIG_INVALID, "endpoint " + id() + ": " + e.getMessage(), e));
         }
@@ -300,7 +323,7 @@ public final class DisEndpoint implements Endpoint, PduPort {
                 com.simweaver.common.infra.InfraSource.junction(gatewayId, cfg.getId()), cdis != null, network.port(), network.toString());
         tap.setNote("Junction takes " + (exerciseIn == 0 ? "every exercise" : "exercise " + exerciseIn) + " of " + protocolLabel()
                 + " and sends as exercise " + sendExercise + ", site " + cfg.getDisSiteId() + ", application " + cfg.getDisApplicationId()
-                + " (its own PDUs are not listed)");
+                + " to " + destinationText() + " (its own PDUs are not listed)");
         infra = tap;
         running = true;
         Thread t = new Thread(this::receiveLoop, "junction-" + gatewayId + "-" + cfg.getId() + "-rx");
@@ -1061,12 +1084,12 @@ public final class DisEndpoint implements Endpoint, PduPort {
 
     private void send(byte[] pdu) {
         MulticastSocket s = tx;
-        InetSocketAddress d = destination;
-        if (s == null || d == null || !running) {
+        List<Destination> ds = destinations;
+        if (s == null || ds.isEmpty() || !running) {
             return;
         }
         if (cdis != null) {
-            byte[] c = cdis.encode(pdu, 0, pdu.length, System.currentTimeMillis());
+            byte[] c = cdis.encode(pdu, 0, pdu.length, System.currentTimeMillis());      // once, for every address
             if (c == null) {
                 int type = pdu.length > 2 ? pdu[2] & 0xFF : -1;
                 if (CdisCodec.isSupported(type)) {
@@ -1080,12 +1103,24 @@ public final class DisEndpoint implements Endpoint, PduPort {
             }
             pdu = c;
         }
-        try {
-            s.send(new DatagramPacket(pdu, pdu.length, d));
+        boolean any = false;
+        for (Destination d : ds) {                       // 0.14.0: one failing address does not stop the others
+            try {
+                s.send(new DatagramPacket(pdu, pdu.length, d.address));
+                d.sent.incrementAndGet();
+                any = true;
+            } catch (IOException | RuntimeException e) {     // e.g. UnsupportedAddressTypeException: IPv6 on an IPv4-only host
+                stats.sendErrors.incrementAndGet();
+                d.errors.incrementAndGet();
+                d.lastError = e instanceof java.nio.channels.UnsupportedAddressTypeException
+                        ? "this computer cannot send to this kind of address (no IPv6?)"
+                        : e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                d.lastErrorAt = System.currentTimeMillis();
+                warnOnce("send " + d.text, "sending to " + d.text + " fails: " + d.lastError);
+            }
+        }
+        if (any) {
             stats.markOut(pdu.length);
-        } catch (IOException e) {
-            stats.sendErrors.incrementAndGet();
-            warnOnce("send", "sending to " + destinationText() + " fails: " + e.getMessage());
         }
     }
 
@@ -1821,6 +1856,19 @@ public final class DisEndpoint implements Endpoint, PduPort {
         m.put("exercise", exerciseIn);
         m.put("sendexercise", sendExercise());
         m.put("destination", destinationText());
+        List<Object> sa = new ArrayList<Object>();                     // 0.14.0: per send address
+        for (Destination d : destinations) {
+            Map<String, Object> x = new LinkedHashMap<String, Object>();
+            x.put("address", d.text);
+            x.put("sent", d.sent.get());
+            x.put("errors", d.errors.get());
+            if (d.lastError != null) {
+                x.put("lasterror", d.lastError);
+                x.put("lasterrorat", java.time.Instant.ofEpochMilli(d.lastErrorAt).toString());
+            }
+            sa.add(x);
+        }
+        m.put("sendaddresses", sa);
         m.put("echoes", echoes.get());
         m.put("otherexercise", otherExercise.get());
         m.put("malformed", malformed.get());

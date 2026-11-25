@@ -4,5 +4,8 @@ junction.description=RPR v2 federation (Link 16 included) bridged to DIS 6 on po
 junction.endpoints=hla;dis
 junction.endpoint.hla=endpoints/hla3-rpr2.endpoint.settings
 junction.endpoint.dis=endpoints/dis6.endpoint.settings
+# where dis sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.dis.dis.sendaddress=192.168.1.255
 junction.router=routers/hla3-all.router.settings
 junction.autostart=false

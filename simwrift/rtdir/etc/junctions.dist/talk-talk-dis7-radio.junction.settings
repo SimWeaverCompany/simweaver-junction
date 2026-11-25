@@ -7,6 +7,9 @@ junction.endpoint.site1.hla.federation=TalkSite1
 junction.endpoint.site2=endpoints/talk.endpoint.settings
 junction.endpoint.site2.hla.federation=TalkSite2
 junction.endpoint.radio=endpoints/dis7.endpoint.settings
+# where radio sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.radio.dis.sendaddress=192.168.1.255
 junction.router=routers/talk-full.router.settings
 # the radio bridge: Talk channel name = frequency in Hz, on this endpoint (DIS or an RPR federation)
 junction.talk.radio.endpoint=radio

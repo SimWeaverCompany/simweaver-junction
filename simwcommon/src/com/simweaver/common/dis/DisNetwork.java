@@ -155,6 +155,146 @@ public final class DisNetwork {
     }
 
     /**
+     * 0.14.0: where PDUs are sent, for a {@code ;}-separated list of send addresses: unicast,
+     * broadcast and multicast mixed, each {@code host} or {@code host:port} ({@code [v6]:port} for
+     * IPv6), the port defaulting to this network's. IP literals are parsed; host names are looked
+     * up now, once. An empty list is the default destination ({@link #destination(String)}).
+     *
+     * @return the destinations in order, duplicates removed; never empty
+     * @throws IllegalArgumentException naming the entry that cannot be used (syntax, port, a host
+     *                                  name that cannot be resolved)
+     */
+    public List<InetSocketAddress> destinations(String sendAddresses) {
+        List<String> entries = entries(sendAddresses);
+        List<InetSocketAddress> out = new ArrayList<>();
+        if (entries.isEmpty()) {
+            out.add(destination(""));
+            return out;
+        }
+        for (String e : entries) {
+            String why = entryProblem(e);
+            if (why != null) {
+                throw new IllegalArgumentException("send address " + why);
+            }
+            String[] hp = hostPort(e);
+            int p = hp[1] == null ? port : Integer.parseInt(hp[1]);
+            InetAddress a;
+            if (IPV4.matcher(hp[0]).matches() || hp[0].indexOf(':') >= 0) {
+                a = address(hp[0]);
+            } else {
+                try {
+                    a = InetAddress.getByName(hp[0]);          // a host name: looked up once, now
+                } catch (IOException ex) {
+                    throw new IllegalArgumentException("send address '" + e + "': the host name " + hp[0] + " cannot be resolved");
+                }
+            }
+            InetSocketAddress d = new InetSocketAddress(a, p);
+            if (!out.contains(d)) {
+                out.add(d);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 0.14.0: the problems of a send address list, without looking up host names (for checking
+     * settings).
+     *
+     * @return one text per bad entry, empty when every entry can be used
+     */
+    public static List<String> sendAddressProblems(String sendAddresses) {
+        List<String> out = new ArrayList<>();
+        for (String e : entries(sendAddresses)) {
+            String why = entryProblem(e);
+            if (why != null) {
+                out.add(why);
+            }
+        }
+        return out;
+    }
+
+    /** The entries of a send address list: split on ';', trimmed, empty ones left out. */
+    public static List<String> entries(String sendAddresses) {
+        List<String> out = new ArrayList<>();
+        if (sendAddresses != null) {
+            for (String s : sendAddresses.split(";")) {
+                if (!s.trim().isEmpty()) {
+                    out.add(s.trim());
+                }
+            }
+        }
+        return out;
+    }
+
+    private static final Pattern HOST_NAME = Pattern.compile("(?i)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\\.?");
+
+    /** @return {host, port or null} */
+    private static String[] hostPort(String e) {
+        if (e.startsWith("[")) {
+            int close = e.indexOf(']');
+            if (close < 0) {
+                return new String[] {e, null};
+            }
+            String host = e.substring(1, close);
+            String rest = e.substring(close + 1);
+            return new String[] {host, rest.startsWith(":") ? rest.substring(1) : rest.isEmpty() ? null : rest};
+        }
+        int first = e.indexOf(':');
+        if (first > 0 && first == e.lastIndexOf(':')) {
+            return new String[] {e.substring(0, first).trim(), e.substring(first + 1).trim()};
+        }
+        return new String[] {e, null};                         // a host, or an IPv6 literal without a port
+    }
+
+    private static String entryProblem(String e) {
+        String[] hp = hostPort(e);
+        if (e.startsWith("[") && e.indexOf(']') < 0) {
+            return "'" + e + "': ']' is missing";
+        }
+        if (hp[1] != null) {
+            int p;
+            try {
+                p = Integer.parseInt(hp[1]);
+            } catch (NumberFormatException x) {
+                return "'" + e + "': '" + hp[1] + "' is not a port";
+            }
+            if (p < 1 || p > 65535) {
+                return "'" + e + "': the port must be 1-65535";
+            }
+        }
+        String h = hp[0];
+        if (h.isEmpty()) {
+            return "'" + e + "': no host";
+        }
+        if (IPV4.matcher(h).matches()) {
+            for (String part : h.split("\\.")) {
+                if (Integer.parseInt(part) > 255) {
+                    return "'" + e + "': " + h + " is not an IPv4 address";
+                }
+            }
+            return null;
+        }
+        if (h.indexOf(':') >= 0) {
+            try {
+                InetAddress.getByName(h);                        // an IPv6 literal: parsed, not resolved
+                return null;
+            } catch (IOException x) {
+                return "'" + e + "': " + h + " is not an IPv6 address";
+            }
+        }
+        if (h.matches("[0-9.]+") || !HOST_NAME.matcher(h).matches()) {
+            return "'" + e + "': " + h + " is neither an IP address nor a host name";
+        }
+        return null;
+    }
+
+    /** "192.168.1.255:3000" (IPv6 in brackets). */
+    public static String text(InetSocketAddress d) {
+        String h = d.getAddress().getHostAddress();
+        return (h.indexOf(':') >= 0 ? "[" + h + "]" : h) + ":" + d.getPort();
+    }
+
+    /**
      * NEW: a socket to send from: an ephemeral port, broadcast allowed, multicast out of this
      * network's interface with the given TTL. A separate socket gives this sender's datagrams a
      * source address and port of their own, so a receiver of the same application can tell its

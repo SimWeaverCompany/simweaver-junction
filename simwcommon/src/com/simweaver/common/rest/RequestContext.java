@@ -47,6 +47,16 @@ public final class RequestContext {
         ACTOR.remove();
     }
 
+    /** 0.14.0: {@link #enter(String, String, String)} for handlers outside this package (MCP). */
+    public static void enterRequest(String remoteAddress, String forwardedFor, String credential) {
+        enter(remoteAddress, forwardedFor, credential);
+    }
+
+    /** 0.14.0: ends {@link #enterRequest}. */
+    public static void leaveRequest() {
+        leave();
+    }
+
     /**
      * @return who the current work is for: a client address such as {@code 10.0.0.5}, a name given
      *         with {@link #runAs} (e.g. {@code autostart}), or {@code server} when neither
