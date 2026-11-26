@@ -206,7 +206,7 @@ label.ca-check b { color: var(--fg); font-weight: 600; }
 }
 /* boxes: neutral, except the Gateway box (its colour is the gateway file's) - the colours on this
    page mean "which kind of file", see .ca-role below */
-.ca-card.ep-hla, .ca-card.ep-dis, .ca-card.ep-talk, .ca-card.router { border-left-color: var(--rule-strong); }
+.ca-card.ep-hla, .ca-card.ep-dis, .ca-card.ep-comms, .ca-card.router { border-left-color: var(--rule-strong); }
 .ca-card.gw { border-left-color: var(--amber); }
 .ca-card-head {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;

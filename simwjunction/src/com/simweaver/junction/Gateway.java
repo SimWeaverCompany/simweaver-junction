@@ -229,7 +229,7 @@ public final class Gateway implements Json.Writable {
         }
         Router r;
         switch (cfg.getRouter().getKind()) {
-            case TALK:
+            case COMMS:
                 r = new TalkRouter(cfg.getRouter(), runtimeName());
                 break;
             case PDU:

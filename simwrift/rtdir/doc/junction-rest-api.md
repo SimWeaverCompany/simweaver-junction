@@ -13,7 +13,7 @@ Requests and replies are JSON (UTF-8). Errors use a real HTTP status and the env
 
 With API authentication on (0.11.0) every call needs `Authorization: Bearer <token>`, as all of `/api` does ([rest-api.md](rest-api.md), 14).
 
-API state: Junction 0.14.0, November 2026.
+API state: Junction 0.14.1, November 2026.
 
 ---
 
@@ -25,7 +25,7 @@ API state: Junction 0.14.0, November 2026.
 | GET | `/junction/configs` | | Configurations, groups and kits (2.1) |
 | GET | `/junction/configs/{cfgid}` | | `{"config":{...}}` |
 | GET | `/junction/configs/{cfgid}/compatibility` | | Route tables from the FOMs, without connecting (2.3) |
-| GET | `/junction/configs/{cfgid}/endpoints/{epid}/targets` | `?federation=` for Talk channels, `?lsd=` for another LSD | Federations / exercises / channels (2.4) |
+| GET | `/junction/configs/{cfgid}/endpoints/{epid}/targets` | `?federation=` for HLA Comms channels, `?lsd=` for another LSD | Federations / exercises / channels (2.4) |
 | GET | `/junction/groups` | | `{"groups":[...]}`, with their running instances (3) |
 | POST | `/junction/groups/{group}/start` | `{"vars":{"GROUPVAR1":".."},"instance":"..","lsds":{"cfg":{"ep":".."}}}` | 201 all started / 207 some (3) |
 | POST | `/junction/groups/{group}/stop` | `{"instance":".."}`, optional | `{"group","instance"?,"stopped":n}` (3) |
@@ -68,7 +68,7 @@ API state: Junction 0.14.0, November 2026.
   "endpoints": [ {
       "id": "blue", "name": "Blue (test RTI)", "source": "endpoints/blue-test.endpoint.settings",
       "standard": "ieee1516-2010", "standardlabel": "HLA Evolved (IEEE 1516-2010)",
-      "ishla": true, "isdis": false, "istalk": false,
+      "ishla": true, "isdis": false, "iscomms": false,
       "defaulttarget": "GROUPVAR1-blue",
       "hlaversion": "IEEE 1516-2010", "lsd": "default", "lsds": ["default", "crc2"], "foms": ["RPR_FOM_v2.0_Link16_1516-2010.xml"],
       "federatetype": "SimwJunction", "createfederation": true, "rtijar": "lib/rti/fakerti-1516e.jar",
@@ -107,7 +107,7 @@ An HLA endpoint with `endpoint.hla.foms=dynamic` (FOM from the federation) has `
 
 An endpoint whose target setting contains group variables also has `targettemplate`, the setting as written (`"GROUPVAR2-COMMS"`), while `defaulttarget` has the variables replaced by their defaults. The page's Discover for variables uses it.
 
-DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress` (0.14.0: may be a `;`-separated list of `host[:port]`). C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). J2J endpoints (0.10.0, `"standard": "j2j"`) add `"isj2j": true`, `j2jsession` (also `defaulttarget`), `j2jdis`, `j2jexid` and `j2jtransport` (`auto` / `reliable`). Kafka endpoints (0.13.0, `"standard": "kafka"`) add `"iskafka": true`, `kafkakind` (`pdu` with a PDU relay, `objects` with an IEM router; the records are DIS PDUs or JSON), `foms` (`objects` only) and `kafka`: `bootstrap`, `topic` (as `defaulttarget`, after the gateway's own setting), `interactiontopic`, `group` (`""` = the default), `start`, `direction`, `acks`, `compression`, `values`, `security` and, with SASL, `saslmechanism` and `saslusername`. Passwords are never in the JSON. Talk routers have `talkmode` (`full` / `messages`), `talktrackchannels`, `talkmessages`, `talkmatch`, `talkchannels`, `talkmirrorclients`, `talkradiomap`, `talkradioendpoint`, `talkradioentityid`, `talksamplerate`, `talkchannelmap`, `talkchanneluuidmap`.
+DIS endpoints have `disinterface`, `disport`, `disexid`, `dissiteid`, `disappid`, `disentityids`, `dissendaddress` (0.14.0: may be a `;`-separated list of `host[:port]`). C-DIS endpoints (`"standard": "cdis"`, also `"isdis": true`) add `"iscdis": true` and `"cdis": {"updatemode":"full","fullupdatemultiplier":2.4,"timeoutmultiplier":2.4,"heartbeats":{"entitystate":5.0,"emission":10.0,"designator":5.0,"transmitter":2.0,"iff":10.0}}` (seconds). A PDU relay router has `"kind": "pdu"` and `"pdutypes"` (empty = all). J2J endpoints (0.10.0, `"standard": "j2j"`) add `"isj2j": true`, `j2jsession` (also `defaulttarget`), `j2jdis`, `j2jexid` and `j2jtransport` (`auto` / `reliable`). Kafka endpoints (0.13.0, `"standard": "kafka"`) add `"iskafka": true`, `kafkakind` (`pdu` with a PDU relay, `objects` with an IEM router; the records are DIS PDUs or JSON), `foms` (`objects` only) and `kafka`: `bootstrap`, `topic` (as `defaulttarget`, after the gateway's own setting), `interactiontopic`, `group` (`""` = the default), `start`, `direction`, `acks`, `compression`, `values`, `security` and, with SASL, `saslmechanism` and `saslusername`. Passwords are never in the JSON. HLA Comms routers (`"kind": "comms"`) have `commsmode` (`full` / `messages`), `commstrackchannels`, `commsmessages`, `commsmatch`, `commschannels`, `commslobbyonly`, `commsmirrorclients`, `commsradiomap`, `commsradioendpoint`, `commsradioentityid`, `commssamplerate`, `commschannelmap`, `commschanneluuidmap`, `commscreatemissingchannels`, `commscreatemappedchannels` (0.14.1: they were named differently before).
 
 ### 2.3 Compatibility
 
@@ -130,12 +130,12 @@ Lists are capped at 300 entries; the counts are complete. `members.valuerules` a
 
 ### 2.4 Targets
 
-`GET /junction/configs/{cfgid}/endpoints/{epid}/targets` asks the endpoint's RTI for its federations, listens 1.5 s on a DIS network, or (Talk, with `?federation=`) joins briefly and lists the channels; a J2J endpoint lists the sessions of the J2J network, a Kafka endpoint the topics of its cluster with their partition counts (0.13.0):
+`GET /junction/configs/{cfgid}/endpoints/{epid}/targets` asks the endpoint's RTI for its federations, listens 1.5 s on a DIS network, or (HLA Comms, with `?federation=`) joins briefly and lists the channels; a J2J endpoint lists the sessions of the J2J network, a Kafka endpoint the topics of its cluster with their partition counts (0.13.0):
 
 ```json
 {"endpoint":"blue","result":{"kind":"federation","targets":["Blue","FederationX-blue"]},"default":"Blue"}
 {"endpoint":"dis","result":{"kind":"exercise","targets":[{"id":"1","pdus":412}]},"default":"1"}
-{"endpoint":"site1","result":{"kind":"channel","targets":[{"id":"Battalion","type":"VoiceChannel"}]},"default":"TalkSite1"}
+{"endpoint":"site1","result":{"kind":"channel","targets":[{"id":"Battalion","type":"VoiceChannel"}]},"default":"CommsSite1"}
 {"endpoint":"j2j","result":{"kind":"session","targets":[{"id":"exercise-pdu","model":"DIS 7, exercise 1","members":3}]},"default":"exercise-pdu"}
 {"endpoint":"kafka","result":{"kind":"topic","targets":[{"id":"simweaver.objects","partitions":3},{"id":"test.dis","partitions":3}]},"default":"simweaver.objects"}
 ```
@@ -191,7 +191,7 @@ POST /junction/gateways
 
 `targets`, `vars`, `instance` and `lsds` are optional.
 
-- `targets` gives an endpoint's federation (HLA, Talk), exercise id (DIS, 0-255), session (J2J) or topic (Kafka, 0.13.0). Missing ones use the configuration's default, and a target may contain group variable tokens.
+- `targets` gives an endpoint's federation (HLA, HLA Comms), exercise id (DIS, 0-255), session (J2J) or topic (Kafka, 0.13.0). Missing ones use the configuration's default, and a target may contain group variable tokens.
 - The call returns when every endpoint has joined or opened, so HLA joins can take a while.
 - The reply includes `warning` when another running gateway already uses one of the targets.
 - `lsds` gives an HLA endpoint the LSD (1516-2025: the RTI configuration name) to connect with: one of the configured choices (`endpoint.hla.lsd=default;crc2`) or any other text, `""` for the RTI's default. Missing endpoints use the configured default, the first choice. Group variable tokens in it are replaced. Send only what differs from the default, so a group variable in the setting keeps working.
@@ -301,16 +301,16 @@ The configuration JSON of an IEM router has `netn`: `{"enabled": true, "uniqueid
 
 A PDU relay (`"router": "pdu"`) has in `objects` the PDUs passed per direction and per type: `{"relayed": {"dis -> cdis": 102}, "pdutypes": {"001": 102}, "filtered": 0}`; its endpoints count Entity State, EE, Designator, Transmitter, Receiver and IFF PDUs as updates, the others as interactions.
 
-A Talk gateway's `objects` has a `talk` object:
+An HLA Comms gateway's `objects` has a `comms` object:
 
 ```json
-"talk": { "endpoints": [ { "endpoint": "a", "radioclient": true, "channels": [
+"comms": { "endpoints": [ { "endpoint": "a", "radioclient": true, "channels": [
             {"name":"Net1","class":"VoiceChannel","ours":false,"bridged":true,"matchedin":["b"],"radiohz":251000000},
             {"name":"Ops","class":"ChatChannel","ours":false,"bridged":true,"matchedin":["b as Operations"]} ] } ],
           "mode": "full", "trackchannels": true, "passedunknownchannel": 0,
           "messagesrouted": 4, "droppednocounterpart": 1, "droppedfiltered": 0, "droppedunknownchannel": 0,
           "channelscreated": 0,
-          "radio": {"endpoint":"radio","transmitters":1,"heard":1,"framestorpr":1,"framestotalk":2,"framesdropped":0,"opus":false} }
+          "radio": {"endpoint":"radio","transmitters":1,"heard":1,"framestorpr":1,"framestocomms":2,"framesdropped":0,"opus":false} }
 ```
 
 ---

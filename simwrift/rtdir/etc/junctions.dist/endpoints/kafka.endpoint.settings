@@ -3,7 +3,7 @@
 #   router.kind=pdu   one DIS PDU per record, as it is (key site:app:entity)
 #   router.kind=iem   one JSON record per object update / removal (key: the object name) and per
 #                     interaction, with the FOM's class and attribute names (doc/junction.md, section 9)
-# A Kafka endpoint cannot be in a Talk gateway.
+# A Kafka endpoint cannot be in an HLA Comms gateway.
 endpoint.name=Kafka
 endpoint.standard=kafka
 # the brokers to start from, host:port, comma separated

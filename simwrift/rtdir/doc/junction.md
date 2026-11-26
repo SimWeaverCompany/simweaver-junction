@@ -1,12 +1,12 @@
 # SimWeaver Junction — gateways in Rift
 
 Junction bridges federations and networks: HLA Evolved (IEEE 1516-2010), HLA 4 (IEEE 1516-2025,
-also over the Federate Protocol), DIS 6 and DIS 7, C-DIS (Compressed DIS, SISO-STD-023-2024), Talk and Apache Kafka topics. It runs inside the Rift server,
+also over the Federate Protocol), DIS 6 and DIS 7, C-DIS (Compressed DIS, SISO-STD-023-2024), HLA Comms and Apache Kafka topics. It runs inside the Rift server,
 has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/api/junction`, see
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.14.0. Java 11, no libraries apart from the HLA RTIs (Kafka included: Junction has its own Kafka client).
+Version 0.14.1. Java 11, no libraries apart from the HLA RTIs (Kafka included: Junction has its own Kafka client).
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -26,7 +26,7 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
 3. [Gateway files](#3-gateway-files)
 4. [Endpoint settings](#4-endpoint-settings)
 5. [Router settings (IEM)](#5-router-settings-iem)
-6. [Talk router](#6-talk-router)
+6. [HLA Comms router](#6-hla-comms-router)
 7. [Groups and group variables](#7-groups-and-group-variables)
 8. [RPR FOM v2.0 ⇄ v3.0](#8-rpr-fom-v20--v30)
 9. [DIS endpoints](#9-dis-endpoints)
@@ -46,8 +46,8 @@ Since 0.9.11 the Java package is `com.simweaver.junction` too.
 | Term | Meaning |
 |---|---|
 | **Gateway** (junction) | Two or more **endpoints** and one **router**, from one `*.junction.settings` file. Started from the page or the REST API; several can run at once. |
-| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), a Talk federation, (0.10.0) a session of the J2J network shared with gateways on other SimWeaver servers, or (0.13.0) an Apache Kafka topic. Has a **target** chosen at start: federation name, DIS exercise id, J2J session or Kafka topic. |
-| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `talk`: Talk channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7, C-DIS, J2J and Kafka endpoints (section 9). |
+| **Endpoint** | One side: an HLA federation (joined as a federate), a DIS or C-DIS network (UDP), an HLA Comms federation, (0.10.0) a session of the J2J network shared with gateways on other SimWeaver servers, or (0.13.0) an Apache Kafka topic. Has a **target** chosen at start: federation name, DIS exercise id, J2J session or Kafka topic. |
+| **Router** | Moves traffic between the endpoints. `iem`: objects and interactions by class, with class filters, instance renaming, reference rewriting and RPR v2/v3 conversion. `comms`: HLA Comms channels by name, with an optional radio bridge to RPR/DIS. `pdu`: DIS PDUs passed as they are between DIS 6, DIS 7, C-DIS, J2J and Kafka endpoints (section 9). |
 | **Kit** | A reusable endpoint (`endpoints/*.endpoint.settings`) or router (`routers/*.router.settings`) that gateway files refer to and override. |
 | **Group** | Gateways with the same `junction.group`, started and stopped together, with **group variables** (`GROUPVAR1` …) filled in at the start. |
 
@@ -89,7 +89,7 @@ The folder is read again whenever the page or the API lists it; edits need no re
 | HLA3<->CDIS | `hla3-cdis.junction.settings` | HLA3-RPR2 + CDIS · HLA3-all |
 | HLA4<->CDIS | `hla4-cdis.junction.settings` | HLA4-RPR2 + CDIS · HLA4-all |
 | DIS7<->CDIS | `dis7-cdis.junction.settings` | DIS7 + CDIS · PDU-relay: PDU by PDU, all 22 C-DIS PDU types |
-| ASIM, ASIM-COMMS | `asim.junction.settings`, `asim-comms.junction.settings` | A group (`ASIM-Trainer`): an HLA Evolved ⇄ HLA Evolved bridge and its Talk comms, with group variables |
+| ASIM, ASIM-COMMS | `asim.junction.settings`, `asim-comms.junction.settings` | A group (`ASIM-Trainer`): an HLA Evolved ⇄ HLA Evolved bridge and its HLA Comms traffic, with group variables |
 
 Only in `etc/junctions.dist`. Copy one (and any kit it needs) to `etc/junctions` to use it:
 
@@ -98,9 +98,9 @@ Only in `etc/junctions.dist`. Copy one (and any kit it needs) to `etc/junctions`
 | HLA3<->HLA3 - RPR3<->RPR2 | `hla3-hla3-rpr2-rpr3.junction.settings` | HLA3-RPR2 + HLA3-RPR3 · HLA3-all, converted with `mappings/rpr2-rpr3.mapping` |
 | HLA3<->HLA3 - EntityType filter | `hla3-hla3-entitytype-filter.junction.settings` | HLA3-RPR2 (`Blue`, `Red`) · HLA3-EntityType-filter: entity types rewritten by value rules |
 | HLA3<->HLA3 - class filter | `hla3-hla3-class-filter.junction.settings` | HLA3-RPR2 (`Blue`, `Red`) · HLA3-class-filter: entities, fire and detonations only |
-| Exercise: HLA3<->DIS7, Exercise: Talk<->Talk | `exercise-hla3-dis7.junction.settings`, `exercise-talk-talk.junction.settings` | A group (`Exercise`) with group variables and their descriptions (section 7) |
-| Talk<->Talk lobby only | `talk-talk-lobby-only.junction.settings` | Talk (two sites) · Talk-Lobby-Only |
-| Talk<->Talk + DIS7 radio | `talk-talk-dis7-radio.junction.settings` | Talk (two sites) + DIS7 · Talk-Full with the radio bridge |
+| Exercise: HLA3<->DIS7, Exercise: HLA Comms<->HLA Comms | `exercise-hla3-dis7.junction.settings`, `exercise-comms-comms.junction.settings` | A group (`Exercise`) with group variables and their descriptions (section 7) |
+| HLA Comms<->HLA Comms lobby only | `comms-comms-lobby-only.junction.settings` | HLA Comms (two sites) · Comms-Lobby-Only |
+| HLA Comms<->HLA Comms + DIS7 radio | `comms-comms-dis7-radio.junction.settings` | HLA Comms (two sites) + DIS7 · Comms-Full with the radio bridge |
 | HLA3<->HLA3 two RTIs | `hla3-hla3-two-rtis.junction.settings` | HLA3-RPR2 + HLA3-RPR2-own-RTI (a second RTI from its own jar) · HLA3-all |
 
 The kits, in both folders (the last three in `junctions.dist` only):
@@ -111,10 +111,10 @@ The kits, in both folders (the last three in `junctions.dist` only):
 | `hla4-rpr2` | HLA 4, the same RPR v2 with Link 16 in the HLA 4 format (`RPR_FOM_v2.0_Link16_1516-2025.xml`) | `hla4-all` | The same as `hla3-all` |
 | `hla3-rpr3` | HLA Evolved, RPR v3 (folder `rpr3`) | `hla3-class-filter` | Entities, fire and detonations only |
 | `hla3-dynamic-fom`, `hla4-dynamic-fom` | The FOM taken from the federation | `hla3-entitytype-filter` | Everything, entity types rewritten by value rules |
-| `dis6`, `dis7` | DIS 6 / DIS 7 on UDP port 3000 | `talk-messages` | Talk messages only, channels by name |
+| `dis6`, `dis7` | DIS 6 / DIS 7 on UDP port 3000 | `comms-messages` | HLA Comms messages only, channels by name |
 | `cdis` | C-DIS on UDP port 3100, full updates | `pdu-relay` | DIS PDUs as they are, between DIS 6, DIS 7 and C-DIS |
-| `talk` | A Talk federation, its FOM from the running federation (section 6) | `talk-lobby-only` | Talk messages in the lobby only |
-| `hla3-rpr2-own-rti` | HLA Evolved on its own RTI jar | `talk-full` | Talk full mode: clients mirrored |
+| `hla-comms` | An HLA Comms federation, its FOM from the running federation (section 6) | `comms-lobby-only` | HLA Comms messages in the lobby only |
+| `hla3-rpr2-own-rti` | HLA Evolved on its own RTI jar | `comms-full` | HLA Comms full mode: clients mirrored |
 | `hla4-fedpro-rpr2` | HLA 4 over the Federate Protocol | | |
 
 **`RPR_FOM_v2.0_Link16_1516-2025.xml`** (in `etc/fom/ieee1516-2025`) is the 1516-2010 RPR FOM v2.0 with Link 16, converted to the 1516-2025 format: the namespace, `copyright` in the identification, `valueRequired` on every attribute, `noteReferences` for `notes`, and without the `conveyProducingFederate` switch and the empty `dimensions`, `transportations` and `updateRates` sections. Compared with the HLA 4 RPR v2 modules, every attribute, parameter, datatype, class and note they have in common is the same; the Link 16 classes and datatypes come on top.
@@ -136,7 +136,7 @@ junction.endpoint.blue.hla.federation=Blue-2
 # or completely inline
 junction.endpoint.red.standard=ieee1516-2025
 junction.endpoint.red.hla.foms=RPR-Base_v2.0.xml;RPR-Foundation_v2.0.xml
-# the router: a kit and/or inline keys (junction.router.<key> -> router.<key>, junction.talk.<key> -> talk.<key>)
+# the router: a kit and/or inline keys (junction.router.<key> -> router.<key>, junction.comms.<key> -> comms.<key>)
 junction.router=routers/hla3-all.router.settings
 junction.router.objects.block=EmbeddedSystem.*
 junction.autostart=false
@@ -154,9 +154,9 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | Key | Default | Meaning |
 |---|---|---|
 | `endpoint.name` | the id | Shown on the page |
-| `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `talk`, `j2j`, `kafka` |
+| `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `comms`, `j2j`, `kafka` |
 | **HLA** | | |
-| `endpoint.hla.foms` | DIS: RPR v2; Talk: `dynamic` | `;`-separated files or folders; relative names are looked up in `endpoint.hla.fomrootdir`. `dynamic`: the FOM is taken from the federation (see below) |
+| `endpoint.hla.foms` | DIS: RPR v2; HLA Comms: `dynamic` | `;`-separated files or folders; relative names are looked up in `endpoint.hla.fomrootdir`. `dynamic`: the FOM is taken from the federation (see below) |
 | `endpoint.hla.createfoms` | | `dynamic` only: FOM files to create the federation with when it is not running (see below). Empty: the federation must be running |
 | `endpoint.hla.fddtimeoutseconds` | `15` | `dynamic`: how long to wait for the federation's FDD after the join |
 | `endpoint.hla.fddclass` / `fddattribute` | `HLAobjectRoot.HLAmanager.HLAfederation` / `HLAcurrentFDD` | `dynamic`: where the FDD is read, for an RTI that names them differently |
@@ -171,7 +171,7 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | `endpoint.hla.rtiaddress` / `rtisettings` | | Connect settings for an RTI library (HLA 4: `RtiConfiguration`; FedPro server address). `\n` in `rtisettings` is a new line |
 | `endpoint.hla.reconnect` / `reconnectintervalseconds` | `true` / `5` | |
 | `endpoint.hla.referencetypes` | `RTIobjectId` | Datatypes that hold object instance names |
-| `endpoint.talk.hlastandard` | `ieee1516-2010` | Talk endpoints: which HLA API |
+| `endpoint.comms.hlastandard` | `ieee1516-2010` | HLA Comms endpoints: which HLA API |
 | **DIS** | | see section 9 |
 | **C-DIS** | | `endpoint.cdis.*`, see *C-DIS endpoints* in section 9 |
 | **J2J** | | `endpoint.j2j.*`, see *J2J sessions* in section 9 |
@@ -214,7 +214,7 @@ An HLA endpoint (`ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`) with 
 - **RPR v2 or v3** is recognised from the classes in the FDD (as it is for FOM files whose names do not tell), so RPR conversion (section 8) works for dynamic endpoints too. The page and the API show where the FOM came from: *from the federation: FDD 7a6e65c9531f, RPR v2 recognised from its classes*.
 - On a reconnect (`endpoint.hla.reconnect`) the FDD is watched again; the model stays the one from the start.
 - **Compatibility** (section 11) cannot compile routes for a dynamic endpoint before it has joined: it says so instead. Start the gateway and use **Inspect** to see the federation's classes. Inspect of a dynamic endpoint opens a Rift datasource that takes the FOM from the federation in the same way.
-- DIS endpoints cannot be `dynamic`. Talk endpoints are `dynamic` unless they name FOM files (section 6).
+- DIS endpoints cannot be `dynamic`. HLA Comms endpoints are `dynamic` unless they name FOM files (section 6).
 
 Samples: the kits `endpoints/hla3-dynamic-fom.endpoint.settings` (federation `Blue`) and `endpoints/hla4-dynamic-fom.endpoint.settings` (federation `Green`), and the gateway `hla3-hla3-dynamic-fom.junction.settings`.
 
@@ -224,7 +224,7 @@ Samples: the kits `endpoints/hla3-dynamic-fom.endpoint.settings` (federation `Bl
 
 | Key | Default | Meaning |
 |---|---|---|
-| `router.kind` | `iem` | `iem` or `talk` |
+| `router.kind` | `iem` | `iem`, `comms` or `pdu` |
 | `router.objects.allow` / `.block` | all | Class patterns, `;`-separated |
 | `router.interactions.allow` / `.block` | all | |
 | `router.promote` | `true` | A class the destination lacks goes as its nearest superclass there |
@@ -306,7 +306,7 @@ router.names.template=GW-{name}
 - **The GUID** is derived from the gateway (its id and instance), the origin endpoint and the object's name. So a copy gets the same name again after a reconnect, or after the gateway is stopped and started, and references held on the other side stay valid. Two instances of one gateway give different GUIDs.
 - **Maximum length.** `router.names.maxlength` cuts the final name to that many characters. When a name is taken, `#2`, `#3` and `#4` are tried, and they fit inside the limit: the name is cut shorter to make room. The limit also applies to the names of the name policy (`name@origin#2` keeps its `@origin#2`). `0` means no limit, and `.<endpoint>` sets it for one destination.
 - **Names starting with `HLA`** are reserved for the RTI. Such a result gets the origin endpoint's id in front (`ext.HLA…`).
-- **References follow automatically, both ways**, with no extra settings. Every `RTIobjectId` in a routed attribute or parameter is rewritten to the name the object has at the receiver: simple values, fields of records, elements of arrays and variant records, at any depth. 0.14.0 checks every such attribute and parameter of RPR v2 (56, both HLA versions), RPR v3 (75, among them the variant records in `VariableParametersArray` and `ExtendedDamageStatus`) and NETN v4 (`ReferenceRewriteSelfTest`). Values of other datatypes are not names and are not rewritten: `EntityIdentifierStruct` (DIS-style ids), NETN `UniqueId`; Talk channel ids are handled by the Talk router (section 6). `endpoint.hla.referencetypes` adds datatypes of your own FOM that hold instance names.
+- **References follow automatically, both ways**, with no extra settings. Every `RTIobjectId` in a routed attribute or parameter is rewritten to the name the object has at the receiver: simple values, fields of records, elements of arrays and variant records, at any depth. 0.14.0 checks every such attribute and parameter of RPR v2 (56, both HLA versions), RPR v3 (75, among them the variant records in `VariableParametersArray` and `ExtendedDamageStatus`) and NETN v4 (`ReferenceRewriteSelfTest`). Values of other datatypes are not names and are not rewritten: `EntityIdentifierStruct` (DIS-style ids), NETN `UniqueId`; HLA Comms channel ids are handled by the HLA Comms router (section 6). `endpoint.hla.referencetypes` adds datatypes of your own FOM that hold instance names.
   - A Detonation in `ext` aimed at `RED-Tank-12-…` reaches `int` as `Tank-12`.
   - Fire from `Tank-12` in `int` reaches `ext` with `RED-Tank-12-…` as the shooter.
   - A name the gateway has not seen (an object that is not bridged) passes unchanged.
@@ -375,53 +375,53 @@ A federate that asks for attribute values of a copy (`requestAttributeValueUpdat
 
 ---
 
-## 6. Talk router
+## 6. HLA Comms router
 
-**The Talk FOM is not delivered with SimWeaver** (0.9.21). A Talk endpoint (`endpoint.standard=talk`) without FOM files takes the Talk FOM from the running Talk federation, exactly like a `dynamic` HLA endpoint (section 4): it joins without modules and reads the federation's FDD. Nothing needs to be installed when the Talk federation is already running when the gateway starts. When Junction itself has to create the Talk federation (it is not running yet), give it your own copy of the Talk FOM modules from your Talk installation:
+**The HLA Comms FOM is not delivered with SimWeaver** (0.9.21). An HLA Comms endpoint (`endpoint.standard=comms`) without FOM files takes the HLA Comms FOM from the running HLA Comms federation, exactly like a `dynamic` HLA endpoint (section 4): it joins without modules and reads the federation's FDD. Nothing needs to be installed when the HLA Comms federation is already running when the gateway starts. When Junction itself has to create the HLA Comms federation (it is not running yet), give it your own copy of the HLA Comms FOM modules from your HLA Comms installation:
 
 ```properties
 # the files in etc/fom/ieee1516-2010; used only when the federation is not running
-endpoint.hla.createfoms=<your Talk FOM module>.xml;<another module>.xml
+endpoint.hla.createfoms=<your HLA Comms FOM module>.xml;<another module>.xml
 # or: always use your files instead of the federation's FDD (then the endpoint creates as before)
-endpoint.hla.foms=<your Talk FOM module>.xml;<another module>.xml
+endpoint.hla.foms=<your HLA Comms FOM module>.xml;<another module>.xml
 ```
 
-A Talk federation that is not running, with neither set, fails the start with a message saying so. The Start dialog's channel list (**Discover**) reads the Talk FOM from the federation too.
+An HLA Comms federation that is not running, with neither set, fails the start with a message saying so. The Start dialog's channel list (**Discover**) reads the HLA Comms FOM from the federation too.
 
-`router.kind=talk` bridges Talk federations. The Talk FOM's client, user and equipment objects are mirrored (UUIDs unchanged, `talk.mirrorclients`), and its message interactions (audio, radio, text, image) are routed. Channels are **not** mirrored: each federation keeps its own, and `ChannelUUID` in every message is rewritten to the receiving federation's channel of the same name.
+`router.kind=comms` bridges HLA Comms federations. The HLA Comms FOM's client, user and equipment objects are mirrored (UUIDs unchanged, `comms.mirrorclients`), and its message interactions (audio, radio, text, image) are routed. Channels are **not** mirrored: each federation keeps its own, and `ChannelUUID` in every message is rewritten to the receiving federation's channel of the same name.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `talk.mode` | `full` | `full`: channel tables, client mirroring (below); `messages`: messages only, channels watched (see *Messages-only mode*) |
-| `talk.messages` | full: `audio;radio;text;image`, messages: `audio;radio;text` | The Talk message kinds bridged |
-| `talk.match` | `name` | Match channels by `name` or `description` (case is ignored) |
-| `talk.channels` | `*` | Channels bridged (names; `*`, `?`). `none`: the lobby only (see *The lobby only* below) |
-| `talk.channelmap` | | `A>B; C>D`: channel A on one side is channel B on the other (both ways) |
-| `talk.channelmap.<endpoint>` | | `A>B`: when sending into that endpoint, channel A is its channel B (and B is A on the way out) |
-| `talk.createmissingchannels` | `false` | Create any channel the receiver lacks, on its first message (else its messages are dropped and counted) |
-| `talk.createmappedchannels` | `true` | Register a channel that `talk.channelmap` maps to a name the receiver lacks, under that name (below) |
-| `talk.createwaitms` | `3000` | How long the gateway watches a Talk federation for its own channels, after joining, before it creates one there |
-| `talk.mirrorclients` | `true` | |
+| `comms.mode` | `full` | `full`: channel tables, client mirroring (below); `messages`: messages only, channels watched (see *Messages-only mode*) |
+| `comms.messages` | full: `audio;radio;text;image`, messages: `audio;radio;text` | The HLA Comms message kinds bridged |
+| `comms.match` | `name` | Match channels by `name` or `description` (case is ignored) |
+| `comms.channels` | `*` | Channels bridged (names; `*`, `?`). `none`: the lobby only (see *The lobby only* below) |
+| `comms.channelmap` | | `A>B; C>D`: channel A on one side is channel B on the other (both ways) |
+| `comms.channelmap.<endpoint>` | | `A>B`: when sending into that endpoint, channel A is its channel B (and B is A on the way out) |
+| `comms.createmissingchannels` | `false` | Create any channel the receiver lacks, on its first message (else its messages are dropped and counted) |
+| `comms.createmappedchannels` | `true` | Register a channel that `comms.channelmap` maps to a name the receiver lacks, under that name (below) |
+| `comms.createwaitms` | `3000` | How long the gateway watches an HLA Comms federation for its own channels, after joining, before it creates one there |
+| `comms.mirrorclients` | `true` | |
 | **Radio bridge** | | |
-| `talk.radio.endpoint` | | An RPR endpoint of the gateway (HLA RPR v2/v3 or DIS) |
-| `talk.radio.map.<channel>` | | Frequency in Hz of a Talk channel: its common name (before `channelmap.<endpoint>`; a space is written `\ `) or its UUID |
-| `talk.radio.entityid` | `900-99-1` | DIS entity hosting the gateway's radios (one per Talk sender) |
-| `talk.radio.hangtimems` | `500` | Transmitter stays "transmitting" this long after the last frame |
-| `talk.audio.samplerate` | `16000` | Sample rate of Talk PCM16 |
-| `talk.audio.pcmbyteorder` | `little` | Byte order of Talk PCM16 |
-| `talk.audio.rprencoding` | `pcm16be` | Talk audio sent as RPR: `pcm16be` (DIS 4), `pcm16le` (100), `mulaw` (1) |
-| `talk.audio.rprsamplerate` | Talk's | Resampled to this rate when sent as RPR |
+| `comms.radio.endpoint` | | An RPR endpoint of the gateway (HLA RPR v2/v3 or DIS) |
+| `comms.radio.map.<channel>` | | Frequency in Hz of an HLA Comms channel: its common name (before `channelmap.<endpoint>`; a space is written `\ `) or its UUID |
+| `comms.radio.entityid` | `900-99-1` | DIS entity hosting the gateway's radios (one per HLA Comms sender) |
+| `comms.radio.hangtimems` | `500` | Transmitter stays "transmitting" this long after the last frame |
+| `comms.audio.samplerate` | `16000` | Sample rate of HLA Comms PCM16 |
+| `comms.audio.pcmbyteorder` | `little` | Byte order of HLA Comms PCM16 |
+| `comms.audio.rprencoding` | `pcm16be` | HLA Comms audio sent as RPR: `pcm16be` (DIS 4), `pcm16le` (100), `mulaw` (1) |
+| `comms.audio.rprsamplerate` | the HLA Comms rate | Resampled to this rate when sent as RPR |
 
-**Mapped channels the receiver lacks.** When `talk.channelmap` maps a channel to a name the receiving federation does not have, the gateway registers a channel with that name there (`talk.createmappedchannels=true`, the default):
+**Mapped channels the receiver lacks.** When `comms.channelmap` maps a channel to a name the receiving federation does not have, the gateway registers a channel with that name there (`comms.createmappedchannels=true`, the default):
 
 ```
-talk.channelmap.c2=Alpha>Bravo; Chat1>Chat2    # c2 has neither Bravo nor Chat2: both are registered in c2
+comms.channelmap.c2=Alpha>Bravo; Chat1>Chat2    # c2 has neither Bravo nor Chat2: both are registered in c2
 ```
 
 - The new channel has the class of the source channel (voice, radio or chat), its frequency, and an instance name `Junction-<gateway>-<name>`.
-- It is registered as soon as the source channel is known and the receiver has been watched for `talk.createwaitms` (3 s). The wait lets the federation's own channels be discovered first, so no duplicate is made. Messages before that are dropped (radio channels pass, they tune by frequency).
+- It is registered as soon as the source channel is known and the receiver has been watched for `comms.createwaitms` (3 s). The wait lets the federation's own channels be discovered first, so no duplicate is made. Messages before that are dropped (radio channels pass, they tune by frequency).
 - A mapping works both ways, so a channel the *other* side lacks is created the same way.
-- Only mapped channels are created, and only those `talk.channels` lets through. Unmapped channels with no counterpart are still dropped, unless `talk.createmissingchannels` is on.
+- Only mapped channels are created, and only those `comms.channels` lets through. Unmapped channels with no counterpart are still dropped, unless `comms.createmissingchannels` is on.
 - If the federation later gets a channel of that name of its own, the gateway deletes the one it registered, and messages go to the federation's own channel.
 - The gateway's channels are deleted when it stops (`router.deleteobjectsonstop`), and registered again after a reconnect.
 - The page counts them (*channels created*), and the log names each one.
@@ -432,52 +432,52 @@ Rules for messages:
 - A radio channel without a counterpart keeps its UUID, so clients can tune by frequency.
 - Messages in channels the gateway has not seen yet are dropped (counted as "unknown channel").
 
-**Radio bridge.** Every Talk sender on a mapped channel becomes a `RadioTransmitter` on the radio endpoint (host `talk.radio.entityid`, a radio number each, `TransmitterOperationalStatus` 2 while it talks, then 1). Its audio becomes `EncodedAudioRadioSignal`s. RPR audio on a mapped frequency is sent into the channel from a `Client` object the gateway registers in each Talk federation (`Message.Audio`, or `Message.Audio.Radio` with the frequency for radio channels). PCM16 (either byte order) and G.711 mu-law are converted, including the sample rate (linear interpolation). Opus is passed through when the RPR FOM has an Opus encoding (RPR v3: 11); otherwise those frames are dropped and counted.
+**Radio bridge.** Every HLA Comms sender on a mapped channel becomes a `RadioTransmitter` on the radio endpoint (host `comms.radio.entityid`, a radio number each, `TransmitterOperationalStatus` 2 while it transmits, then 1). Its audio becomes `EncodedAudioRadioSignal`s. RPR audio on a mapped frequency is sent into the channel from a `Client` object the gateway registers in each HLA Comms federation (`Message.Audio`, or `Message.Audio.Radio` with the frequency for radio channels). PCM16 (either byte order) and G.711 mu-law are converted, including the sample rate (linear interpolation). Opus is passed through when the RPR FOM has an Opus encoding (RPR v3: 11); otherwise those frames are dropped and counted.
 
-The page shows each Talk federation's channels: which are matched (and under which name), which have no counterpart, and their radio frequency.
+The page shows each HLA Comms federation's channels: which are matched (and under which name), which have no counterpart, and their radio frequency.
 
-**The lobby only** (`talk.channels=none`, kit `routers/talk-lobby-only.router.settings`). Only messages in the lobby (the all-zero `ChannelUUID`) pass. A message in any other channel is dropped and counted as *filtered*, whether the gateway has seen that channel or not, in full and in messages mode. No channel is bridged or created, and `talk.channelmap`, `talk.channeluuidmap` and `talk.radio.map` are not used (the gateway warns when they are set). With messages mode only the Talk message interactions pass:
+**The lobby only** (`comms.channels=none`, kit `routers/comms-lobby-only.router.settings`). Only messages in the lobby (the all-zero `ChannelUUID`) pass. A message in any other channel is dropped and counted as *filtered*, whether the gateway has seen that channel or not, in full and in messages mode. No channel is bridged or created, and `comms.channelmap`, `comms.channeluuidmap` and `comms.radio.map` are not used (the gateway warns when they are set). With messages mode only the HLA Comms message interactions pass:
 
 ```properties
-router.kind=talk
-talk.mode=messages
-talk.messages=audio;text;image
-talk.channels=none
+router.kind=comms
+comms.mode=messages
+comms.messages=audio;text;image
+comms.channels=none
 ```
 
-**Messages-only mode** (`talk.mode=messages`, kit `routers/talk-messages.router.settings`). The gateway exchanges nothing but the Talk message interactions of `talk.messages` (by default audio, radio and text). It mirrors no Talk object, and leaves MasterConfiguration, clients, users, equipment and permissions alone. The only objects it registers are the channels `talk.channelmap` maps to a name a federation lacks (`talk.createmappedchannels`, as in full mode). Set `talk.createmappedchannels=false` to register nothing at all.
+**Messages-only mode** (`comms.mode=messages`, kit `routers/comms-messages.router.settings`). The gateway exchanges nothing but the HLA Comms message interactions of `comms.messages` (by default audio, radio and text). It mirrors no HLA Comms object, and leaves MasterConfiguration, clients, users, equipment and permissions alone. The only objects it registers are the channels `comms.channelmap` maps to a name a federation lacks (`comms.createmappedchannels`, as in full mode). Set `comms.createmappedchannels=false` to register nothing at all.
 
-The usual need is still "channel X there is channel Y here". Messages carry only a channel UUID, so the gateway has to know what each UUID means on each side. With `talk.trackchannels=true` (the default) it watches the channel objects of each Talk federation (UUID, name, description, frequency only). Nothing is mirrored, and nothing is created except mapped channels a federation lacks. That gives it the same channel table as in full mode, so `talk.channelmap` works by name:
+The usual need is still "channel X there is channel Y here". Messages carry only a channel UUID, so the gateway has to know what each UUID means on each side. With `comms.trackchannels=true` (the default) it watches the channel objects of each HLA Comms federation (UUID, name, description, frequency only). Nothing is mirrored, and nothing is created except mapped channels a federation lacks. That gives it the same channel table as in full mode, so `comms.channelmap` works by name:
 
 ```
-talk.mode=messages
-talk.channelmap.home=Net Alpha>Bravo Net     # Net Alpha out there is Bravo Net at home (and back)
+comms.mode=messages
+comms.channelmap.home=Net Alpha>Bravo Net     # Net Alpha out there is Bravo Net at home (and back)
 ```
 
 | Key | Default | Meaning |
 |---|---|---|
-| `talk.trackchannels` | `true` | Watch the channel objects and match channels by name. `false`: no channel objects at all, UUIDs only |
-| `talk.channeluuidmap` | | `<uuid>><uuid>; …`: a channel UUID on one side is this UUID on the other, both ways. UUIDs are 32 hex digits or `8-4-4-4-12`. |
-| `talk.channeluuidmap.<endpoint>` | | The same, only into (and back out of) that endpoint |
+| `comms.trackchannels` | `true` | Watch the channel objects and match channels by name. `false`: no channel objects at all, UUIDs only |
+| `comms.channeluuidmap` | | `<uuid>><uuid>; …`: a channel UUID on one side is this UUID on the other, both ways. UUIDs are 32 hex digits or `8-4-4-4-12`. |
+| `comms.channeluuidmap.<endpoint>` | | The same, only into (and back out of) that endpoint |
 
 How `ChannelUUID` is handled in this mode, in order:
 
 1. The lobby stays the lobby.
-2. A `talk.channeluuidmap` pair, if one matches.
-3. With `talk.trackchannels`: the channel's name (or description, `talk.match`), after `talk.channelmap`, is looked up among the receiver's channels, as in full mode. `talk.channels` filters.
+2. A `comms.channeluuidmap` pair, if one matches.
+3. With `comms.trackchannels`: the channel's name (or description, `comms.match`), after `comms.channelmap`, is looked up among the receiver's channels, as in full mode. `comms.channels` filters.
    - No counterpart: the message is dropped and counted ("no channel"). Radio channels keep their UUID; clients tune those by frequency.
-   - The gateway cannot create the missing channel: `talk.createmissingchannels` does not apply.
-4. A channel the gateway has not seen (yet), or any channel with `talk.trackchannels=false`: the UUID passes unchanged. With tracking these are counted ("unseen channel").
+   - The gateway cannot create the missing channel: `comms.createmissingchannels` does not apply.
+4. A channel the gateway has not seen (yet), or any channel with `comms.trackchannels=false`: the UUID passes unchanged. With tracking these are counted ("unseen channel").
 
-`talk.mirrorclients` does not apply.
+`comms.mirrorclients` does not apply.
 
 The radio bridge works in this mode too:
 
-- With `talk.trackchannels`, key `talk.radio.map` by channel name as in full mode. A key can always be a channel UUID instead (`talk.radio.map.0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0=251000000`); without tracking, it must be. Talk radio messages also match by their `Frequency`.
+- With `comms.trackchannels`, key `comms.radio.map` by channel name as in full mode. A key can always be a channel UUID instead (`comms.radio.map.0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0=251000000`); without tracking, it must be. HLA Comms radio messages also match by their `Frequency`.
 - RPR audio on a mapped frequency is sent into the channel (`Message.Audio.Radio` with the frequency for radio channels and for UUID keys of channels not seen, otherwise `Message.Audio`).
-  - For a UUID key, the UUID in endpoint E is first mapped by `talk.channeluuidmap.E`.
+  - For a UUID key, the UUID in endpoint E is first mapped by `comms.channeluuidmap.E`.
   - The global pairs are not used in this direction, so prefer the per-endpoint form when you combine the two.
-- The gateway sends with a sender UUID of its own, without a Client object behind it. Check that your Talk version plays audio from an unknown sender.
+- The gateway sends with a sender UUID of its own, without a Client object behind it. Check that your HLA Comms version plays audio from an unknown sender.
 
 The page shows "MESSAGES · BY NAME" (with the channel tables) or "MESSAGES · BY UUID".
 
@@ -496,17 +496,17 @@ junction.endpoint.hla.hla.federation=GROUPVAR1
 junction.endpoint.dis.dis.exid=GROUPVAR2
 junction.groupvar.GROUPVAR2=1                 # a default
 
-# exercise-talk-talk.junction.settings (in etc/junctions.dist)
+# exercise-comms-comms.junction.settings (in etc/junctions.dist)
 junction.group=Exercise
-junction.endpoint.exercise.hla.federation=GROUPVAR1-Talk
-junction.talk.channelmap.exercise=Net1>GROUPVAR3
+junction.endpoint.exercise.hla.federation=GROUPVAR1-Comms
+junction.comms.channelmap.exercise=Net1>GROUPVAR3
 junction.groupvar.GROUPVAR3=Battalion
 ```
 
-With both files in use, starting the group with `{"vars":{"GROUPVAR1":"FederationX"}}` starts both gateways. The first joins `FederationX` and DIS exercise 1. The second joins `FederationX-Talk` and maps the site's `Net1` to the exercise channel `Battalion`.
+With both files in use, starting the group with `{"vars":{"GROUPVAR1":"FederationX"}}` starts both gateways. The first joins `FederationX` and DIS exercise 1. The second joins `FederationX-Comms` and maps the site's `Net1` to the exercise channel `Battalion`.
 
-- A token is replaced wherever it stands, and the text around it stays: `radio_GROUPVAR1` becomes `radio_FederationX`, `GROUPVAR1-Talk` becomes `FederationX-Talk`. There is no other syntax (no `${...}`, no quotes, no `+`).
-- Setting names are replaced too, where a name holds a channel: `junction.talk.radio.map.radio_GROUPVAR1=251000000`. The defaults `junction.groupvar.GROUPVARn` keep their names.
+- A token is replaced wherever it stands, and the text around it stays: `radio_GROUPVAR1` becomes `radio_FederationX`, `GROUPVAR1-Comms` becomes `FederationX-Comms`. There is no other syntax (no `${...}`, no quotes, no `+`).
+- Setting names are replaced too, where a name holds a channel: `junction.comms.radio.map.radio_GROUPVAR1=251000000`. The defaults `junction.groupvar.GROUPVARn` keep their names.
 - The whole number counts: `GROUPVAR10` is variable 10, not `GROUPVAR1` followed by `0`.
 - Values are replaced before the settings are read, so they work for federations, FOM file names, kit file names, channel names, DIS ports and anything else.
 - A variable without a value (given at the start, or a `junction.groupvar.*` default) stops the start with `VARIABLES_REQUIRED`. The page asks for exactly the variables the group uses.
@@ -541,7 +541,7 @@ junction.groupvar.GROUPVAR2.desc=DIS exercise id
 - **One name runs once.** Starting an instance of the group that is already running is refused (`INSTANCE_RUNNING`), and nothing is started. The dialog says so before you press Start.
 - **Stop one instance or all.** Each running instance has a row in the group with its name, its values, how many of its gateways run, and its own **■ Stop**. **■ Stop all** (shown as **■ Stop group** while only one instance runs) stops every instance.
 - **An incomplete instance** (one of its gateways failed or was removed) is marked in red, `1/2 RUNNING`. To complete it, start the missing gateway on its own with the same instance name and values: a single start refuses only a running instance of *that* configuration.
-- **What changes per instance:** the objects the gateway registers itself are named after the instance, except for instance `1`. Talk channels, clients and radios become `Junction-<gateway>-<instance>-…`, so two instances in one Talk federation do not collide. Log lines and thread names include the instance too.
+- **What changes per instance:** the objects the gateway registers itself are named after the instance, except for instance `1`. HLA Comms channels, clients and radios become `Junction-<gateway>-<instance>-…`, so two instances in one HLA Comms federation do not collide. Log lines and thread names include the instance too.
 - **What does not change:** the files. Two instances with the *same* values bridge the same targets, and traffic is duplicated or loops; the start only warns about that.
 
 **Single gateways** have instances the same way: starting a gateway that already runs makes instance `2`, and its Start dialog has the *Instance* field too. The running gateways show *INSTANCE n* whenever a gateway is in a group, has another name than `1`, or runs more than once.
@@ -743,7 +743,7 @@ A **J2J endpoint** (`endpoint.standard=j2j`) joins a *session* of the J2J networ
 |---|---|---|
 | PDU relay (`router.kind=pdu`) | PDU session | DIS PDUs as they are: a DIS network at one site and a C-DIS or DIS 6 network at another become one exercise. Sample `DIS7<->J2J` (`dis7-j2j`), kit `j2j-pdu` |
 | IEM (`router.kind=iem`) | object session | The objects and interactions of an object model (RPR v2, RPR v3, NETN …): to the router the J2J endpoint is like a federation, so filters, names, value rules and RPR v2 ⇄ v3 conversion work as between federations. Sample `HLA3<->J2J` (`hla3-j2j`), kit `j2j-rpr2` |
-| Talk (`router.kind=talk`) | object session (Talk model) | Talk: the J2J endpoint is a Talk side like a Talk federation, so channels are matched by name and clients mirrored as between two Talk federations |
+| HLA Comms (`router.kind=comms`) | object session (HLA Comms model) | HLA Comms: the J2J endpoint is an HLA Comms side like an HLA Comms federation, so channels are matched by name and clients mirrored as between two HLA Comms federations |
 
 The samples are in `etc/junctions.dist`.
 
@@ -772,7 +772,7 @@ endpoint.j2j.exid=1
 - **Delivery.** A PDU goes once to every server with a member of the session, along the network's routes (also through servers that are not members); each server hands it to its members. Two gateways of one server in the same session get each other's PDUs directly.
 - **On the page** a J2J endpoint shows its session: the model, the other members, and what was sent and received. The J2J page lists every session with its members.
 
-**Object sessions** (IEM and Talk gateways)
+**Object sessions** (IEM and HLA Comms gateways)
 
 ```
 # endpoints/j2j-rpr2.endpoint.settings
@@ -784,7 +784,7 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
 | Key | Default | Meaning |
 |---|---|---|
 | `endpoint.j2j.session` | — | The session, as above |
-| `endpoint.hla.foms` | RPR FOM v2.0 | The session's model: FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`). Not `dynamic`. In a Talk gateway the Talk FOM files are required (they are not delivered) |
+| `endpoint.hla.foms` | RPR FOM v2.0 | The session's model: FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`). Not `dynamic`. In an HLA Comms gateway the HLA Comms FOM files are required (they are not delivered) |
 | `endpoint.j2j.transport` | `auto` | `auto`: each attribute and interaction as its FOM transportation says (`HLAbestEffort`: best effort, the newest value wins on a busy link; else reliable and in order). `reliable`: everything reliable |
 
 - **The members must have the same model**: its fingerprint (the qualified names of every class, attribute, interaction and parameter, with the datatypes) is the session's *model*, e.g. `HLA objects 3f9a01c2 (RPR_FOM_V2)`. A member with another one shows *other model* and shares nothing. Convert inside the gateway (an RPR v3 federation with a J2J RPR v2 endpoint uses the RPR conversion) rather than in the session.
@@ -793,7 +793,7 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
 - **Lost and leaving members:** when a member leaves (its gateway stops) or its server has had no route for `j2j.session.lostseconds`, the other members delete its objects, so they leave the federations and DIS networks behind them; when it comes back they are discovered again (with the same names).
 - **Provide requests** for an object of another member are asked of the gateway that owns it.
 - **One gateway per federation and session:** two gateways that both bridge the same federation into one session would each send the other's copies back in. (A PDU session filters such loops; an object session does not.)
-- **Talk:** the J2J endpoint is a Talk side: the session works like a Talk federation in between. With `talk.createmissingchannels=true` the first message on a channel the session lacks creates it there (as in a federation), and every other member's gateway maps it by name to its own federation's channel. Lobby messages pass.
+- **HLA Comms:** the J2J endpoint is an HLA Comms side: the session works like an HLA Comms federation in between. With `comms.createmissingchannels=true` the first message on a channel the session lacks creates it there (as in a federation), and every other member's gateway maps it by name to its own federation's channel. Lobby messages pass.
 
 ### Apache Kafka topics (0.13.0)
 
@@ -804,7 +804,7 @@ A **Kafka endpoint** (`endpoint.standard=kafka`) writes a gateway's traffic to a
 | PDU relay (`router.kind=pdu`) | **DIS PDUs**, one per record, as they are: key `site:application:entity` of the PDU's first entity id (octets 12-17: the entity of an Entity State PDU, the shooter of a Fire PDU, the emitter of an Emission PDU …), so an entity's PDUs stay in one partition and in order. Header `content-type: application/x-dis` | `DIS7<->Kafka` (`dis7-kafka`) |
 | IEM (`router.kind=iem`) | **JSON**: one record per object update or removal (key: the object's name) and one per interaction, with the FOM's class, attribute and parameter names. To the router the Kafka endpoint is like a federation, so filters, names, value rules and RPR v2 ⇄ v3 conversion work as between federations | `HLA3<->Kafka` (`hla3-kafka`) |
 
-A Kafka endpoint cannot be in a Talk gateway. The samples and the kits `kafka` and `kafka-sasl-ssl` are in `etc/junctions.dist`.
+A Kafka endpoint cannot be in an HLA Comms gateway. The samples and the kits `kafka` and `kafka-sasl-ssl` are in `etc/junctions.dist`.
 
 ```
 # endpoints/kafka.endpoint.settings
@@ -877,7 +877,7 @@ endpoint.kafka.topic=
 - Connect settings come from `endpoint.hla.rtiaddress` / `rtisettings` (and `rtifactory` to pick a factory).
 - The Federate Protocol (`ieee1516-2025-fedpro`) works the same way, with the vendor's FedPro client jar and the server in `rtiaddress`.
 - A missing library is reported on the page ("RTI MISSING") and by the API (`RTI_NOT_AVAILABLE`). Rift itself is not affected.
-- **One connect or join at a time per library.** A gateway opens its endpoints in parallel, but the connect, create and join calls on one RTI library (the class path RTI, or one `rtijar`) take turns, also with other gateways and Rift's datasources. An RTI's local library may not take two at once: one RTI failed with a `ConcurrentModificationException` when the two Talk endpoints of a gateway joined at the same moment. Everything after the join stays parallel.
+- **One connect or join at a time per library.** A gateway opens its endpoints in parallel, but the connect, create and join calls on one RTI library (the class path RTI, or one `rtijar`) take turns, also with other gateways and Rift's datasources. An RTI's local library may not take two at once: one RTI failed with a `ConcurrentModificationException` when the two HLA Comms endpoints of a gateway joined at the same moment. Everything after the join stays parallel.
 
 ---
 
@@ -885,12 +885,12 @@ endpoint.kafka.topic=
 
 `junction.html` (top bar: **Junction gateways**) has three panels:
 
-1. **Running gateways**, grouped ones first, by group and instance. Each gateway is drawn as a patch board: the router as a bus, each endpoint as a port with traffic in and out and its state, rates and counters. Each gateway has buttons for **Compatibility** (its route tables), **Remove** (stop) and, per endpoint, **Inspect**. Inspect opens a Rift datasource on that endpoint's target in a new tab. Talk gateways also list their channels. Updates arrive live (SSE).
+1. **Running gateways**, grouped ones first, by group and instance. Each gateway is drawn as a patch board: the router as a bus, each endpoint as a port with traffic in and out and its state, rates and counters. Each gateway has buttons for **Compatibility** (its route tables), **Remove** (stop) and, per endpoint, **Inspect**. Inspect opens a Rift datasource on that endpoint's target in a new tab. HLA Comms gateways also list their channels. Updates arrive live (SSE).
 2. **Gateway configurations**, grouped, with **Start group** / **Stop group**. A group lists its running instances, each with its own **■ Stop** (section 7). The Start group dialog and a gateway's **Start** dialog ask for the instance name, prefilled with the next free number. A gateway's **Start** dialog asks for each endpoint's target and offers:
    - federations the RTI knows (**Discover**);
    - exercises heard on the DIS network (**Listen**);
    - J2J sessions and Kafka topics (**Discover**);
-   - Talk channels;
+   - HLA Comms channels;
    - group variables, when the gateway uses any;
    - the LSD of each HLA endpoint (section 4, *LSD choices*).
 3. **Kits**: the endpoint and router kits.
@@ -903,7 +903,7 @@ endpoint.kafka.topic=
 
 ## 12. Limits and things to verify
 
-- **Talk** behaviour with mirrored clients and foreign `SenderUUID`s, the PCM16 byte order and the sample rate are not documented in the FOM. Verify them against your Talk version (`talk.audio.*`).
+- **HLA Comms** behaviour with mirrored clients and foreign `SenderUUID`s, the PCM16 byte order and the sample rate are not documented in the FOM. Verify them against your HLA Comms version (`comms.audio.*`).
 - **Opus** is passed through, not decoded.
 - No time management, no ownership transfer, no DDM regions.
 - DIS 7-only data that RPR v2 has no place for (e.g. variable parameter separation records) is not passed on (the PDU relay passes it).
@@ -919,7 +919,7 @@ endpoint.kafka.topic=
 - **FOM from the federation** (section 4) relies on the RTI providing `HLAcurrentFDD` as an `HLAunicodeString` with the merged FDD, and updating it when modules are added. The test RTIs do (`-Dfakerti.fddformat=2025` makes them report it in the 1516-2025 format, as an HLA 4 RTI may); verify it with your RTI, including the *FDD has changed* notice. `endpoint.hla.fddclass` / `fddattribute` cover an RTI that names them differently.
 - **Name templates** (section 5) apply to the copies the router registers. A reference to an object the gateway does not bridge passes with its original name.
 - **Kafka** (section 9): records compressed with zstd are not read (they are skipped and counted); writing is gzip or none. Reading is *read uncommitted*; there is no idempotent or transactional producer (a record may be written twice when a broker fails after storing it) and no static group membership. Checked against an in-memory Kafka broker (franz-go's kfake) and the franz-go client: produce, consume, gzip / snappy / lz4, the partitioner, groups mixed with that client, SASL PLAIN and SCRAM, TLS, broker restarts. Verify it with your Kafka version and its security settings.
-- **Value rules** (section 5) have no wildcards and no per-direction scope yet. They do not change values that the gateway builds itself: the IFF mode objects of `RprIffBridge` and Talk channels.
+- **Value rules** (section 5) have no wildcards and no per-direction scope yet. They do not change values that the gateway builds itself: the IFF mode objects of `RprIffBridge` and HLA Comms channels.
 
 ---
 
@@ -937,7 +937,8 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.rift.InfraBridgeSelfTest` | Infra end to end (class path test RTI, `fakerti-1516e.jar` on the class path): a gateway with HLA 1516-2010, 1516-2025 and DIS 7 endpoints and a Rift datasource; the items, the MOM's federates, rates, traffic per producer, publications and subscriptions, a DIS exercise's senders, a DIS entity already sending when the gateway starts, items going when their sources stop |
 | `com.simweaver.junction.ProvideForwardSelfTest` | Provide requests the cache cannot answer: only the missing attributes asked of the origin, its answer reaching the requester, cached attributes not asked again, the interval, `router.provide.forward=false`, the counter |
 | `com.simweaver.junction.DisBridgeSelfTest` | HLA ⇄ DIS 7 over UDP: entities, ids, heartbeat, radio and audio, fire both ways, timeout, own-echo suppression; emitter systems, radar and jammer beams both ways (names, references, values, beams switched off, systems removed, heartbeats); IFF transponders and designators both ways; Link 16 (`JTIDSMessageRadioSignal`) both ways; a DIS entity whose name is taken in HLA (`1-2-3@dis`), with fire references following it both ways; an emitter heard before the gateway's router declared is bridged after it (0.12.2) |
-| `com.simweaver.junction.TalkBridgeSelfTest` | Two Talk federations + DIS radio: channel remapping and renaming, client mirroring, lobby, radio bridge both ways with resampling; messages-only mode (no objects, UUID map, radio by UUID); the lobby only (`talk.channels=none`: lobby audio, text and images pass, a known and an unseen channel do not) |
+| `com.simweaver.junction.CommsBridgeSelfTest` | Two HLA Comms federations + DIS radio: channel remapping and renaming, client mirroring, lobby, radio bridge both ways with resampling; messages-only mode (no objects, UUID map, radio by UUID); the lobby only (`comms.channels=none`: lobby audio, text and images pass, a known and an unseen channel do not) |
+| `com.simweaver.junction.CommsSettingsSelfTest` | The HLA Comms settings (0.14.1): endpoint standard, router kind, `comms.*` and `junction.comms.*` keys, which setting wins, the JSON names, every delivered HLA Comms sample (no RTI needed) |
 | `com.simweaver.junction.GroupSelfTest` | Groups and group variables; instances of a group and of a single gateway: names, refusals, listings, stop per instance, completing an instance; variable descriptions (labels only, merged per group, warnings); the log events of starts, refusals and stops with who asked |
 | `com.simweaver.common.logging.LoggingSelfTest` | Logging and syslog: the settings and their mistakes; RFC 5424 and RFC 3164 messages (PRI, header, time zones, BOM, line breaks, cutting at a character); events and `by=`; INFO to the `.log`, problems to the `.err.log`; the client address of a REST call; UDP, TCP (octet counting and line feeds) and TLS (host name checked, not checked, untrusted) against local receivers; a syslog server that comes up later, a full queue and the dropped-messages notice |
 | `com.simweaver.junction.router.RprConversionSelfTest` | RPR v2 → v3 → v2 with the delivered table, emitter systems and beams, designators and IFF systems included |
@@ -950,7 +951,7 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.junction.CdisBridgeSelfTest` | C-DIS endpoints: the settings and their mistakes; HLA ⇄ C-DIS over UDP with full and with partial updates (location within C-DIS precision, heartbeats as partial updates, C-DIS entities discovered in HLA, the counters); the PDU relay DIS 7 ⇄ C-DIS ⇄ DIS 6 (PDUs the same after relaying both ways, version rewrite, exercise filter, a type C-DIS does not have) |
 | `com.simweaver.junction.J2jPduSelfTest` | J2J endpoints: the settings and their mistakes, J2J off, two gateways on two J2J servers in one session (DIS 7 exercise 3 ⇄ session DIS 7 exercise 1 ⇄ DIS 6 exercise 4: Entity State and Comment both ways, version and exercise rewritten, the PDU status cleared for DIS 6), another exercise not taken, the gateway status, leaving |
 | `com.simweaver.junction.J2jObjectSelfTest` | J2J object sessions: the settings and their mistakes; HLA federations on two J2J servers through a session (an aircraft with its values, updates, a WeaponFire, a gateway joining later getting the snapshot, a provide request, deleting, a lost server and its return, a leaving member) |
-| `com.simweaver.junction.J2jTalkSelfTest` | Talk over J2J: two Talk federations on two servers, mirrored clients, a channel created in the session and mapped by name both ways, the lobby (needs the tester's Talk FOM; skips without) |
+| `com.simweaver.junction.J2jCommsSelfTest` | HLA Comms over J2J: two HLA Comms federations on two servers, mirrored clients, a channel created in the session and mapped by name both ways, the lobby (needs the tester's HLA Comms FOM; skips without) |
 | `com.simweaver.j2j.J2jSessionSelfTest` | PDU sessions on three J2J servers (one reached through another): members, model agreement, reliable PDUs all and in order over two hops, Entity State best effort with the newest arriving, local members, the loop filter, the J2J page's view, a lost member and its return, a reload, leaving |
 | `com.simweaver.rift.datasources.CdisDatasourceSelfTest` | The Rift C-DIS datasource: settings, a full update and partial updates over UDP into the database, another exercise, a broken datagram |
 | `com.simweaver.kafka.KafkaSelfTest` | The Kafka client (0.13.0) against an in-memory broker: the protocol's primitives, the partitioner (the Java client's test vectors), SCRAM (RFC 7677), record batches with CRC32C, gzip / snappy / lz4 (vectors of another client), JSON values over every RPR datatype both ways, the settings and their mistakes; produce and consume in the newest and the oldest protocol versions it speaks, keys to partitions, headers, committed offsets and a restart, a consumer group splitting partitions and rebalancing, SASL PLAIN and SCRAM with good and bad passwords |

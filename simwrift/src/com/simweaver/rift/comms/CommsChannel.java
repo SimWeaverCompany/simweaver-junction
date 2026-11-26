@@ -21,8 +21,8 @@ final class CommsChannel {
     static final int CHAT_LINES = 500;
 
     final String id;
-    final String family;            // "talk" or "radio"
-    String kind;                    // talk: voice, radio, chat, lobby; radio: radio
+    final String family;            // "hlacomms" (0.14.1; was "talk") or "radio"
+    String kind;                    // hlacomms: voice, radio, chat, lobby; radio: radio
     String name;
     String description = "";
     long frequency;                 // Hz, 0 = unknown

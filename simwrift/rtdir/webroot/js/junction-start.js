@@ -1,12 +1,12 @@
 /* ============================================================
    SimWeaver Junction - "Start gateway" dialog.
    One target per endpoint, prefilled with the configured default:
-     HLA / Talk: the federation (typed, or picked from the federations
+     HLA / HLA Comms: the federation (typed, or picked from the federations
                  the endpoint's RTI reports - "Discover");
-                 Talk also lists the channels of the chosen federation;
+                 HLA Comms also lists the channels of the chosen federation;
      DIS:        the exercise id 0-255 (picked from the exercises heard
                  on the endpoint's network for a moment - "Listen").
-     HLA / Talk also: the LSD (RTI configuration name for HLA 4), prefilled
+     HLA / HLA Comms also: the LSD (RTI configuration name for HLA 4), prefilled
                  with the configured default; the other configured choices
                  are offered, and any other value can be typed (0.9.15).
    Usage: Rift.junctionStart.open(gatewayConfig, onStarted)
@@ -68,7 +68,7 @@
 		f.input.value = name;
 		f.touched = true;
 		validate();
-		if (f.ep.istalk) { loadChannels(f); }
+		if (f.ep.iscomms) { loadChannels(f); }
 	}
 
 	function option(f, id, label, tag) {
@@ -126,7 +126,7 @@
 		return ui.busy(f.discoverBtn, req);
 	}
 
-	/** Talk: the channels of the federation in the input (join briefly). */
+	/** HLA Comms: the channels of the federation in the input (join briefly). */
 	function loadChannels(f) {
 		var fed = f.input.value.trim();
 		if (!fed || !f.channels) { return; }
@@ -153,14 +153,14 @@
 			placeholder: isDis(ep) ? 'exercise id 0-255' : isJ2j(ep) ? 'session name' : isKafka(ep) ? 'topic name' : 'federation name' });
 		f.input.value = ep.defaulttarget === undefined || ep.defaulttarget === null ? '' : String(ep.defaulttarget);
 		f.input.addEventListener('input', function () { f.touched = true; validate(); });
-		f.input.addEventListener('change', function () { if (ep.istalk) { loadChannels(f); } });
+		f.input.addEventListener('change', function () { if (ep.iscomms) { loadChannels(f); } });
 		f.msg = el('div.field-msg', { 'aria-live': 'polite' });
 		f.list = el('div.cd-fed-list');
 		f.discoverBtn = el('button.btn', { type: 'button', on: { click: function () { discover(f); } } },
 			isDis(ep) ? '◉ Listen' : '⟳ Discover');
 		f.reset = el('button.btn', { type: 'button', title: 'Use the configured value',
 			on: { click: function () { pick(f, String(ep.defaulttarget || '')); } } }, '↺ Config value');
-		if (ep.istalk) { f.channels = el('div.jx-channel-list'); }
+		if (ep.iscomms) { f.channels = el('div.jx-channel-list'); }
 		if (ep.ishla) {
 			f.lsd = lsdBlock(ep, function () {
 				ui.clear(f.list);                     // the federations listed were the other LSD's
@@ -180,14 +180,14 @@
 			f.msg,
 			f.list,
 			f.lsd ? f.lsd.root : null,
-			ep.istalk ? el('div.subhead', null, [el('span.subhead-title', { text: 'Channels in this federation' }),
+			ep.iscomms ? el('div.subhead', null, [el('span.subhead-title', { text: 'Channels in this federation' }),
 				el('button.btn', { type: 'button', on: { click: function () { loadChannels(f); } } }, '⟳ List')]) : null,
 			f.channels || null
 		]);
 	}
 
 	function badgeOf(ep) {
-		var m = { 'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO', dis6: 'DIS6', dis7: 'DIS7', cdis: 'C-DIS', talk: 'TALK', j2j: 'J2J', kafka: 'KAFKA' };
+		var m = { 'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO', dis6: 'DIS6', dis7: 'DIS7', cdis: 'C-DIS', comms: 'COMMS', j2j: 'J2J', kafka: 'KAFKA' };
 		return m[ep.standard] || String(ep.standard || '?').toUpperCase();
 	}
 
@@ -486,7 +486,7 @@
 	/**
 	 * Discover for group variables (0.9.16): asks the RTI of every endpoint whose target uses the
 	 * variable (each connection once) and takes the variable's value out of each federation name
-	 * by the target as written: GROUPVAR1-Talk + Alpha-Talk gives Alpha. A variable in no target
+	 * by the target as written: GROUPVAR1-Comms + Alpha-Comms gives Alpha. A variable in no target
 	 * lists the federations of every HLA endpoint's RTI. The whole names are offered too.
 	 * @param configs the configurations of the dialog (with endpoints[].targettemplate)
 	 * @param lsdOf function (cfgId, epId) -> the LSD in the dialog, or null for the configured one

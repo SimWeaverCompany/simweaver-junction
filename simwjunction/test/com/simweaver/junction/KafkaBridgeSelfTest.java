@@ -101,13 +101,13 @@ public final class KafkaBridgeSelfTest {
 
         SimwProperties talk = new SimwProperties();
         talk.set("junction.endpoints", "t;kafka");
-        talk.set("junction.endpoint.t.standard", "talk");
+        talk.set("junction.endpoint.t.standard", "comms");
         talk.set("junction.endpoint.t.hla.federation", "TalkFed");
         talk.set("junction.endpoint.kafka.standard", "kafka");
         talk.set("junction.endpoint.kafka.kafka.bootstrap", broker.bootstrap());
-        talk.set("junction.router.kind", "talk");
+        talk.set("junction.router.kind", "comms");
         GatewayConfig gt = loader.gateway(new File(junctions, "talk.junction.settings"), talk);
-        check("a Kafka endpoint in a Talk gateway is refused", !gt.isValid() && String.join(" ", gt.getErrors()).contains("cannot be in a Talk gateway"));
+        check("a Kafka endpoint in an HLA Comms gateway is refused", !gt.isValid() && String.join(" ", gt.getErrors()).contains("cannot be in an HLA Comms gateway"));
     }
 
     static SimwProperties pduGateway(FakeKafkaBroker broker, String standard, int port, int sendTo, int exercise, String fom, String topic) {

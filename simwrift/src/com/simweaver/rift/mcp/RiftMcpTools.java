@@ -1134,7 +1134,7 @@ public final class RiftMcpTools {
     private McpTool getGateway() {
         return McpTool.named("get_gateway")
                 .title("Gateway")
-                .description("One gateway in detail: every endpoint with its target, state, traffic counters and protocol details (DIS, C-DIS, J2J, Kafka, Talk), "
+                .description("One gateway in detail: every endpoint with its target, state, traffic counters and protocol details (DIS, C-DIS, J2J, Kafka, HLA Comms), "
                         + "the objects it bridges, the router's counters (only those not zero) and its recent problems.")
                 .input(McpSchema.object()
                         .prop("gateway", McpSchema.string("Its id, name (configuration, with -instance for later instances), configuration id or title"))

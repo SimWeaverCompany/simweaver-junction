@@ -1,0 +1,21 @@
+# Router kit Comms-Messages: HLA Comms in messages-only mode. Only the HLA Comms message interactions
+# (audio, radio, text, image) are exchanged: no MasterConfiguration, channel, client, user,
+# equipment or permission object is mirrored. Channel UUIDs are rewritten to the receiving
+# federation's channel of the same name.
+router.kind=comms
+comms.mode=messages
+# the message kinds bridged: audio, radio, text, image
+comms.messages=audio;radio;text;image
+# the channels bridged (names, * and ? as wildcards; none = the lobby only)
+comms.channels=*
+# the channel objects are watched read-only (UUID, name), so channels match by name and
+# comms.channelmap works; false = no channel objects at all, UUIDs pass unchanged or mapped below
+comms.trackchannels=true
+# channel X out there is channel Y in endpoint "home" (and back); a mapped channel the receiver
+# lacks is registered there under that name (comms.createmappedchannels, on by default):
+# comms.channelmap.home=Net Alpha>Bravo Net
+# explicit UUID pairs (32 hex digits or 8-4-4-4-12), checked first, both ways:
+# comms.channeluuidmap=0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0>00112233-4455-6677-8899-aabbccddeeff
+# radio bridge: by channel name (common name, before comms.channelmap.<endpoint>), or by UUID
+# comms.radio.endpoint=radio
+# comms.radio.map.Net\ Alpha=251000000     (a space in a key is written \ + space)

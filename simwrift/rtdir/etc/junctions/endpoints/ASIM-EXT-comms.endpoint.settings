@@ -1,0 +1,9 @@
+# Endpoint kit: an HLA Comms federation (the FOM is taken from the running federation; to use
+# your own FOM modules instead, name them in endpoint.hla.foms, from etc/fom/ieee1516-2010).
+endpoint.name=ASIM-EXT-Comms
+endpoint.standard=comms
+endpoint.hla.federation=GROUPVAR2-COMMS
+# local settings designator, as for Rift datasources ("default" or vendor text, e.g. crcAddress=host:8989)
+endpoint.hla.lsd=default
+# endpoint.comms.hlastandard=ieee1516-2010
+# endpoint.hla.rtijar=

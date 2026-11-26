@@ -537,7 +537,7 @@ final class TalkBridge implements IemRouter.Extension {
 
     /** A Talk federation, or (0.10.0) a J2J object session carrying the Talk model: a side with channels. */
     private static boolean isTalkSide(Endpoint e) {
-        return e.type() == EndpointType.TALK || e.type() == EndpointType.J2J;
+        return e.type() == EndpointType.COMMS || e.type() == EndpointType.J2J;
     }
 
     @Override
@@ -628,7 +628,7 @@ final class TalkBridge implements IemRouter.Extension {
             }
         }
         if (radioBridge() && radio == null) {
-            warnOnce("noradio", "talk.radio.endpoint '" + cfg.getTalkRadioEndpoint() + "' is not an RPR endpoint of this gateway: no radio bridge");
+            warnOnce("noradio", "comms.radio.endpoint '" + cfg.getTalkRadioEndpoint() + "' is not an RPR endpoint of this gateway: no radio bridge");
         }
         if (radio != null) {
             for (TalkSide s : talk.values()) {
@@ -1214,7 +1214,7 @@ final class TalkBridge implements IemRouter.Extension {
             tx.frequency = freq;
             tx.streamTag = 0x4A4B000000000000L | ((long) (gatewayId.hashCode() & 0xFFFF) << 16) | (tx.radioIndex & 0xFFFF);
             radio.own.put(key, tx);
-            String base = "Junction-" + gatewayId + "-talk-" + tx.radioIndex;
+            String base = "Junction-" + gatewayId + "-comms-" + tx.radioIndex;
             tx.gwId = router.createObject(radio.e, radio.objectClass(TRANSMITTER), new NameCandidates(Arrays.asList(base, base + "#2")));
             radio.ownByGwId.put(tx.gwId, tx);
         }
@@ -1267,7 +1267,7 @@ final class TalkBridge implements IemRouter.Extension {
         }
         if (codec == AUDIO_CODEC_OPUS) {
             if (radio.opusEncoding < 0) {
-                warnOnce("opus", "Talk sends Opus, the RPR FOM of " + radio.e.id() + " has no Opus encoding: those frames are dropped");
+                warnOnce("opus", "HLA Comms sends Opus, the RPR FOM of " + radio.e.id() + " has no Opus encoding: those frames are dropped");
                 return null;
             }
             a.put("EncodingType", HValue.ofInt(radio.opusEncoding));
@@ -1277,7 +1277,7 @@ final class TalkBridge implements IemRouter.Extension {
             a.put("Data", HValue.ofBytes(audio));
             return a;
         }
-        warnOnce("codec " + codec, "Talk audio codec " + codec + " is not supported: those frames are dropped");
+        warnOnce("codec " + codec, "HLA Comms audio codec " + codec + " is not supported: those frames are dropped");
         return null;
     }
 
@@ -1367,7 +1367,7 @@ final class TalkBridge implements IemRouter.Extension {
             talkAudio = data;
             codec = AUDIO_CODEC_OPUS;
         } else {
-            warnOnce("rprenc " + enc, "RPR audio encoding " + enc + " is not converted for Talk: those frames are dropped");
+            warnOnce("rprenc " + enc, "RPR audio encoding " + enc + " is not converted for HLA Comms: those frames are dropped");
             framesDropped.incrementAndGet();
             return;
         }
@@ -1393,8 +1393,8 @@ final class TalkBridge implements IemRouter.Extension {
                     continue;
                 }
                 if (messagesOnly && !tracking) {
-                    warnOnce("namekey " + key, "talk.trackchannels=false: talk.radio.map." + key
-                            + " names a channel; RPR audio needs a channel UUID as key to reach Talk");
+                    warnOnce("namekey " + key, "comms.trackchannels=false: comms.radio.map." + key
+                            + " names a channel; RPR audio needs a channel UUID as key to reach HLA Comms");
                     continue;
                 }
                 Channel c = t.byName(localName(t.e, key));
@@ -1497,7 +1497,7 @@ final class TalkBridge implements IemRouter.Extension {
             if (radio != null) {
                 o.put("radio", Json.object().put("endpoint", radio.e.id()).put("transmitters", radio.own.size())
                         .put("heard", radio.heard.size()).put("framestorpr", framesToRpr.get())
-                        .put("framestotalk", framesToTalk.get()).put("framesdropped", framesDropped.get())
+                        .put("framestocomms", framesToTalk.get()).put("framesdropped", framesDropped.get())
                         .put("opus", radio.opusEncoding >= 0));
             }
             return o;

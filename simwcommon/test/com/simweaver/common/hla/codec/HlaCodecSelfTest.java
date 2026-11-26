@@ -29,7 +29,7 @@ import java.util.Random;
  *
  * The FOM root holds {@code ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml},
  * {@code ieee1516-2010/netn4-hla3/*.xml}, {@code ieee1516-2025/RPR-*_v2.0.xml} and
- * {@code rpr3/RPR-*_v3.0.xml}. A Talk FOM is used when the tester gives one (see {@code TestTalkFom}).
+ * {@code rpr3/RPR-*_v3.0.xml}. A HLA Comms FOM is used when the tester gives one (see {@code TestCommsFom}).
  *
  * <ol>
  *   <li>For every datatype of every model: random values are encoded, decoded and encoded
@@ -55,10 +55,10 @@ public final class HlaCodecSelfTest {
         File root = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom");
         InformationExchangeModel rpr2e = InformationExchangeModel.fromHlaEvolved(Arrays.asList(
                 new File(root, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath()));
-        List<String> talkFoms = com.simweaver.common.TestTalkFom.find(root);
+        List<String> talkFoms = com.simweaver.common.TestCommsFom.find(root);
         InformationExchangeModel talk = talkFoms.isEmpty() ? null : InformationExchangeModel.fromHlaEvolved(talkFoms);
         if (talk == null) {
-            System.out.println(com.simweaver.common.TestTalkFom.skipped("Talk FOM round trips"));
+            System.out.println(com.simweaver.common.TestCommsFom.skipped("HLA Comms FOM round trips"));
         }
         List<String> netn = new ArrayList<String>();
         netn.add(new File(root, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath());

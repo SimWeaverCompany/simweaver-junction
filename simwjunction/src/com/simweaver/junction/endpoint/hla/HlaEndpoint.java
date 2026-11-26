@@ -424,9 +424,9 @@ public final class HlaEndpoint implements Endpoint {
         if (!cfg.getCreateFomPaths().isEmpty() && !cfg.isCreateFederation()) {
             return " (endpoint.hla.createfederation=false: the endpoint does not create it)";
         }
-        if (cfg.getType() == com.simweaver.junction.config.EndpointType.TALK) {
-            return " (a Talk endpoint takes the Talk FOM from the running federation: start the Talk federation first, or put"
-                    + " your Talk FOM modules in " + cfg.getFomRootDir() + " and name them in endpoint.hla.createfoms so that"
+        if (cfg.getType() == com.simweaver.junction.config.EndpointType.COMMS) {
+            return " (an HLA Comms endpoint takes the HLA Comms FOM from the running federation: start the HLA Comms federation"
+                    + " first, or put your HLA Comms FOM modules in " + cfg.getFomRootDir() + " and name them in endpoint.hla.createfoms so that"
                     + " the endpoint can create the federation)";
         }
         return " (an endpoint with endpoint.hla.foms=dynamic takes its FOM from the running federation: start the federation"

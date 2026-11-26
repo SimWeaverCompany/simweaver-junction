@@ -74,7 +74,7 @@ public final class CommsTracker implements RiftDatabaseListener {
     /** A sender counts as talking this long after its last frame. */
     static final long TALKING_MS = 1500;
 
-    /** Talk audio settings ({@code datasource.talk.*}). */
+    /** HLA Comms audio settings ({@code datasource.comms.*}). */
     public static final class Settings {
         final int talkSampleRate;
         final boolean talkLittleEndian;
@@ -563,7 +563,7 @@ public final class CommsTracker implements RiftDatabaseListener {
         String id = "t-" + uuid;
         CommsChannel ch = channels.get(id);
         if (ch == null) {
-            ch = new CommsChannel(id, "talk", kind, "Channel " + uuid.substring(0, Math.min(8, uuid.length())));
+            ch = new CommsChannel(id, "hlacomms", kind, "Channel " + uuid.substring(0, Math.min(8, uuid.length())));
             channels.put(id, ch);
             rev++;
         }
@@ -573,7 +573,7 @@ public final class CommsTracker implements RiftDatabaseListener {
     private CommsChannel lobby() {
         CommsChannel ch = channels.get(LOBBY);
         if (ch == null) {
-            ch = new CommsChannel(LOBBY, "talk", "lobby", "Lobby");
+            ch = new CommsChannel(LOBBY, "hlacomms", "lobby", "Lobby");
             ch.present = true;
             channels.put(LOBBY, ch);
             rev++;
@@ -695,7 +695,7 @@ public final class CommsTracker implements RiftDatabaseListener {
                 }
                 Map<String, Object> c = new LinkedHashMap<String, Object>();
                 c.put("n", n);
-                if (!talking.isEmpty()) c.put("talking", talking);
+                if (!talking.isEmpty()) c.put("speaking", talking);
                 c.put("lastactivity", iso(ch.lastActivity));
                 per.put(ch.id, c);
             }
@@ -764,7 +764,7 @@ public final class CommsTracker implements RiftDatabaseListener {
         Map<String, Object> talk = new LinkedHashMap<String, Object>();
         talk.put("samplerate", settings.talkSampleRate);
         talk.put("pcmbyteorder", settings.talkLittleEndian ? "little" : "big");
-        m.put("talk", talk);
+        m.put("hlacomms", talk);
         m.put("channels", list);
         return m;
     }
@@ -806,7 +806,7 @@ public final class CommsTracker implements RiftDatabaseListener {
         if (!s.equipment.isEmpty()) m.put("equipment", s.equipment);
         m.put("frames", s.frames);
         if (s.lastActive > 0) m.put("lastactive", iso(s.lastActive));
-        m.put("talking", s.lastActive > 0 && now - s.lastActive < TALKING_MS);
+        m.put("speaking", s.lastActive > 0 && now - s.lastActive < TALKING_MS);
         if ("transmitter".equals(s.kind)) {
             for (Tx t : transmitters.values()) {
                 if (t.source == s) {

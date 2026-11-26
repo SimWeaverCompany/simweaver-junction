@@ -1,0 +1,12 @@
+# Router kit Comms-Full: HLA Comms in full mode. Messages pass, and the Client, User and Equipment
+# objects are mirrored (their UUIDs kept), so each side sees who is on the other. Channels are not
+# mirrored: each federation keeps its own, matched by name.
+router.kind=comms
+comms.mode=full
+# match channels by name or description
+comms.match=name
+# the channels bridged (names, * and ? as wildcards; none = the lobby only)
+comms.channels=*
+comms.mirrorclients=true
+# create a channel that the other federation lacks (else its messages are dropped and counted)
+comms.createmissingchannels=false

@@ -13,14 +13,14 @@
   --jx-flow-out: var(--amber);
   --jx-hla4:     #6fb6c8;
   --jx-fedpro:   #b49ad8;
-  --jx-talk:     #d98fb0;
+  --jx-comms:    #d98fb0;
   --jx-warn:     var(--amber);
 }
 html.light {
   --jx-wire:     #c8c2a8;
   --jx-hla4:     #2f7b8c;
   --jx-fedpro:   #6b4f99;
-  --jx-talk:     #9c3f68;
+  --jx-comms:    #9c3f68;
 }
 
 /* ---------- top bar: brand mark and app navigation ---------- */
@@ -50,7 +50,7 @@ html.light {
 .jx-type.t-hla4   { color: var(--jx-hla4); }
 .jx-type.t-fedpro { color: var(--jx-fedpro); }
 .jx-type.t-dis6, .jx-type.t-dis7 { color: var(--blue); }
-.jx-type.t-talk   { color: var(--jx-talk); }
+.jx-type.t-comms  { color: var(--jx-comms); }
 .jx-type.t-j2j    { color: #b56cf0; }                 /* J2J sessions: purple, as on the J2J page */
 html.light .jx-type.t-j2j { color: #8a3fc6; }
 .jx-type.t-router, .jx-type.t-iem { color: var(--amber); }

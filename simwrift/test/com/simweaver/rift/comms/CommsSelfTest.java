@@ -43,9 +43,9 @@ import java.util.concurrent.TimeUnit;
  * The Comms view (0.12.0): a DIS 7 datasource over UDP (transmitters by frequency with their host,
  * PCM16 / mu-law audio converted and streamed over HTTP, a raw binary signal, an unplayable
  * encoding), the audio endpoint's errors, and Talk channels / chat / PCM16 audio fed straight into a
- * database (needs the tester's Talk FOM: -Dtalk.foms=a;b, else that part is skipped).
+ * database (needs the tester's HLA Comms FOM: -Dcomms.foms=a;b, else that part is skipped).
  *
- * <pre>java -Dtalk.foms=… -cp out/classes:out/test com.simweaver.rift.comms.CommsSelfTest [fom root]</pre>
+ * <pre>java -Dcomms.foms=… -cp out/classes:out/test com.simweaver.rift.comms.CommsSelfTest [fom root]</pre>
  */
 public final class CommsSelfTest {
 
@@ -173,9 +173,9 @@ public final class CommsSelfTest {
     // ================================================================== Talk
 
     private static void talk(File fomRoot) throws Exception {
-        List<String> foms = com.simweaver.common.TestTalkFom.find(fomRoot);
+        List<String> foms = com.simweaver.common.TestCommsFom.find(fomRoot);
         if (foms.isEmpty()) {
-            System.out.println(com.simweaver.common.TestTalkFom.skipped("Comms Talk checks"));
+            System.out.println(com.simweaver.common.TestCommsFom.skipped("Comms Talk checks"));
             return;
         }
         InformationExchangeModel m = InformationExchangeModel.fromHlaEvolved(foms);

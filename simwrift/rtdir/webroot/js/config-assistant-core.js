@@ -3,7 +3,7 @@
    - form widgets bound to plain state objects (Rift.ca.input, select, check, seg, ...)
    - the .properties writer (escaping as java.util.Properties / SimwProperties read it)
    - the "files to create" panel (copy, download)
-   Nothing here talks to the server: the page only reads lists (optional).
+   Nothing here calls the server: the page only reads lists (optional).
    ============================================================ */
 
 (function (window, document) {

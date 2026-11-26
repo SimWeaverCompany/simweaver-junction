@@ -105,7 +105,7 @@ public final class TalkRouter implements Router {
         return () -> {
             Object base = o.toJson();
             if (base instanceof Json.JsonObject) {
-                ((Json.JsonObject) base).put("talk", t.toJson());
+                ((Json.JsonObject) base).put("comms", t.toJson());
             }
             return base;
         };

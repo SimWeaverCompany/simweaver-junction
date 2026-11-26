@@ -22,8 +22,8 @@ public final class RouterConfig implements Json.Writable {
     public enum Kind {
         /** Moves (part of) an information model; RPR v2/v3 and DIS conversion. */
         IEM,
-        /** Moves Talk channel traffic with channel ids remapped. */
-        TALK,
+        /** Moves HLA Comms channel traffic with channel ids remapped (0.14.1: was TALK). */
+        COMMS,
         /** Passes DIS PDUs between DIS 6, DIS 7 and C-DIS endpoints as they are (0.9.18). */
         PDU
     }
@@ -90,22 +90,48 @@ public final class RouterConfig implements Json.Writable {
     private final Netn netn;
 
     /**
+     * 0.14.1: the HLA Comms settings are {@code comms.*}; the old {@code talk.*} keys still work (undocumented,
+     * configurations in the field use them). A {@code talk.<key>} is read as {@code comms.<key>} unless that is set.
+     */
+    static SimwProperties commsAliases(SimwProperties p) {
+        String[] old = p.getKeysWithPrefix("talk.");
+        String kind = p.getString("router.kind", "").trim().toLowerCase(Locale.ROOT);
+        boolean oldKind = kind.equals("talk") || kind.equals("pitchtalk");
+        if (old.length == 0 && !oldKind) {
+            return p;
+        }
+        SimwProperties q = new SimwProperties().merge(p);
+        if (oldKind) {
+            q.set("router.kind", "comms", p.getSource("router.kind"), p.getSourceLine("router.kind"));
+        }
+        for (String key : old) {
+            String c = "comms." + key.substring("talk.".length());
+            if (!q.isSet(c)) {
+                q.set(c, p.getString(key), p.getSource(key), p.getSourceLine(key));
+            }
+            q.remove(key);
+        }
+        return q;
+    }
+
+    /**
      * @param id      kit id, or the gateway id for an inline router
-     * @param p       properties with {@code router.*} / {@code talk.*} keys
+     * @param p       properties with {@code router.*} / {@code comms.*} keys (the old {@code talk.*} keys are read too)
      * @param source  file, for messages
      * @param baseDir folder for relative paths (the junctions folder)
      */
     public RouterConfig(String id, SimwProperties p, String source, File baseDir) {
         this.id = id;
         this.source = source;
+        p = commsAliases(p);
         String k = p.getString("router.kind", "iem").trim().toLowerCase(Locale.ROOT);
-        if (k.equals("talk") || k.equals("pitchtalk")) {
-            kind = Kind.TALK;
+        if (k.equals("comms") || k.equals("talk") || k.equals("pitchtalk")) {     // 0.14.1: comms; the others are old aliases
+            kind = Kind.COMMS;
         } else if (k.equals("pdu") || k.equals("pdu-relay")) {
             kind = Kind.PDU;
         } else {
             if (!k.equals("iem")) {
-                warnings.add("router " + id + ": unknown router.kind '" + k + "' (iem, talk, pdu); using iem");
+                warnings.add("router " + id + ": unknown router.kind '" + k + "' (iem, comms, pdu); using iem");
             }
             kind = Kind.IEM;
         }
@@ -273,30 +299,30 @@ public final class RouterConfig implements Json.Writable {
 
         this.netn = new Netn(p, id, errors);
 
-        this.talkMatch = p.getString("talk.match", "name").trim().toLowerCase(Locale.ROOT);
+        this.talkMatch = p.getString("comms.match", "name").trim().toLowerCase(Locale.ROOT);
         List<String> ch = new ArrayList<String>();
-        for (String c : p.getStringArray("talk.channels")) {
+        for (String c : p.getStringArray("comms.channels")) {
             if (!c.trim().isEmpty()) {
                 ch.add(c.trim());
             }
         }
         this.talkChannels = Collections.unmodifiableList(ch.isEmpty() ? Collections.singletonList("*") : ch);
-        // 0.9.16: talk.channels=none - the lobby only: every other channel's messages are dropped, seen or not
+        // 0.9.16: comms.channels=none - the lobby only: every other channel's messages are dropped, seen or not
         boolean none = false;
         for (String c : ch) {
             none |= c.equalsIgnoreCase("none");
         }
         if (none && ch.size() > 1) {
-            warnings.add("router " + id + ": talk.channels: 'none' (the lobby only) stands alone; the other entries are ignored");
+            warnings.add("router " + id + ": comms.channels: 'none' (the lobby only) stands alone; the other entries are ignored");
         }
         this.talkLobbyOnly = none;
-        this.talkMirrorClients = p.getBoolean("talk.mirrorclients", true);
-        this.talkCreateMissingChannels = p.getBoolean("talk.createmissingchannels", false);
-        this.talkCreateMappedChannels = p.getBoolean("talk.createmappedchannels", true);
-        this.talkCreateWaitMillis = Math.max(0, p.getInt("talk.createwaitms", 3000));
+        this.talkMirrorClients = p.getBoolean("comms.mirrorclients", true);
+        this.talkCreateMissingChannels = p.getBoolean("comms.createmissingchannels", false);
+        this.talkCreateMappedChannels = p.getBoolean("comms.createmappedchannels", true);
+        this.talkCreateWaitMillis = Math.max(0, p.getInt("comms.createwaitms", 3000));
         Map<String, Long> radio = new LinkedHashMap<String, Long>();
-        for (String key : p.getKeysWithPrefix("talk.radio.map.")) {
-            String channel = key.substring("talk.radio.map.".length());
+        for (String key : p.getKeysWithPrefix("comms.radio.map.")) {
+            String channel = key.substring("comms.radio.map.".length());
             try {
                 radio.put(channel, Long.parseLong(p.getString(key).trim()));
             } catch (NumberFormatException e) {
@@ -304,12 +330,12 @@ public final class RouterConfig implements Json.Writable {
             }
         }
         this.talkRadioMap = Collections.unmodifiableMap(radio);
-        this.talkRadioEndpoint = p.getString("talk.radio.endpoint", "");
-        this.talkSampleRate = p.getInt("talk.audio.samplerate", 16000);
-        this.talkHangTimeMillis = p.getInt("talk.radio.hangtimems", 500);
+        this.talkRadioEndpoint = p.getString("comms.radio.endpoint", "");
+        this.talkSampleRate = p.getInt("comms.audio.samplerate", 16000);
+        this.talkHangTimeMillis = p.getInt("comms.radio.hangtimems", 500);
         Map<String, Map<String, String>> cmap = new LinkedHashMap<String, Map<String, String>>();
-        for (String key : p.getKeysWithPrefix("talk.channelmap")) {
-            String scope = key.equals("talk.channelmap") ? "" : key.startsWith("talk.channelmap.") ? key.substring(16) : null;
+        for (String key : p.getKeysWithPrefix("comms.channelmap")) {
+            String scope = key.equals("comms.channelmap") ? "" : key.startsWith("comms.channelmap.") ? key.substring("comms.channelmap.".length()) : null;
             if (scope == null) {
                 continue;
             }
@@ -328,15 +354,15 @@ public final class RouterConfig implements Json.Writable {
             cmap.put(scope, Collections.unmodifiableMap(pairs));
         }
         this.talkChannelMap = Collections.unmodifiableMap(cmap);
-        String mode = p.getString("talk.mode", "full").trim().toLowerCase(Locale.ROOT);
+        String mode = p.getString("comms.mode", "full").trim().toLowerCase(Locale.ROOT);
         if (!mode.equals("full") && !mode.equals("messages")) {
-            warnings.add("router " + id + ": talk.mode must be full or messages; using full");
+            warnings.add("router " + id + ": comms.mode must be full or messages; using full");
             mode = "full";
         }
         this.talkMessagesOnly = mode.equals("messages");
-        this.talkTrackChannels = p.getBoolean("talk.trackchannels", true);
+        this.talkTrackChannels = p.getBoolean("comms.trackchannels", true);
         List<String> kinds = new ArrayList<String>();
-        for (String kind : p.getStringArray("talk.messages")) {
+        for (String kind : p.getStringArray("comms.messages")) {
             String x = kind.trim().toLowerCase(Locale.ROOT);
             if (x.isEmpty()) {
                 continue;
@@ -344,7 +370,7 @@ public final class RouterConfig implements Json.Writable {
             if (Arrays.asList("audio", "radio", "text", "image").contains(x)) {
                 kinds.add(x);
             } else {
-                warnings.add("router " + id + ": talk.messages: '" + kind.trim() + "' is not audio, radio, text or image");
+                warnings.add("router " + id + ": comms.messages: '" + kind.trim() + "' is not audio, radio, text or image");
             }
         }
         if (kinds.isEmpty()) {
@@ -352,8 +378,8 @@ public final class RouterConfig implements Json.Writable {
         }
         this.talkMessageKinds = Collections.unmodifiableList(kinds);
         Map<String, Map<String, String>> umap = new LinkedHashMap<String, Map<String, String>>();
-        for (String key : p.getKeysWithPrefix("talk.channeluuidmap")) {
-            String scope = key.equals("talk.channeluuidmap") ? "" : key.startsWith("talk.channeluuidmap.") ? key.substring(20) : null;
+        for (String key : p.getKeysWithPrefix("comms.channeluuidmap")) {
+            String scope = key.equals("comms.channeluuidmap") ? "" : key.startsWith("comms.channeluuidmap.") ? key.substring("comms.channeluuidmap.".length()) : null;
             if (scope == null) {
                 continue;
             }
@@ -375,25 +401,25 @@ public final class RouterConfig implements Json.Writable {
         }
         this.talkChannelUuidMap = Collections.unmodifiableMap(umap);
         if (talkLobbyOnly && (!talkChannelMap.isEmpty() || !talkRadioMap.isEmpty() || !umap.isEmpty())) {
-            warnings.add("router " + id + ": talk.channels=none passes the lobby only: talk.channelmap, talk.channeluuidmap and"
-                    + " talk.radio.map are not used");
+            warnings.add("router " + id + ": comms.channels=none passes the lobby only: comms.channelmap, comms.channeluuidmap and"
+                    + " comms.radio.map are not used");
         }
-        this.talkRadioEntityId = p.getString("talk.radio.entityid", "900-99-1").trim();
+        this.talkRadioEntityId = p.getString("comms.radio.entityid", "900-99-1").trim();
         if (!talkRadioEntityId.matches("\\d{1,5}-\\d{1,5}-\\d{1,5}")) {
-            warnings.add("router " + id + ": talk.radio.entityid must be site-application-entity, e.g. 900-99-1");
+            warnings.add("router " + id + ": comms.radio.entityid must be site-application-entity, e.g. 900-99-1");
         }
-        String order = p.getString("talk.audio.pcmbyteorder", "little").trim().toLowerCase(Locale.ROOT);
+        String order = p.getString("comms.audio.pcmbyteorder", "little").trim().toLowerCase(Locale.ROOT);
         this.talkPcmLittleEndian = !order.startsWith("big");
-        String enc = p.getString("talk.audio.rprencoding", "pcm16be").trim().toLowerCase(Locale.ROOT);
+        String enc = p.getString("comms.audio.rprencoding", "pcm16be").trim().toLowerCase(Locale.ROOT);
         if (!enc.equals("pcm16be") && !enc.equals("pcm16le") && !enc.equals("mulaw")) {
-            warnings.add("router " + id + ": talk.audio.rprencoding must be pcm16be, pcm16le or mulaw; using pcm16be");
+            warnings.add("router " + id + ": comms.audio.rprencoding must be pcm16be, pcm16le or mulaw; using pcm16be");
             enc = "pcm16be";
         }
         this.talkRprEncoding = enc;
-        this.talkRprSampleRate = p.getInt("talk.audio.rprsamplerate", 0);
+        this.talkRprSampleRate = p.getInt("comms.audio.rprsamplerate", 0);
         StringBuilder sb = new StringBuilder();
         for (String key : p.getKeysSorted()) {
-            if (key.startsWith("router.") || key.startsWith("talk.")) {
+            if (key.startsWith("router.") || key.startsWith("comms.")) {
                 sb.append(key).append('=').append(p.getString(key)).append('\n');
             }
         }
@@ -511,7 +537,7 @@ public final class RouterConfig implements Json.Writable {
         return valueRules;
     }
 
-    /** @return "name" or "description": how Talk channels are matched */
+    /** @return "name" or "description": how HLA Comms channels are matched */
     public String getTalkMatch() {
         return talkMatch;
     }
@@ -792,22 +818,22 @@ public final class RouterConfig implements Json.Writable {
         if (kind == Kind.PDU) {
             o.put("pdutypes", pduTypes);
         }
-        if (kind == Kind.TALK) {
-            o.put("talkmatch", talkMatch);
-            o.put("talkchannels", talkChannels);
-            o.put("talklobbyonly", talkLobbyOnly);
-            o.put("talkmirrorclients", talkMirrorClients);
-            o.put("talkradiomap", new LinkedHashMap<String, Object>(talkRadioMap));
-            o.put("talkradioendpoint", talkRadioEndpoint);
-            o.put("talkradioentityid", talkRadioEntityId);
-            o.put("talkchannelmap", new LinkedHashMap<String, Object>(talkChannelMap));
-            o.put("talkmode", talkMessagesOnly ? "messages" : "full");
-            o.put("talkmessages", talkMessageKinds);
-            o.put("talktrackchannels", talkTrackChannels);
-            o.put("talkchanneluuidmap", new LinkedHashMap<String, Object>(talkChannelUuidMap));
-            o.put("talkcreatemissingchannels", talkCreateMissingChannels);
-            o.put("talkcreatemappedchannels", talkCreateMappedChannels);
-            o.put("talksamplerate", talkSampleRate);
+        if (kind == Kind.COMMS) {
+            o.put("commsmatch", talkMatch);
+            o.put("commschannels", talkChannels);
+            o.put("commslobbyonly", talkLobbyOnly);
+            o.put("commsmirrorclients", talkMirrorClients);
+            o.put("commsradiomap", new LinkedHashMap<String, Object>(talkRadioMap));
+            o.put("commsradioendpoint", talkRadioEndpoint);
+            o.put("commsradioentityid", talkRadioEntityId);
+            o.put("commschannelmap", new LinkedHashMap<String, Object>(talkChannelMap));
+            o.put("commsmode", talkMessagesOnly ? "messages" : "full");
+            o.put("commsmessages", talkMessageKinds);
+            o.put("commstrackchannels", talkTrackChannels);
+            o.put("commschanneluuidmap", new LinkedHashMap<String, Object>(talkChannelUuidMap));
+            o.put("commscreatemissingchannels", talkCreateMissingChannels);
+            o.put("commscreatemappedchannels", talkCreateMappedChannels);
+            o.put("commssamplerate", talkSampleRate);
         }
         o.put("settings", raw);
         o.put("warnings", warnings);

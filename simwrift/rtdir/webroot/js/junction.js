@@ -19,7 +19,7 @@
 
 	var TYPE_BADGE = {
 		'ieee1516-2010': 'HLA3', 'ieee1516-2025': 'HLA4', 'ieee1516-2025-fedpro': 'FEDPRO',
-		'dis6': 'DIS6', 'dis7': 'DIS7', 'cdis': 'C-DIS', 'talk': 'TALK', 'j2j': 'J2J', 'kafka': 'KAFKA'
+		'dis6': 'DIS6', 'dis7': 'DIS7', 'cdis': 'C-DIS', 'comms': 'COMMS', 'j2j': 'J2J', 'kafka': 'KAFKA'
 	};
 
 	var state = { configs: [], gateways: {}, nodes: {}, streamClose: null, vardesc: {} };
@@ -421,7 +421,7 @@
 					el('span.k', { text: kv[0] }), el('span.v', { text: count(kv[1] || 0) })
 				]));
 			});
-		updateTalk(n, o.talk);
+		updateComms(n, o.comms);
 
 		var probs = r.problems || [];
 		n.problems.hidden = probs.length === 0;
@@ -431,8 +431,8 @@
 		probs.forEach(function (p) { ul.appendChild(el('li', { text: p })); });
 	}
 
-	/** Talk router: message counters and the channel tables (which channel is bridged where). */
-	function updateTalk(n, t) {
+	/** HLA Comms router: message counters and the channel tables (which channel is bridged where). */
+	function updateComms(n, t) {
 		n.channels.hidden = !t || !t.endpoints;
 		if (!t || !t.endpoints) { return; }
 		var radio = t.radio;
@@ -440,7 +440,7 @@
 			['FILTERED', t.droppedfiltered, ''], ['UNKNOWN CH.', t.droppedunknownchannel, 'warn'],
 			['CREATED CH.', t.channelscreated, 'note']]
 			.concat(t.mode === 'messages' && t.trackchannels ? [['UNSEEN CH.', t.passedunknownchannel, 'note']] : [])
-			.concat(radio ? [['TO RADIO', radio.framestorpr, ''], ['FROM RADIO', radio.framestotalk, ''],
+			.concat(radio ? [['TO RADIO', radio.framestorpr, ''], ['FROM RADIO', radio.framestocomms, ''],
 				['RADIOS', radio.transmitters, ''], ['AUDIO DROPS', radio.framesdropped, 'warn']] : [])
 			.forEach(function (kv) {
 				var cls = kv[2] && kv[1] > 0 ? '.' + kv[2] : '';
@@ -448,7 +448,7 @@
 					el('span.k', { text: kv[0] }), el('span.v', { text: count(kv[1] || 0) })
 				]));
 			});
-		if (t.mode === 'messages') {                  // talk.mode=messages: channels watched read-only, or none
+		if (t.mode === 'messages') {                  // comms.mode=messages: channels watched read-only, or none
 			n.stats.appendChild(el('span.jx-stat.note', null, [el('span.k', { text: 'MODE' }),
 				el('span.v', { text: t.trackchannels ? 'MESSAGES · BY NAME' : 'MESSAGES · BY UUID' })]));
 			if (!t.trackchannels) {
@@ -464,7 +464,7 @@
 				total++;
 				var m = (c.matchedin || []).length > 0;
 				if (m) { matched++; }
-				return el('li' + (m ? '.ok' : c.bridged ? '.miss' : '.off'), { title: c.bridged ? '' : 'not in talk.channels' }, [
+				return el('li' + (m ? '.ok' : c.bridged ? '.miss' : '.off'), { title: c.bridged ? '' : 'not in comms.channels' }, [
 					el('span.jx-ch-name', { text: c.name || '(no name yet)' }),
 					el('span.jx-ch-class', { text: c['class'] + (c.ours ? ' · created' : '') }),
 					el('span.jx-ch-match', { text: !c.bridged ? 'not bridged' : m ? '⇄ ' + c.matchedin.join(', ') : 'no counterpart' }),
@@ -596,11 +596,11 @@
 					text: (d ? d + ' ' : '') + v.name + (v['default'] ? '=' + v['default'] : '') });
 			})) });
 		}
-		if (r.kind === 'talk') {
-			rows.push({ label: 'TALK', node: ui.valueNode((r.talkmode === 'messages'
-				? 'messages only, channels ' + (r.talktrackchannels ? 'by name' : 'by UUID') : 'full') + ' · ' + (r.talkmessages || []).join(', ')) });
-			if (r.talkmode !== 'messages' || r.talktrackchannels) { rows.push({ label: 'CHANNELS', node: ui.valueNode(r.talkchannels) }); }
-			if (r.talkradioendpoint) { rows.push({ label: 'RADIO TO', node: ui.valueNode(r.talkradioendpoint) }); }
+		if (r.kind === 'comms') {
+			rows.push({ label: 'HLA COMMS', node: ui.valueNode((r.commsmode === 'messages'
+				? 'messages only, channels ' + (r.commstrackchannels ? 'by name' : 'by UUID') : 'full') + ' · ' + (r.commsmessages || []).join(', ')) });
+			if (r.commsmode !== 'messages' || r.commstrackchannels) { rows.push({ label: 'CHANNELS', node: ui.valueNode(r.commschannels) }); }
+			if (r.commsradioendpoint) { rows.push({ label: 'RADIO TO', node: ui.valueNode(r.commsradioendpoint) }); }
 		}
 		var problems = [];
 		(cfg.errors || []).forEach(function (e) { problems.push(el('li.err', { text: e })); });

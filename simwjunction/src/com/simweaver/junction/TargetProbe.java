@@ -58,7 +58,7 @@ public final class TargetProbe {
     /**
      * @param cfg        the endpoint
      * @param runtimeDir the runtime folder
-     * @param federation TALK: the federation whose channels to list; null = list federations
+     * @param federation COMMS: the federation whose channels to list; null = list federations
      * @return what was found (an error text instead when the probe failed)
      */
     public static Result probe(EndpointConfig cfg, File runtimeDir, String federation) {
@@ -82,7 +82,7 @@ public final class TargetProbe {
         if (t.isKafka()) {
             return topics(cfg);
         }
-        if (t == EndpointType.TALK && federation != null && !federation.trim().isEmpty()) {
+        if (t == EndpointType.COMMS && federation != null && !federation.trim().isEmpty()) {
             return talkChannels(cfg, runtimeDir, federation.trim(), lsd);
         }
         return federations(cfg, runtimeDir, lsd);
@@ -260,7 +260,7 @@ public final class TargetProbe {
             }
             ObjectClass channel = iem.getObjectClass(TALK_CHANNEL);
             if (channel == null) {
-                return new Result("channel", Collections.emptyList(), "the federation's FOM has no Talk channel class (" + TALK_CHANNEL + ")");
+                return new Result("channel", Collections.emptyList(), "the federation's FOM has no HLA Comms channel class (" + TALK_CHANNEL + ")");
             }
             codec.set(new HlaCodec(iem));
             nameAttr.set(channel.getAttribute("Name"));
@@ -290,7 +290,7 @@ public final class TargetProbe {
         } catch (Exception e) {
             String m = e.getMessage();
             if (cfg.isDynamicFom() && String.valueOf(m).contains("DoesNotExist")) {
-                m = m + " (the Talk federation is not running)";
+                m = m + " (the HLA Comms federation is not running)";
             }
             return new Result("channel", Collections.emptyList(), m);
         } finally {

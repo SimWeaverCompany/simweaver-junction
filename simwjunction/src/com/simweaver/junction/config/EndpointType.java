@@ -23,8 +23,11 @@ public enum EndpointType {
      * encoded to C-DIS when sent and decoded to DIS 7 when heard. Setting: {@code cdis}.
      */
     CDIS("cdis", "C-DIS (SISO-STD-023-2024)", false, false),
-    /** A Talk federation (HLA, by default 1516-2010). Setting: {@code talk}. */
-    TALK("talk", "Talk (HLA)", true, false),
+    /**
+     * An HLA Comms federation (HLA, by default 1516-2010). Setting: {@code comms} (0.14.1; the old settings
+     * {@code talk} and {@code pitchtalk} are still accepted).
+     */
+    COMMS("comms", "HLA Comms", true, false),
     /**
      * A session of the J2J network (0.10.0): gateways on other SimWeaver servers sharing DIS PDUs
      * as they are, for the PDU relay ({@code router.kind=pdu}). Setting: {@code j2j}.
@@ -89,7 +92,7 @@ public enum EndpointType {
         return this == CDIS;
     }
 
-    /** @return true when the HLA API is IEEE 1516-2025 (TALK: see EndpointConfig#isHla4) */
+    /** @return true when the HLA API is IEEE 1516-2025 (COMMS: see EndpointConfig#isHla4) */
     public boolean isHla4() {
         return hla4;
     }
@@ -123,9 +126,12 @@ public enum EndpointType {
             case "cdis":
             case "c-dis":
                 return CDIS;
-            case "talk":
+            case "comms":
+            case "hla-comms":
+            case "hlacomms":
+            case "talk":            // before 0.14.1
             case "pitchtalk":
-                return TALK;
+                return COMMS;
             case "j2j":
                 return J2J;
             case "kafka":

@@ -358,7 +358,7 @@ Some samples are provided; copy one and adapt it to add your own:
 |---|---|---|
 | `hla3-rpr2.datasource.settings` | HLA3-RPR2 | HLA Evolved, RPR FOM v2.0 with Link 16 |
 | `hla4-rpr2.datasource.settings` | HLA4-RPR2 | HLA 4, the same RPR FOM v2.0 with Link 16 in the HLA 4 format |
-| `hla3-rpr2-talk.datasource.settings` | HLA3-RPR2-Talk | HLA Evolved with RPR v2 and the Talk FOM, taken from the running federation (`datasource.hla.foms=dynamic`: no Talk FOM is delivered; to use your own copy of the Talk FOM files, put them in `etc/fom/ieee1516-2010` and list them) |
+| `hla3-rpr2-comms.datasource.settings` | HLA3-RPR2-Comms | HLA Evolved with RPR v2 and the HLA Comms FOM, taken from the running federation (`datasource.hla.foms=dynamic`: no HLA Comms FOM is delivered; to use your own copy of the HLA Comms FOM files, put them in `etc/fom/ieee1516-2010` and list them) |
 | `dis6.datasource.settings` | DIS6 | A DIS 6 network on UDP port 3000 |
 | `cdis.datasource.settings` | CDIS | A C-DIS network (SISO-STD-023-2024) on UDP port 3100 |
 
@@ -402,10 +402,10 @@ datasource.standard = IEEE1516-2010
   (`datasource.cdis.heartbeat.entitystate` 5, `.emission` 10, `.designator` 5,
   `.transmitter` 2, `.iff` 10, seconds). Altitude is the height above the WGS84 ellipsoid. See
   [junction.md](junction.md), section 9, *C-DIS endpoints*, for the codec.
-- **Talk audio** (HLA, 0.12.0, for the Comms page's *Listen*): Talk's PCM16 carries no sample
-  rate, so the datasource tells it: `datasource.talk.samplerate` (default `16000`) and
-  `datasource.talk.pcmbyteorder` (`little`, the default, or `big`), as `talk.audio.*` in a
-  Junction Talk router. RPR / DIS radio audio carries its own rate.
+- **HLA Comms audio** (HLA, 0.12.0, for the Comms page's *Listen*): HLA Comms PCM16 carries no
+  sample rate, so the datasource tells it: `datasource.comms.samplerate` (default `16000`) and
+  `datasource.comms.pcmbyteorder` (`little`, the default, or `big`), as `comms.audio.*` in a
+  Junction HLA Comms router. RPR / DIS radio audio carries its own rate.
 - **Federation probes** (HLA only, 0.11.5): the federation list of the Create dialog comes from a
   probe, one per standard and LSD, shared by all configurations that use it. It connects to the
   RTI when the dialog first asks, not at start-up. When it cannot connect (no RTI at that LSD),
@@ -701,7 +701,7 @@ syslog.level=NOTICE
 
 ### 2.8 J2J network (0.10.0)
 
-**J2J** (Junction to Junction) connects SimWeaver servers into one network: each server keeps encrypted links to the others, traffic finds its way through the servers that can reach each other, and the **J2J** page (`j2j.html`) shows every member, how it is reached and how well. Junction gateways on different servers share traffic through it in *sessions*: a gateway joins one with a `j2j` endpoint ([junction.md](junction.md), *J2J sessions*) — DIS PDUs as they are, or the objects and interactions of an HLA object model (RPR, NETN, Talk …).
+**J2J** (Junction to Junction) connects SimWeaver servers into one network: each server keeps encrypted links to the others, traffic finds its way through the servers that can reach each other, and the **J2J** page (`j2j.html`) shows every member, how it is reached and how well. Junction gateways on different servers share traffic through it in *sessions*: a gateway joins one with a `j2j` endpoint ([junction.md](junction.md), *J2J sessions*) — DIS PDUs as they are, or the objects and interactions of an HLA object model (RPR, NETN, HLA Comms …).
 
 J2J is **off** until `etc/j2j/network.settings` lists members. While it is off nothing listens and the **J2J** button is hidden in the top bar.
 

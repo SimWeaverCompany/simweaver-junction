@@ -1,0 +1,28 @@
+# Gateway HLA Comms<->HLA Comms + DIS7 radio: two HLA Comms federations, and two of their voice
+# channels on DIS radio.
+junction.name=HLA Comms<->HLA Comms + DIS7 radio
+junction.endpoints=site1;site2;radio
+junction.endpoint.site1=endpoints/hla-comms.endpoint.settings
+junction.endpoint.site1.hla.federation=CommsSite1
+junction.endpoint.site2=endpoints/hla-comms.endpoint.settings
+junction.endpoint.site2.hla.federation=CommsSite2
+junction.endpoint.radio=endpoints/dis7.endpoint.settings
+# where radio sends (default: the multicast group, else the broadcast address of the interface); several
+# with ; between them, each host or host:port, e.g. 10.0.0.5;10.0.0.6:3001
+# junction.endpoint.radio.dis.sendaddress=192.168.1.255
+junction.router=routers/comms-full.router.settings
+# the radio bridge: HLA Comms channel name = frequency in Hz, on this endpoint (DIS or an RPR federation)
+junction.comms.radio.endpoint=radio
+junction.comms.radio.map.Battalion=251000000
+junction.comms.radio.map.Logistics=36500000
+# the DIS entity that hosts the gateway's radios (one radio per HLA Comms sender)
+junction.comms.radio.entityid=900-99-1
+# HLA Comms audio: sample rate and byte order of PCM16 (to be confirmed against your HLA Comms version)
+junction.comms.audio.samplerate=16000
+junction.comms.audio.pcmbyteorder=little
+# sent as RPR: pcm16be (DIS "16-bit linear PCM"), pcm16le or mulaw, at this rate (0 = the HLA Comms rate)
+junction.comms.audio.rprencoding=pcm16be
+junction.comms.audio.rprsamplerate=8000
+# after the last HLA Comms audio frame, the radio stays "transmitting" this long
+junction.comms.radio.hangtimems=500
+junction.autostart=false

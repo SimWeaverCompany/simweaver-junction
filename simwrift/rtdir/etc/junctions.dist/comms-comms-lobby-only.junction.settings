@@ -1,0 +1,10 @@
+# Gateway HLA Comms<->HLA Comms lobby only: two HLA Comms federations, only the lobby's voice, text
+# and images pass (router kit Comms-Lobby-Only).
+junction.name=HLA Comms<->HLA Comms lobby only
+junction.endpoints=site1;site2
+junction.endpoint.site1=endpoints/hla-comms.endpoint.settings
+junction.endpoint.site1.hla.federation=CommsSite1
+junction.endpoint.site2=endpoints/hla-comms.endpoint.settings
+junction.endpoint.site2.hla.federation=CommsSite2
+junction.router=routers/comms-lobby-only.router.settings
+junction.autostart=false

@@ -35,7 +35,7 @@ import java.util.Map;
  * </pre>
  * Kit references are relative to the junctions folder. Inline keys {@code junction.endpoint.<id>.<key>}
  * become {@code endpoint.<key>}, {@code junction.router.<key>} become {@code router.<key>},
- * {@code junction.talk.<key>} become {@code talk.<key>}.
+ * {@code junction.comms.<key>} become {@code comms.<key>} (0.14.1; the old {@code junction.talk.<key>} too).
  *
  * <p>Groups: {@code junction.group=<name>} (or {@code router.group} in the router kit) puts
  * gateways in a group that starts and stops together. {@code GROUPVAR1}, {@code GROUPVAR2}, ...
@@ -257,7 +257,7 @@ public final class ConfigLoader {
                 problems.add("endpoint " + epId + ": no endpoint.standard (inline or in a kit)");
             }
             EndpointConfig ec = new EndpointConfig(epId, ep, source, runtimeDir);
-            // the target as written, for the page's Discover of variable values (GROUPVAR1-Talk + Alpha-Talk -> Alpha)
+            // the target as written, for the page's Discover of variable values (GROUPVAR1-Comms + Alpha-Comms -> Alpha)
             String tkey = ec.getType() != null && ec.getType().isDis() ? "dis.exid"
                     : ec.getType() == EndpointType.J2J ? "j2j.session" : ec.getType() == EndpointType.KAFKA ? "kafka.topic" : "hla.federation";
             String tmpl = kitRaw == null ? null : kitRaw.getString("endpoint." + tkey, null);
@@ -292,31 +292,42 @@ public final class ConfigLoader {
         for (String key : p.getKeysWithPrefix("junction.router.")) {
             rp.set("router." + key.substring("junction.router.".length()), p.getString(key), file.getName());
         }
+        // 0.14.1: junction.comms.<key> -> comms.<key>; the old junction.talk.<key> is still read (the
+        // inline key wins over the kit's either way, and comms over talk when both are inline)
         for (String key : p.getKeysWithPrefix("junction.talk.")) {
-            rp.set("talk." + key.substring("junction.talk.".length()), p.getString(key), file.getName());
+            String k = key.substring("junction.talk.".length());
+            if (!p.isSet("junction.comms." + k)) {
+                rp.remove("talk." + k);
+                rp.set("comms." + k, p.getString(key), file.getName());
+            }
+        }
+        for (String key : p.getKeysWithPrefix("junction.comms.")) {
+            String k = key.substring("junction.comms.".length());
+            rp.remove("talk." + k);
+            rp.set("comms." + k, p.getString(key), file.getName());
         }
         RouterConfig router = new RouterConfig(id, rp, rsource, dir);
 
-        if (router.getKind() == RouterConfig.Kind.TALK) {
+        if (router.getKind() == RouterConfig.Kind.COMMS) {
             int talk = 0;
             for (EndpointConfig e : endpoints.values()) {
-                if (e.getType() == EndpointType.TALK || e.getType() == EndpointType.J2J) {
+                if (e.getType() == EndpointType.COMMS || e.getType() == EndpointType.J2J) {
                     talk++;                                       // 0.10.0: a J2J session can be a Talk side
                 }
                 if (e.getType() == EndpointType.J2J && !e.isJ2jFomsGiven()) {
-                    problems.add("a J2J endpoint (" + e.getId() + ") in a Talk gateway needs the Talk FOM files in endpoint.hla.foms");
+                    problems.add("a J2J endpoint (" + e.getId() + ") in an HLA Comms gateway needs the HLA Comms FOM files in endpoint.hla.foms");
                 }
             }
             for (EndpointConfig e : endpoints.values()) {
                 if (e.getType() == EndpointType.KAFKA) {
-                    problems.add("a Kafka endpoint (" + e.getId() + ") cannot be in a Talk gateway (IEM and PDU relay gateways only)");
+                    problems.add("a Kafka endpoint (" + e.getId() + ") cannot be in an HLA Comms gateway (IEM and PDU relay gateways only)");
                 }
             }
             if (talk < 2 && router.getTalkRadioEndpoint().isEmpty()) {
-                problems.add("a talk router needs two talk endpoints, or one and talk.radio.endpoint");
+                problems.add("an HLA Comms router needs two HLA Comms endpoints, or one and comms.radio.endpoint");
             }
             if (!router.getTalkRadioEndpoint().isEmpty() && !endpoints.containsKey(router.getTalkRadioEndpoint())) {
-                problems.add("talk.radio.endpoint '" + router.getTalkRadioEndpoint() + "' is not an endpoint of this gateway");
+                problems.add("comms.radio.endpoint '" + router.getTalkRadioEndpoint() + "' is not an endpoint of this gateway");
             }
         }
         if (router.getKind() == RouterConfig.Kind.PDU) {

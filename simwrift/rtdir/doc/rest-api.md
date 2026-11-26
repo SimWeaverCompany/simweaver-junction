@@ -10,7 +10,7 @@ over HTTPS:
 The SimWeaver Rift Web UI is built only on this API, so anything the Web UI shows, another
 tool can get the same way.
 
-API state: SimWeaver Rift 0.14.0, November 2026.
+API state: SimWeaver Rift 0.14.1, November 2026.
 
 ---
 
@@ -121,7 +121,7 @@ discovered, updated or removed, or an interaction received.
 | `GET` | [`/api/infra/items/{key}`](#123-get-apiinfraitemskey) | The live detail of one |
 | `POST` | [`/api/infra/items/{key}/refresh`](#124-post-apiinfraitemskeyrefresh) | HLA: ask the MOM for fresh values now |
 | `POST` | [`/api/infra/items/{key}/declarations`](#125-post-apiinfraitemskeydeclarations) | HLA: ask the MOM for a federate's publications and subscriptions |
-| `GET` | [`/api/datasources/{dsid}/comms`](#151-get-apidatasourcesdsidcomms) | The datasource's communication channels: Talk, RPR / DIS radio (Comms page) |
+| `GET` | [`/api/datasources/{dsid}/comms`](#151-get-apidatasourcesdsidcomms) | The datasource's communication channels: HLA Comms, RPR / DIS radio (Comms page) |
 | `GET` | [`/api/datasources/{dsid}/comms/chat?channel=…`](#152-get-commschatchannel) | A chat transcript |
 | `GET` | [`/api/audio/stream?ds=…&channels=…`](#153-get-apiaudiostreamdschannels) | The audio of some channels, as a binary stream |
 | `GET` / `POST` | [`/api/j2j/…`](#13-j2j-0100) | The J2J network of Junction servers (J2J page): see [j2j-rest-api.md](j2j-rest-api.md) |
@@ -1232,10 +1232,11 @@ Signs the browser out: `204` and the cookie cleared.
 
 The communication channels a datasource sees, for the Comms page (`comms.html?id=<dsid>`):
 
-- **Talk** (the Talk FOM's `HLAobjectRoot.PitchTalk.*` classes): the channel objects (voice, radio,
-  chat) and the lobby, with the senders (the Talk clients) heard in them. Text and image messages
-  make a transcript; PCM16 audio can be listened to (`datasource.talk.samplerate`, default 16000,
-  and `datasource.talk.pcmbyteorder`, default `little`, in the datasource configuration), and Opus
+- **HLA Comms** (the HLA Comms FOM's channel, client, user and equipment objects and its message
+  interactions): the channel objects (voice, radio, chat) and the lobby, with the senders (the HLA
+  Comms clients) heard in them. Text and image messages make a transcript; PCM16 audio can be
+  listened to (`datasource.comms.samplerate`, default 16000, and `datasource.comms.pcmbyteorder`,
+  default `little`, in the datasource configuration), and Opus
   (0.12.1: passed through as it is and decoded by the listener; the Web UI uses the browser's
   WebCodecs).
 - **RPR / DIS radio**: one channel per frequency of the `RadioTransmitter` objects, which are listed
@@ -1245,7 +1246,7 @@ The communication channels a datasource sees, for the Comms page (`comms.html?id
   classes (raw binary, Link 16, database index, application specific) count as activity, matched by
   `HostRadioIndex`. DIS datasources come through the same way (DIS arrives as RPR).
 
-Channel ids: `t-<uuid hex>` (Talk), `t-lobby`, `f-<hertz>` (radio), `x-…` (signals whose transmitter
+Channel ids: `t-<uuid hex>` (HLA Comms), `t-lobby`, `f-<hertz>` (radio), `x-…` (signals whose transmitter
 is not known).
 
 ### 15.1 `GET /api/datasources/{dsid}/comms`
@@ -1254,19 +1255,19 @@ is not known).
 { "rev": 17, "t": 1793698262, "seconds": 120,
   "stats": { "audioframes": 600, "playedframes": 480, "unplayableframes": 0, "decodeerrors": 0, "transmitters": 3,
              "listeners": [ { "client": "/10.0.0.5:51022", "channels": ["f-251000000"], "opened": "…", "frames": 480, "dropped": 0 } ] },
-  "talk": { "samplerate": 16000, "pcmbyteorder": "little" },
+  "hlacomms": { "samplerate": 16000, "pcmbyteorder": "little" },
   "channels": [
     { "id": "f-251000000", "family": "radio", "kind": "radio", "name": "251 MHz", "frequency": 251000000,
       "present": true, "audio": true, "playable": true, "encoding": "16-bit linear PCM",
       "chat": false, "chatcount": 0, "frames": 600, "bytes": 192000, "lastactivity": "2026-11-03T09:31:01.020Z",
       "activity": [0, 0, …, 50, 50],
-      "sources": [ { "id": 3, "kind": "transmitter", "label": "1-2-3/radio-1", "frames": 600, "lastactive": "…", "talking": true,
+      "sources": [ { "id": 3, "kind": "transmitter", "label": "1-2-3/radio-1", "frames": 600, "lastactive": "…", "speaking": true,
                      "object": { "instanceid": "o2", "label": "1-2-3/radio-1", "classname": "RadioTransmitter" },
                      "status": 2, "radioindex": 1,
                      "host": { "instanceid": "o1", "label": "VIPER 11", "classname": "Aircraft" } } ] },
     { "id": "f-969000000", "family": "radio", "kind": "radio", "name": "969 MHz", "audio": false, "playable": false,
       "signals": { "Raw binary": 108 }, "activity": […], "sources": […] },
-    { "id": "t-b0a08934…", "family": "talk", "kind": "chat", "name": "Ops", "description": "Operations chat",
+    { "id": "t-b0a08934…", "family": "hlacomms", "kind": "chat", "name": "Ops", "description": "Operations chat",
       "present": true, "chat": true, "chatcount": 14, "activity": […],
       "sources": [ { "id": 7, "kind": "client", "label": "Alpha Lead", "uuid": "…",
                      "object": { "instanceid": "o1", "label": "…", "classname": "Client" } } ] } ] }
@@ -1274,14 +1275,15 @@ is not known).
 
 - `rev` changes when channels, senders or names change; `t` is the epoch second of the last
   `activity` value; `activity` has `seconds` values, oldest first: messages or audio frames per second.
-- `kind`: Talk `voice`, `radio`, `chat`, `lobby`; radio frequencies `radio`. `present`: the Talk
+- `family`: `hlacomms` or `radio` (0.14.1; the HLA Comms family had another name before). `kind`:
+  HLA Comms `voice`, `radio`, `chat`, `lobby`; radio frequencies `radio`. `present`: the HLA Comms
   channel object exists (a channel seen only in messages has none).
 - `audio`: audio was heard; `playable`: in an encoding the page can play; `unplayable` says why not.
   `codec` (0.12.1): how it comes on the audio stream, `pcm` (converted to PCM16 by the server) or
   `opus` (Opus packets as received: the listener needs an Opus decoder).
 - `sources`: radio frequencies list the transmitter objects on that frequency now (`status`:
   `TransmitterOperationalStatus`, 0 off, 1 on, 2 transmitting) with their `host` (or `hostname`
-  while the host object is not known); Talk channels the clients heard in them. `talking`: a frame
+  while the host object is not known); HLA Comms channels the clients heard in them. `speaking` (0.14.1, renamed): a frame
   in the last 1.5 s. `object` / `host` are object chips (6.3 gives the object).
 
 ### 15.2 `GET …/comms/chat?channel=`
@@ -1328,10 +1330,10 @@ curl -k -N "https://localhost:8843/api/audio/stream?ds=$DS&channels=f-251000000"
 
 ```json
 { "rev": 17, "t": 1793698263,
-  "channels": { "f-251000000": { "n": 50, "talking": [3], "lastactivity": "2026-11-03T09:31:03.010Z" } } }
+  "channels": { "f-251000000": { "n": 50, "speaking": [3], "lastactivity": "2026-11-03T09:31:03.010Z" } } }
 ```
 
-Only channels with activity in that second, or a sender talking, are listed. A `rev` other than
+Only channels with activity in that second, or a sender speaking, are listed. A `rev` other than
 the one of the last listing means channels, senders or names changed: get 15.1 again.
 
 ---
@@ -1396,7 +1398,7 @@ curl -k https://localhost:8843/api/mcp -H "Authorization: Bearer $TOKEN" -H "Con
     "closing_mps":400.0,"closing_kt":777.5,
     "cpa":{"in_s":74.8,"at":"2026-11-23T04:35:11.036Z","range_m":0.0,"range_nm":0.0,"assumes":"both keep their present course and speed"}},
   "isError":false,
-  "_meta":{"io.modelcontextprotocol/serverInfo":{"name":"SimWeaver Junction & Rift Server","version":"0.14.0"}}}}
+  "_meta":{"io.modelcontextprotocol/serverInfo":{"name":"SimWeaver Junction & Rift Server","version":"0.14.1"}}}}
 ```
 
 ---

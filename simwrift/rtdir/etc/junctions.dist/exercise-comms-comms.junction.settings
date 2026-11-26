@@ -1,0 +1,13 @@
+# Group sample (2 of 2): the exercise's HLA Comms federation and a site's HLA Comms federation; the
+# site's "Net1" is the exercise channel named by GROUPVAR3 (comms.channelmap.<receiver>).
+junction.name=Exercise: HLA Comms<->HLA Comms
+junction.group=Exercise
+junction.endpoints=exercise;site
+junction.endpoint.exercise=endpoints/hla-comms.endpoint.settings
+junction.endpoint.exercise.hla.federation=GROUPVAR1-Comms
+junction.endpoint.site=endpoints/hla-comms.endpoint.settings
+junction.endpoint.site.hla.federation=SiteComms
+junction.router=routers/comms-messages.router.settings
+junction.comms.channelmap.exercise=Net1>GROUPVAR3
+junction.groupvar.GROUPVAR3=Battalion
+junction.groupvar.GROUPVAR3.desc=HLA Comms channel for the site's Net1

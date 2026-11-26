@@ -386,14 +386,17 @@ public class DatasourceManager implements DataSourceCallbackSink {
         return datasourceId == null ? null : comms.get(datasourceId);
     }
 
-    /** {@code datasource.talk.samplerate} (16000) and {@code datasource.talk.pcmbyteorder} (little) of a configuration. */
+    /**
+     * {@code datasource.comms.samplerate} (16000) and {@code datasource.comms.pcmbyteorder} (little) of a configuration
+     * (0.14.1; the old {@code datasource.talk.*} keys still work).
+     */
     static com.simweaver.rift.comms.CommsTracker.Settings commsSettings(DatasourceConfig config) {
         com.simweaver.common.config.SimwProperties p = config.getDatasourceProps();
         if (p == null) {
             return com.simweaver.rift.comms.CommsTracker.Settings.defaults();
         }
-        int rate = p.getInt("datasource.talk.samplerate", 16000);
-        String order = p.getString("datasource.talk.pcmbyteorder", "little").trim().toLowerCase(java.util.Locale.ROOT);
+        int rate = p.getInt("datasource.comms.samplerate", p.getInt("datasource.talk.samplerate", 16000));
+        String order = p.getString("datasource.comms.pcmbyteorder", p.getString("datasource.talk.pcmbyteorder", "little")).trim().toLowerCase(java.util.Locale.ROOT);
         return new com.simweaver.rift.comms.CommsTracker.Settings(rate, !order.startsWith("big"));
     }
 

@@ -94,10 +94,11 @@ public final class EndpointConfig implements Json.Writable {
         EndpointType t = EndpointType.fromSetting(standardSetting);
         if (t == null) {
             errors.add("endpoint " + id + ": unknown endpoint.standard '" + standardSetting
-                    + "' (ieee1516-2010, ieee1516-2025, ieee1516-2025-fedpro, dis6, dis7, cdis, talk, j2j, kafka)");
+                    + "' (ieee1516-2010, ieee1516-2025, ieee1516-2025-fedpro, dis6, dis7, cdis, comms, j2j, kafka)");
         }
         this.type = t;
-        String talkStd = p.getString("endpoint.talk.hlastandard", "ieee1516-2010");
+        // 0.14.1: endpoint.comms.hlastandard (the old endpoint.talk.hlastandard still works)
+        String talkStd = p.getString("endpoint.comms.hlastandard", p.getString("endpoint.talk.hlastandard", "ieee1516-2010"));
         this.talkHla4 = EndpointType.fromSetting(talkStd) == EndpointType.HLA4;
 
         // 0.9.15: a ;-separated list of choices, the first is the default
@@ -107,8 +108,8 @@ public final class EndpointConfig implements Json.Writable {
         this.fomRootDir = p.getString("endpoint.hla.fomrootdir", com.simweaver.common.config.SimwPaths.etcString("fom")) + File.separator + std;   // 0.11.4: etcdir
         String[] foms = p.getStringArray("endpoint.hla.foms");
         boolean dyn = com.simweaver.common.hla.session.DynamicFom.isDynamic(foms);
-        if (foms.length == 0 && t == EndpointType.TALK) {
-            dyn = true;               // 0.9.21: no Talk FOM is delivered; without FOM files it comes from the federation
+        if (foms.length == 0 && t == EndpointType.COMMS) {
+            dyn = true;               // 0.9.21: no HLA Comms FOM is delivered; without FOM files it comes from the federation
         }
         this.dynamicFom = dyn && t != null && t.isHla();
         if (dyn) {
@@ -298,9 +299,9 @@ public final class EndpointConfig implements Json.Writable {
         return Collections.unmodifiableList(errors);
     }
 
-    /** @return true when the HLA API is 1516-2025 (HLA4, FEDPRO, or TALK on HLA 4) */
+    /** @return true when the HLA API is 1516-2025 (HLA4, FEDPRO, or COMMS on HLA 4) */
     public boolean isHla4() {
-        return type == EndpointType.HLA4 || type == EndpointType.HLA4_FEDPRO || type == EndpointType.TALK && talkHla4;
+        return type == EndpointType.HLA4 || type == EndpointType.HLA4_FEDPRO || type == EndpointType.COMMS && talkHla4;
     }
 
     /** @return the default LSD (1516-2010) / RTI configuration name (1516-2025): the first choice; "" = the RTI's default */
@@ -476,7 +477,7 @@ public final class EndpointConfig implements Json.Writable {
     }
 
     /** @return the default target: the federation (HLA) or the exercise id (DIS) */
-    /** 0.9.16: the target setting as written, when it holds group variables (e.g. "GROUPVAR1-Talk"); null otherwise */
+    /** 0.9.16: the target setting as written, when it holds group variables (e.g. "GROUPVAR1-Comms"); null otherwise */
     private volatile String targetTemplate;
 
     /** @return {@code endpoint.j2j.session}: the session a J2J endpoint joins (the default target) */
@@ -500,7 +501,7 @@ public final class EndpointConfig implements Json.Writable {
     }
 
     /**
-     * @return true when the J2J (or, 0.13.0, Kafka) endpoint carries objects (IEM or Talk gateway),
+     * @return true when the J2J (or, 0.13.0, Kafka) endpoint carries objects (IEM or HLA Comms gateway),
      *         false for DIS PDUs (PDU relay)
      */
     public boolean isJ2jObjects() {
@@ -517,12 +518,12 @@ public final class EndpointConfig implements Json.Writable {
         return fomPaths.isEmpty() ? j2jDefaultFomPaths : fomPaths;
     }
 
-    /** @return true when {@code endpoint.hla.foms} was given (a J2J endpoint in a Talk gateway needs the Talk FOM) */
+    /** @return true when {@code endpoint.hla.foms} was given (a J2J endpoint in an HLA Comms gateway needs its FOM) */
     public boolean isJ2jFomsGiven() {
         return j2jFomsGiven;
     }
 
-    /** Set by the loader from the gateway's router: objects for an IEM or Talk router. */
+    /** Set by the loader from the gateway's router: objects for an IEM or HLA Comms router. */
     void setJ2jObjects(boolean objects) {
         this.j2jObjects = objects;
     }
@@ -560,7 +561,7 @@ public final class EndpointConfig implements Json.Writable {
         o.put("standardlabel", type == null ? "Unknown (" + standardSetting + ")" : type.label());
         o.put("ishla", type != null && type.isHla());
         o.put("isdis", type != null && type.isDis());
-        o.put("istalk", type == EndpointType.TALK);
+        o.put("iscomms", type == EndpointType.COMMS);
         o.put("defaulttarget", getDefaultTarget());
         o.putIfNotNull("targettemplate", targetTemplate);
         if (type != null && type.isHla()) {

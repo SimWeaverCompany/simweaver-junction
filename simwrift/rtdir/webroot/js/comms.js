@@ -2,8 +2,8 @@
    SimWeaver Rift - the Comms page (comms.html?id=<datasource>), 0.12.0.
 
    The communication channels a datasource sees:
-     - Talk: voice, radio and chat channels and the lobby; senders are
-       the Talk clients
+     - HLA Comms: voice, radio and chat channels and the lobby; senders
+       are the HLA Comms clients
      - RPR / DIS radio: one channel per frequency, with the transmitter
        objects on it and the platforms that host them; signals without
        audio (raw binary, Link 16, ...) show as activity only
@@ -112,15 +112,15 @@
 
 	function facts() {
 		var ids = Object.keys(channels);
-		var talk = 0, radio = 0, tx = 0, active = 0;
+		var hla = 0, radio = 0, tx = 0, active = 0;
 		ids.forEach(function (id) {
 			var c = channels[id];
-			if (c.family === 'talk') { talk++; } else { radio++; }
+			if (c.family === 'hlacomms') { hla++; } else { radio++; }
 			(c.sources || []).forEach(function (s) { if (s.kind === 'transmitter' && s.object) { tx++; } });
 			if (sum(c.activity, 10) > 0) { active++; }
 		});
 		var f = ui.clear($('cm-facts'));
-		[['TALK', talk], ['RADIO', radio], ['TRANSMITTERS', tx], ['ACTIVE 10S', active]].forEach(function (p) {
+		[['HLA COMMS', hla], ['RADIO', radio], ['TRANSMITTERS', tx], ['ACTIVE 10S', active]].forEach(function (p) {
 			f.appendChild(el('span', null, [el('span.fact-k', { text: p[0] }), el('span.fact-v', { text: String(p[1]) })]));
 		});
 	}
@@ -162,8 +162,8 @@
 
 	function order() {
 		return Object.keys(channels).map(function (id) { return channels[id]; }).sort(function (a, b) {
-			if (a.family !== b.family) { return a.family === 'talk' ? -1 : 1; }
-			if (a.family === 'talk') {
+			if (a.family !== b.family) { return a.family === 'hlacomms' ? -1 : 1; }
+			if (a.family === 'hlacomms') {
 				if (a.kind === 'lobby' || b.kind === 'lobby') { return a.kind === 'lobby' ? -1 : 1; }
 				return String(a.name).localeCompare(String(b.name));
 			}
@@ -187,24 +187,24 @@
 		var all = order();
 		if (!all.length) {
 			ui.clear(list).appendChild(ui.emptyBlock('No comms seen yet',
-				'Talk channels, radio transmitters and radio signals show up here as the datasource receives them.'));
+				'HLA Comms channels, radio transmitters and radio signals show up here as the datasource receives them.'));
 			rows = {};
 			facts();
 			renderChatTabs();
 			return;
 		}
 		if (list.querySelector(':scope > .state')) { ui.clear(list); }
-		var sections = { talk: section(list, 'talk', 'Talk'), radio: section(list, 'radio', 'Radio · RPR / DIS') };
+		var sections = { hlacomms: section(list, 'hlacomms', 'HLA Comms'), radio: section(list, 'radio', 'Radio · RPR / DIS') };
 		var keep = {};
-		var counts = { talk: 0, radio: 0 };
+		var counts = { hlacomms: 0, radio: 0 };
 		all.forEach(function (c) {
 			keep[c.id] = true;
 			var r = rows[c.id] || (rows[c.id] = makeRow(c));
 			fillRow(r, c);
 			var show = visible(c);
 			r.root.hidden = !show;
-			if (show) { counts[c.family === 'talk' ? 'talk' : 'radio']++; }
-			sections[c.family === 'talk' ? 'talk' : 'radio'].body.appendChild(r.root);    // also puts it in order
+			if (show) { counts[c.family === 'hlacomms' ? 'hlacomms' : 'radio']++; }
+			sections[c.family === 'hlacomms' ? 'hlacomms' : 'radio'].body.appendChild(r.root);    // also puts it in order
 		});
 		Object.keys(rows).forEach(function (id) {
 			if (!keep[id]) {
@@ -213,8 +213,8 @@
 				if (listening[id]) { delete listening[id]; audioChannels(); }
 			}
 		});
-		['talk', 'radio'].forEach(function (k) {
-			var has = all.some(function (c) { return (c.family === 'talk' ? 'talk' : 'radio') === k; });
+		['hlacomms', 'radio'].forEach(function (k) {
+			var has = all.some(function (c) { return (c.family === 'hlacomms' ? 'hlacomms' : 'radio') === k; });
 			sections[k].root.hidden = !has;
 			sections[k].count.textContent = counts[k] + (counts[k] === 1 ? ' channel' : ' channels');
 		});
@@ -229,7 +229,7 @@
 			var body = el('div.cm-sec-body');
 			s = el('div.cm-section', { 'data-section': key }, [el('div.cm-sec-head', null, [el('span.cm-sec-title', { text: title }), count]), body]);
 			list.appendChild(s);
-			if (key === 'talk' && list.firstChild !== s) { list.insertBefore(s, list.firstChild); }
+			if (key === 'hlacomms' && list.firstChild !== s) { list.insertBefore(s, list.firstChild); }
 		}
 		return { root: s, body: s.querySelector('.cm-sec-body'), count: s.querySelector('.cm-sec-count') };
 	}
@@ -270,10 +270,10 @@
 		r.name.textContent = c.name;
 		r.name.title = (c.description ? c.description + ' · ' : '') + c.id;
 		var b = ui.clear(r.badges);
-		b.appendChild(badge(c.family === 'talk' ? (KIND_LABEL[c.kind] || String(c.kind).toUpperCase()) : 'RF', 'k-' + (c.family === 'talk' ? c.kind : 'rf')));
-		if (c.family === 'talk') { b.appendChild(badge('TALK', 'fam')); }
-		if (c.frequency && c.family === 'talk') { b.appendChild(badge(hz(c.frequency), 'freq')); }
-		if (c.family === 'talk' && c.present === false) { b.appendChild(badge('NO OBJECT', 'dim', 'No Talk channel object (seen in messages only, or removed)')); }
+		b.appendChild(badge(c.family === 'hlacomms' ? (KIND_LABEL[c.kind] || String(c.kind).toUpperCase()) : 'RF', 'k-' + (c.family === 'hlacomms' ? c.kind : 'rf')));
+		if (c.family === 'hlacomms') { b.appendChild(badge('HLA COMMS', 'fam')); }
+		if (c.frequency && c.family === 'hlacomms') { b.appendChild(badge(hz(c.frequency), 'freq')); }
+		if (c.family === 'hlacomms' && c.present === false) { b.appendChild(badge('NO OBJECT', 'dim', 'No HLA Comms channel object (seen in messages only, or removed)')); }
 		var opusNo = c.codec === 'opus' && opusOk === false;
 		if (c.encoding) {
 			b.appendChild(badge(c.encoding, c.playable && !opusNo ? 'enc' : 'bad', opusNo ? OPUS_NO : c.codec === 'opus' ? 'Opus: decoded by this browser'
@@ -295,11 +295,11 @@
 	}
 
 	/**
-	 * Audio may be heard: Talk voice / radio / lobby; a radio frequency that carried audio, or
+	 * Audio may be heard: HLA Comms voice / radio / lobby; a radio frequency that carried audio, or
 	 * nothing yet. A frequency with signals but never audio (data links) only shows its activity.
 	 */
 	function canHear(c) {
-		if (c.family === 'talk') { return c.kind !== 'chat' || c.audio; }
+		if (c.family === 'hlacomms') { return c.kind !== 'chat' || c.audio; }
 		return c.audio || !(c.signals && Object.keys(c.signals).length);
 	}
 
@@ -307,17 +307,17 @@
 		var box = ui.clear(r.sources);
 		var list = c.sources || [];
 		if (!list.length) {
-			box.appendChild(el('span.cm-nosrc', { text: c.family === 'talk' ? 'No senders heard yet' : 'No transmitter object on this frequency' }));
+			box.appendChild(el('span.cm-nosrc', { text: c.family === 'hlacomms' ? 'No senders heard yet' : 'No transmitter object on this frequency' }));
 			return;
 		}
 		list.forEach(function (s) {
-			var chip = el('span.cm-src' + (s.talking ? '.talking' : ''), { 'data-src': String(s.id) });
-			chip.appendChild(el('span.lamp' + (s.talking ? '' : '.off'), { 'aria-hidden': 'true' }));
+			var chip = el('span.cm-src' + (s.speaking ? '.speaking' : ''), { 'data-src': String(s.id) });
+			chip.appendChild(el('span.lamp' + (s.speaking ? '' : '.off'), { 'aria-hidden': 'true' }));
 			if (s.object) {
 				chip.appendChild(el('a.cm-src-name', { href: dsLink(s.object.instanceid), target: 'rift-ds-' + dsid,
 					title: (s.object.classname || '') + ' ' + s.object.instanceid + ' - show it on the datasource page', text: s.label || s.object.label }));
 			} else {
-				chip.appendChild(el('span.cm-src-name', { text: s.label, title: s.uuid ? 'Talk client ' + s.uuid : null }));
+				chip.appendChild(el('span.cm-src-name', { text: s.label, title: s.uuid ? 'HLA Comms client ' + s.uuid : null }));
 			}
 			if (s.equipment) { chip.appendChild(el('span.cm-src-dim', { text: s.equipment })); }
 			if (s.kind === 'transmitter' && s.status !== undefined) {
@@ -385,22 +385,22 @@
 			var a = c.activity || (c.activity = new Array(SECONDS).fill(0));
 			for (var s = 0; s < steps; s++) { a.shift(); a.push(0); }
 			var x = d.channels && d.channels[id];
-			var talking = {};
+			var speaking = {};
 			if (x) {
 				a[a.length - 1] = x.n || 0;
 				if (x.lastactivity) { c.lastactivity = x.lastactivity; }
-				(x.talking || []).forEach(function (sid) { talking[sid] = true; });
+				(x.speaking || []).forEach(function (sid) { speaking[sid] = true; });
 			}
-			(c.sources || []).forEach(function (s) { s.talking = !!talking[s.id]; });
+			(c.sources || []).forEach(function (s) { s.speaking = !!speaking[s.id]; });
 			var r = rows[id];
 			if (r) {
 				drawSpark(r, c);
-				var any = Object.keys(talking).length > 0;
+				var any = Object.keys(speaking).length > 0;
 				r.lamp.className = 'lamp' + (any ? '' : ' off');
-				r.root.classList.toggle('talking', any);
+				r.root.classList.toggle('speaking', any);
 				Array.prototype.forEach.call(r.sources.querySelectorAll('.cm-src'), function (chip) {
-					var on = !!talking[chip.getAttribute('data-src')];
-					chip.classList.toggle('talking', on);
+					var on = !!speaking[chip.getAttribute('data-src')];
+					chip.classList.toggle('speaking', on);
 					chip.querySelector('.lamp').className = 'lamp' + (on ? '' : ' off');
 				});
 			}
@@ -473,7 +473,7 @@
 		}
 		if (!list.length) {
 			var t = ui.clear($('cm-transcript'));
-			t.appendChild(el('div.cm-hint.cm-pad', { text: 'Talk chat channels and the lobby show their messages here.' }));
+			t.appendChild(el('div.cm-hint.cm-pad', { text: 'HLA Comms chat channels and the lobby show their messages here.' }));
 		}
 	}
 
@@ -519,7 +519,7 @@
 		var hint = box.querySelector('.cm-hint');
 		if (hint) { ui.clear(box); }
 		var atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
-		var who = el('span.cm-who', { text: l.sender || '?', title: l.senderid ? 'Talk client ' + l.senderid : null });
+		var who = el('span.cm-who', { text: l.sender || '?', title: l.senderid ? 'HLA Comms client ' + l.senderid : null });
 		who.style.setProperty('--h', hue(l.sender || '?'));
 		box.appendChild(el('div.cm-line' + (l.kind === 'image' ? '.img' : '') + (live ? '.new' : ''), null, [
 			el('span.cm-time', { text: ui.zulu(l.time, false), title: l.time }), who, el('span.cm-text', { text: l.text })

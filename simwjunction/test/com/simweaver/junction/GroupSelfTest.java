@@ -38,18 +38,18 @@ public final class GroupSelfTest {
         check("token inside a name", "radio_Fed".equals(GroupVariables.apply("radio_GROUPVAR1", v)));
         {
             com.simweaver.common.config.SimwProperties kp = new com.simweaver.common.config.SimwProperties();
-            kp.set("talk.radio.map.radio_GROUPVAR1", "251000000");
-            kp.set("talk.channelmap", "Net1>radio_GROUPVAR1");
+            kp.set("comms.radio.map.radio_GROUPVAR1", "251000000");
+            kp.set("comms.channelmap", "Net1>radio_GROUPVAR1");
             kp.set("junction.groupvar.GROUPVAR1", "Default");
             com.simweaver.common.config.SimwProperties out = GroupVariables.apply(kp, v);
-            check("setting names are substituted", "251000000".equals(out.getString("talk.radio.map.radio_Fed", null))
-                    && out.getString("talk.radio.map.radio_GROUPVAR1", null) == null);
-            check("values too", "Net1>radio_Fed".equals(out.getString("talk.channelmap", null)));
+            check("setting names are substituted", "251000000".equals(out.getString("comms.radio.map.radio_Fed", null))
+                    && out.getString("comms.radio.map.radio_GROUPVAR1", null) == null);
+            check("values too", "Net1>radio_Fed".equals(out.getString("comms.channelmap", null)));
             check("the definitions keep their names", "Default".equals(out.getString("junction.groupvar.GROUPVAR1", null)));
             java.util.Set<String> used = new java.util.TreeSet<String>();
             com.simweaver.common.config.SimwProperties only = new com.simweaver.common.config.SimwProperties();
             only.set("junction.groupvar.GROUPVAR7", "x");
-            only.set("talk.radio.map.GROUPVAR3", "1");
+            only.set("comms.radio.map.GROUPVAR3", "1");
             GroupVariables.collect(only, used);
             check("used: names count, definitions do not " + used, used.toString().equals("[GROUPVAR3]"));
         }

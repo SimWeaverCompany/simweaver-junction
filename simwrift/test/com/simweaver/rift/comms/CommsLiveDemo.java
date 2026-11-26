@@ -31,10 +31,10 @@ import java.util.regex.Pattern;
  * A live Comms demo for trying the page in a browser (test only): runs the whole server in this
  * JVM (run it in the runtime folder, with fakerti-1516e.jar on the class path), creates a Talk
  * federation on the test RTI with chat and voice traffic, sends DIS 6 radio traffic (a tone on
- * 251 MHz, binary data on 969 MHz) to UDP port 3000, and creates the datasources HLA3-RPR2-Talk and
+ * 251 MHz, binary data on 969 MHz) to UDP port 3000, and creates the datasources HLA3-RPR2-Comms and
  * DIS6 through the REST API. Then prints the Comms page URLs.
  *
- * <pre>cd simwrift/rtdir; java -Dtalk.foms=a;b -cp ../../out/classes:../../out/test:fakerti-1516e.jar com.simweaver.rift.comms.CommsLiveDemo</pre>
+ * <pre>cd simwrift/rtdir; java -Dcomms.foms=a;b -cp ../../out/classes:../../out/test:fakerti-1516e.jar com.simweaver.rift.comms.CommsLiveDemo</pre>
  */
 public final class CommsLiveDemo {
 
@@ -53,14 +53,14 @@ public final class CommsLiveDemo {
         server.start();
         Thread.sleep(6000);
 
-        String[] foms = System.getProperty("talk.foms", "").split(";");
+        String[] foms = System.getProperty("comms.foms", System.getProperty("talk.foms", "")).split(";");
         InformationExchangeModel m = InformationExchangeModel.fromHlaEvolved(Arrays.asList(foms));
         HlaCodec c = new HlaCodec(m);
         RtiSession s = RtiLibrary.classPath().createSession(RtiSession.Version.HLA_1516E);
         Quiet listener = new Quiet();
         s.connect(ConnectSettings.defaults(), listener);
         listener.session = s;
-        s.join("Talk", "TalkSim", "TalkSim", Arrays.asList(foms), true);
+        s.join("Comms", "CommsSim", "CommsSim", Arrays.asList(foms), true);
         byte[] alpha = uuid(), bravo = uuid(), ops = uuid(), net1 = uuid(), guard = uuid();
         object(s, m, c, "HLAobjectRoot.PitchTalk.Client", "UUID", HValue.ofBytes(alpha), "MasterConfiguredName", HValue.ofText("Alpha Lead"));
         object(s, m, c, "HLAobjectRoot.PitchTalk.Client", "UUID", HValue.ofBytes(bravo), "MasterConfiguredName", HValue.ofText("Bravo Ops"));
@@ -86,7 +86,7 @@ public final class CommsLiveDemo {
 
         // the datasources
         String configs = get("/api/datasourceconfigs");
-        create(idOf(configs, "HLA3-RPR2-Talk"), "Talk");
+        create(idOf(configs, "HLA3-RPR2-Comms"), "Comms");
         create(idOf(configs, "DIS6"), "1");
         System.out.println("DEMO datasources: " + get("/api/datasources"));
 

@@ -312,7 +312,7 @@ Admin and reliable messages are sequenced per stream (§7.2). Messages with sequ
 | 0x0000 | reserved |
 | 0x0001–0x00FF | network: link state, acknowledgements, status, ping/trace |
 | 0x0100–0x01FF | sessions: PDU sessions |
-| 0x0200–0x02FF | sessions: object sessions (HLA, Talk) |
+| 0x0200–0x02FF | sessions: object sessions (HLA, HLA Comms) |
 | 0xF000–0xFFFF | experimental; never sent between different products |
 
 ## 7. Network messages and delivery

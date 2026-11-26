@@ -1,0 +1,15 @@
+# Endpoint kit HLA Comms: an HLA Comms federation. No HLA Comms FOM is delivered with SimWeaver: the
+# endpoint takes the FOM from the running federation (the FDD the RTI reports), so nothing needs to
+# be installed when the HLA Comms federation is already running.
+endpoint.name=HLA Comms
+endpoint.standard=comms
+endpoint.hla.lsd=default
+# the HLA Comms federation's name, as your installation runs it
+endpoint.hla.federation=Comms
+# To let the endpoint create the federation when it is not running, put your own copy of the
+# HLA Comms FOM modules in etc/fom/ieee1516-2010 and name them here (;-separated):
+# endpoint.hla.createfoms=<your HLA Comms FOM module>.xml;<another module>.xml
+# Or always use your FOM files instead of the federation's FDD:
+# endpoint.hla.foms=<your HLA Comms FOM module>.xml;<another module>.xml
+# endpoint.comms.hlastandard=ieee1516-2010
+# endpoint.hla.rtijar=

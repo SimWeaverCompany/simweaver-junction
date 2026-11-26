@@ -61,7 +61,7 @@
   padding: 7px 10px 6px;
 }
 .cm-row.listening { border-left-color: var(--accent); }
-.cm-row.talking { border-left-color: var(--ok); background: var(--bg-input-hi); }
+.cm-row.speaking { border-left-color: var(--ok); background: var(--bg-input-hi); }
 .cm-row-main {
   display: grid;
   grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 1fr) auto;
@@ -106,7 +106,7 @@
 .cm-meter-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ok); transition: width 0.09s linear; }
 .cm-chatbtn.on { color: var(--amber); border-color: var(--amber); }
 
-/* senders: transmitter objects with their platforms, Talk clients */
+/* senders: transmitter objects with their platforms, HLA Comms clients */
 .cm-sources { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--rule); }
 .cm-nosrc { font-family: var(--mono); font-size: 10.5px; color: var(--fg-faint); }
 .cm-src {
@@ -116,7 +116,7 @@
   max-width: 100%;
 }
 .cm-src .lamp { width: 7px; height: 7px; animation: none; }
-.cm-src.talking { border-color: var(--ok); }
+.cm-src.speaking { border-color: var(--ok); }
 .cm-src-name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 a.cm-src-name, a.cm-host { color: var(--accent); }
 a.cm-src-name:hover, a.cm-host:hover { color: var(--accent-hi); text-decoration: underline; }

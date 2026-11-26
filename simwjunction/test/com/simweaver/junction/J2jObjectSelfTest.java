@@ -72,14 +72,14 @@ public final class J2jObjectSelfTest {
                 && String.join(" ", gdyn.getErrors()).contains("fixed model"));
         SimwProperties talk = new SimwProperties();
         talk.set("junction.endpoints", "t;j2j");
-        talk.set("junction.endpoint.t.standard", "talk");
+        talk.set("junction.endpoint.t.standard", "comms");
         talk.set("junction.endpoint.t.hla.federation", "TalkFed");
         talk.set("junction.endpoint.j2j.standard", "j2j");
         talk.set("junction.endpoint.j2j.j2j.session", "radio");
-        talk.set("junction.router.kind", "talk");
+        talk.set("junction.router.kind", "comms");
         GatewayConfig gtalk = loader.gateway(new File(junctions, "talk.junction.settings"), talk);
-        check("a J2J endpoint in a Talk gateway needs the Talk FOM files: " + gtalk.getErrors(), !gtalk.isValid()
-                && String.join(" ", gtalk.getErrors()).contains("needs the Talk FOM"));
+        check("a J2J endpoint in an HLA Comms gateway needs the HLA Comms FOM files: " + gtalk.getErrors(), !gtalk.isValid()
+                && String.join(" ", gtalk.getErrors()).contains("needs the HLA Comms FOM"));
         GatewayConfig gb = loader.gateway(new File(junctions, "gb.junction.settings"), gateway("Green", jar3, rpr2, null));
         GatewayConfig gc = loader.gateway(new File(junctions, "gc.junction.settings"), gateway("Red", jar3, rpr2, null));
 

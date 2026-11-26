@@ -25,12 +25,35 @@
 		return { v: VERSION, section: 'rift', rift: ca.riftDefaults(), junction: ca.junctionDefaults() };
 	}
 
+	/** 0.14.1: gateways saved before used the old names of the HLA Comms settings and kits. */
+	function migrateComms(s) {
+		var gws = s && s.junction && Array.isArray(s.junction.gws) ? s.junction.gws : [];
+		var old = /^(talk|pitchtalk)$/i;
+		function kit(k) {
+			return typeof k !== 'string' ? k : k.replace(/^endpoints\/talk\.endpoint\.settings$/, 'endpoints/hla-comms.endpoint.settings')
+				.replace(/^routers\/talk-(messages|lobby-only|full)\.router\.settings$/, 'routers/comms-$1.router.settings');
+		}
+		gws.forEach(function (g) {
+			(g.eps || []).forEach(function (ep) {
+				if (old.test(ep.standard || '')) { ep.standard = 'comms'; }
+				if (ep.talkhla && !ep.commshla) { ep.commshla = ep.talkhla; }
+				delete ep.talkhla;
+				ep.kit = kit(ep.kit);
+			});
+			if (g.rt) {
+				if (old.test(g.rt.kind || '')) { g.rt.kind = 'comms'; }
+				g.rt.kit = kit(g.rt.kit);
+			}
+		});
+	}
+
 	function restore() {
 		var s = ca.load();
 		// 0.9.0 saved the gateway section as "junktion"; carry it over
 		if (s && s.junktion && !s.junction) { s.junction = s.junktion; }
 		if (s) { delete s.junktion; if (s.section === 'junktion') { s.section = 'junction'; } }
 		if (location.hash === '#junktion') { history.replaceState(null, '', '#junction'); }
+		migrateComms(s);
 		if (!s || s.v !== VERSION || !s.rift || !s.junction || !Array.isArray(s.rift.dsList) || !Array.isArray(s.junction.gws)) { s = fresh(); }
 		if (location.hash === '#junction' || location.hash === '#rift') { s.section = location.hash.slice(1); }
 		return s;
