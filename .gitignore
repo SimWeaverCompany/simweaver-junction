@@ -1,4 +1,4 @@
-# IntelliJ IDEA interna filer (ska ALDRIG till GitHub)
+# IntelliJ IDEA
 .idea/
 *.iml
 *.iws
@@ -8,24 +8,18 @@ out/
 fakerti/
 gen/
 dist/
-prompts/
 simwrift/rtdir/maps/cache/
 
-# Byggfiler och kompilerad kod
+# Buildfiles
 target/
 build/
 .gradle/
 
-# Dropbox-specifika filer
-.dropbox
-.dropbox.attr
-desktop.ini
-Thumbs.db
 
-# Loggfiler
+# Log
 *.log
 
-# annat
+# others
 prompts/
 dist-rift.bat
 CHANGES.md
