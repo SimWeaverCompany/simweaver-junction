@@ -28,7 +28,7 @@ public final class EntityTypeJsonSelfTest {
         check("without the file: no entitytype", !json.node(cv90, true).containsKey("entitytype"));
 
         SisoEnumerations.setGlobal(SisoEnumerations.load(Paths.get(args.length > 0 ? args[0]
-                : "simwrift/rtdir/etc/enumerations/SISO-REF-010.xml")), null);
+                : "simwrift/rtdir/enumerations/SISO-REF-010.xml")), null);
         Map<String, Object> full = json.node(cv90, true);
         @SuppressWarnings("unchecked")
         Map<String, Object> et = (Map<String, Object>) full.get("entitytype");

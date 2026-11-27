@@ -43,7 +43,7 @@
 	 */
 	var RPR2_FILE = 'RPR_FOM_v2.0_Link16_1516-2010.xml';
 	var RPR2_HLA4_FILE = 'RPR_FOM_v2.0_Link16_1516-2025.xml (the same, in the HLA 4 format)';
-	var DIST_ONLY = ['Where', 'etc/junctions.dist: copy it to etc/junctions to use it'];
+	var DIST_ONLY = ['Where', 'junctions.dist in the program folder: copy it to etc/junctions to use it'];
 	var EP_KITS = [
 		{ source: 'endpoints/hla3-rpr2.endpoint.settings', name: 'HLA3-RPR2', standard: 'ieee1516-2010', target: 'Blue',
 			sets: [['FOM', RPR2_FILE + ' (Link 16 included)'], ['RTI', 'the RTI on Rift\'s class path, LSD "default"']] },
@@ -639,7 +639,7 @@
 				'The default target. The Start dialog lists the federations the RTI knows.', { req: true }),
 			ca.field('FOM modules', ca.fomPicker(ep, 'foms', folder, { vars: true }),
 				comms ? ca.rich('Empty: the FOM is taken from the **running** HLA Comms federation (none is delivered). Or your own copy of the HLA Comms FOM files in `etc/fom/' + folder + '`.')
-					: ca.rich('Files or folders in `etc/fom/' + folder + '`, or full paths. Must match the federation\'s FOM. `dynamic`: from the running federation.'), { req: !comms, wide: true }),
+					: ca.rich('Files or folders in the delivered `fom/' + folder + '` or your own `etc/fom/' + folder + '`, or full paths. Must match the federation\'s FOM. `dynamic`: from the running federation.'), { req: !comms, wide: true }),
 			ca.field('Create with', ca.input(ep, 'createfoms', { placeholder: comms ? 'your HLA Comms FOM files, ;-separated' : 'FOM files, ;-separated', vars: true }),
 				ca.rich('Only when the FOM comes from the federation (' + (comms ? 'empty above' : '`dynamic`') + '): the files to **create** the federation with when it is not running (`endpoint.hla.createfoms`). Empty: the federation must be running.'), { opt: true, wide: true })
 		]));
@@ -1116,10 +1116,10 @@
 			if (ep.kCompression !== 'none') { put('kafka.compression', ep.kCompression); }
 			if (ep.kValues !== 'full') { put('kafka.values', ep.kValues, 'JSON records: only the changed attributes'); }
 			if (String(ep.kObjTimeout).trim() && String(ep.kObjTimeout).trim() !== '0') { put('kafka.objecttimeoutseconds', String(ep.kObjTimeout).trim()); }
-			if (ca.splitList(ep.kFoms).length) { put('hla.foms', ca.splitList(ep.kFoms).join(';'), 'the object model of the JSON records, in etc/fom/ieee1516-2010'); }
+			if (ca.splitList(ep.kFoms).length) { put('hla.foms', ca.splitList(ep.kFoms).join(';'), 'the object model of the JSON records, in etc/fom/ieee1516-2010 or the delivered fom/ieee1516-2010'); }
 		} else {
 			var foms = ca.splitList(ep.foms);
-			if (foms.length) { put('hla.foms', foms.join(';'), 'FOM modules (files or folders) in etc/fom/' + ca.fomFolder(ep.standard === 'comms' ? ep.commshla : ep.standard)); }
+			if (foms.length) { put('hla.foms', foms.join(';'), 'FOM modules (files or folders) in etc/fom/' + ca.fomFolder(ep.standard === 'comms' ? ep.commshla : ep.standard) + ' or the delivered fom/' + ca.fomFolder(ep.standard === 'comms' ? ep.commshla : ep.standard)); }
 			if (String(ep.createfoms || '').trim() && (!foms.length || foms.join(';').toLowerCase() === 'dynamic')) {
 				put('hla.createfoms', ca.splitList(ep.createfoms).join(';'), 'create the federation with these FOM files when it is not running');
 			}

@@ -27,8 +27,8 @@
 	var CATALOG = {
 		'ieee1516-2010': [
 			{ v: 'RPR_FOM_v2.0_Link16_1516-2010.xml', l: 'RPR FOM v2.0 (one file, with Link 16)', g: 'RPR FOM' },
-			{ v: 'rpr3', l: 'rpr3/ - RPR FOM v3.0 (all 15 modules)', g: 'RPR FOM', title: 'The folder etc/fom/ieee1516-2010/rpr3: every module in it' },
-			{ v: 'netn4-hla3', l: 'netn4-hla3/ - NETN 4 (all modules)', g: 'NETN', title: 'The folder etc/fom/ieee1516-2010/netn4-hla3: every module in it' }
+			{ v: 'rpr3', l: 'rpr3/ - RPR FOM v3.0 (all 15 modules)', g: 'RPR FOM', title: 'The delivered folder fom/ieee1516-2010/rpr3: every module in it' },
+			{ v: 'netn4-hla3', l: 'netn4-hla3/ - NETN 4 (all modules)', g: 'NETN', title: 'The delivered folder fom/ieee1516-2010/netn4-hla3: every module in it' }
 		],
 		'ieee1516-2025': RPR2_2025.map(function (f) { return { v: f, l: f.replace('_v2.0.xml', ''), g: 'RPR FOM v2.0 modules (HLA 4 format)' }; })
 	};
@@ -108,9 +108,10 @@
 		return {
 			dsList: [newDatasource({ name: 'Blue federation', federation: 'Blue' })],
 			dsSel: 0,
-			server: { on: false, port: '8843', root: 'webroot', keystore: 'keystore.jks', pwd: '', logdir: './log',
-				jxEnabled: true, jxDir: 'etc/junctions', jxList: true, cn: 'localhost', alias: 'simweaver', validity: '730',
-				mapEnabled: true, mapFile: '', mapDir: 'maps/raster', mapCache: 'maps/cache', mapMaxZoom: '' },
+			// 0.14.5: the server makes its own HTTPS key (etc/tls/server.p12); keystore only for one of your own
+			server: { on: false, port: '8843', root: 'webroot', keystore: '', pwd: '', san: '', logdir: '',
+				jxEnabled: true, jxDir: 'etc/junctions', jxList: true,
+				mapEnabled: true, mapFile: '', mapDir: '', mapCache: '', mapMaxZoom: '' },
 			lp: { on: false, rows: [
 				{ cls: 'BaseEntity', attrs: 'EntityIdentifier, EntityType, ForceIdentifier' },
 				{ cls: 'EmbeddedSystem.RadioTransmitter', attrs: 'HostObjectIdentifier, Frequency, TransmitterOperationalStatus' }
@@ -279,7 +280,7 @@
 				ca.field('Federation', ca.input(d, 'federation', { placeholder: 'e.g. Blue' }),
 					'Filled in when a user creates the datasource; they can pick another one the RTI knows.', { opt: true }),
 				ca.field('FOM modules', ca.fomPicker(d, 'foms', folder, { files: true }),
-					ca.rich('Files in `etc/fom/' + folder + '` (a sub folder as `rpr3/RPR-Base_v3.0.xml`), or full paths. The modules must match the federation\'s FOM.'), { req: true, wide: true })
+					ca.rich('Files in the delivered `fom/' + folder + '` or your own `etc/fom/' + folder + '` (a sub folder as `rpr3/RPR-Base_v3.0.xml`), or full paths. The modules must match the federation\'s FOM.'), { req: true, wide: true })
 			]));
 			body.push(ca.sub('RTI connection'));
 			var hla4 = d.standard === 'ieee1516-2025';
@@ -298,8 +299,8 @@
 				ca.field('Federate type', ca.input(d, 'fedType', { placeholder: 'SimwRift' }), 'How the RTI and other tools see Rift.', { opt: true }),
 				ca.field('Reconnect', ca.check(d, 'reconnect', 'Rejoin when the connection to the RTI is lost')),
 				d.reconnect ? ca.field('Retry every', el('div.ca-inline', null, [ca.input(d, 'reconnectSecs', { numeric: true, validate: function (v) { return ca.isInt(v, 1) ? null : 'Seconds'; } }), el('span.ca-unit', { text: 's' })])) : null,
-				ca.field('FOM base folder', ca.input(d, 'fomRoot', { placeholder: './etc/fom' }),
-					ca.rich('Only when your FOM files are elsewhere. Rift adds the standard\'s folder: `<base>/' + folder + '`.'), { opt: true })
+				ca.field('FOM base folder', ca.input(d, 'fomRoot', { placeholder: 'etc/fom, then the delivered fom' }),
+					ca.rich('Only when your FOM files are elsewhere: this folder alone, relative to the site folder. Rift adds the standard\'s folder: `<base>/' + folder + '`.'), { opt: true })
 			])]));
 		}
 		var sec = panel('R2', 'Datasource configurations', [el('span', { text: st.dsList.length + ' file' + (st.dsList.length > 1 ? 's' : '') })], body);
@@ -322,7 +323,13 @@
 	function serverPanel(st) {
 		var s = st.server;
 		// state saved by an older page: the map keys are new
-		if (s.mapEnabled === undefined) { s.mapEnabled = true; s.mapDir = 'maps/raster'; s.mapCache = 'maps/cache'; s.mapMaxZoom = ''; }
+		if (s.mapEnabled === undefined) { s.mapEnabled = true; s.mapDir = ''; s.mapCache = ''; s.mapMaxZoom = ''; }
+		if (s.san === undefined) { s.san = ''; }
+		// 0.14.5: saved before, with the old written-out defaults: back to the new defaults (a key store kept,
+		// so a site's certificate does not change behind its back)
+		if (s.logdir === './log') { s.logdir = ''; }
+		if (s.mapDir === 'maps/raster') { s.mapDir = ''; }
+		if (s.mapCache === 'maps/cache') { s.mapCache = ''; }
 		if (s.mapFile === undefined) { s.mapFile = ''; }
 		if (s.jxList === undefined) { s.jxList = true; }
 		if (s.syslogOn === undefined) {          // 0.9.22: saved states from before
@@ -330,7 +337,7 @@
 			s.syslogFacility = 'local0'; s.syslogLevel = 'INFO'; s.syslogTrust = ''; s.syslogTrustPwd = '';
 		}
 		var body = [
-			el('p.ca-lead', null, ca.rich('Server-wide settings: the HTTPS port, the key store, the log folder and syslog, and whether Junction runs. Only needed when the defaults do not suit you.')),
+			el('p.ca-lead', null, ca.rich('Server-wide settings: the HTTPS port and certificate, the log folder and syslog, and whether Junction runs. Only needed when the defaults do not suit you.')),
 			ca.check(s, 'on', '**Write server settings** (`etc/server.root.settings`)')
 		];
 		if (s.on) { body.push(ca.goesInto([{ role: 'server', path: 'etc/server.root.settings' }])); }
@@ -349,8 +356,8 @@
 				ca.field('Map', ca.check(s, 'mapEnabled', 'Show objects on a map (datasource page, map tab)'), 'Off: no map buttons, and the map API answers MAP_DISABLED.'),
 				s.mapEnabled ? ca.field('Default map file', ca.input(s, 'mapFile', { placeholder: 'the first map in the map folder' }),
 					'The background map users see first, e.g. maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif, or a file anywhere on the server. Users can pick another map of the server in the map view.') : null,
-				s.mapEnabled ? ca.field('Map folder', ca.input(s, 'mapDir', { placeholder: 'maps/raster' }), 'One sub folder per map, with a .tif (also .png, .jpg) in it.') : null,
-				s.mapEnabled ? ca.field('Tile cache', ca.input(s, 'mapCache', { placeholder: 'maps/cache' }), 'Made tiles, on disk. Rebuilt when the raster file changes.') : null,
+				s.mapEnabled ? ca.field('Map folder', ca.input(s, 'mapDir', { placeholder: 'maps/raster' }), 'One sub folder per map, with a .tif (also .png, .jpg) in it. Empty: maps/raster in the site, then in the program folder.') : null,
+				s.mapEnabled ? ca.field('Tile cache', ca.input(s, 'mapCache', { placeholder: 'cache/maps' }), 'Made tiles, on disk. Rebuilt when the raster file changes.') : null,
 				s.mapEnabled ? ca.field('Deepest tile zoom', ca.input(s, 'mapMaxZoom', { numeric: true, placeholder: 'from the raster (Natural Earth 10 m: 6)',
 					validate: function (v) { return v && !ca.isInt(v, 1, 14) ? '1 - 14' : null; } }), 'Deeper zooms scale these tiles up.', { opt: true }) : null
 			]));
@@ -380,15 +387,15 @@
 				s.syslogOn && tls && String(s.syslogTrust || '').trim() ? ca.field('Trust store password', ca.input(s, 'syslogTrustPwd', {})) : null
 			]));
 			body.push(ca.sub('Certificate (HTTPS)'));
-			body.push(ca.note('The server only speaks HTTPS. It needs a Java key store with a certificate. The command in the result creates a self-signed one with Java\'s `keytool`; browsers warn about it once.'));
+			body.push(ca.note('The server only speaks HTTPS. On its first start it makes its own key, `etc/tls/server.p12`, with a self-signed certificate for this computer\'s names and addresses; browsers warn about it once (compare the fingerprint on the `HTTPS:` start-up line). Name a key store only to use a certificate of your own.'));
 			body.push(ca.grid([
-				ca.field('Key store file', ca.input(s, 'keystore', { placeholder: 'keystore.jks' })),
-				ca.field('Key store password', ca.input(s, 'pwd', { placeholder: 'password',
-					validate: function (v) { return v && v.length < 6 ? 'keytool needs at least 6 characters' : null; } }),
-					'Empty: the built-in default "password". Choose your own for real use.'),
-				ca.field('Host name in the certificate', ca.input(s, 'cn', { placeholder: 'localhost' }), 'The name browsers use to reach the server.'),
-				ca.field('Valid for', el('div.ca-inline', null, [ca.input(s, 'validity', { numeric: true }), el('span.ca-unit', { text: 'days' })])),
-				ca.field('Web folder', ca.input(s, 'root', { placeholder: 'webroot' }), 'Where the Web UI files are.', { opt: true })
+				ca.field('More names in the certificate', ca.input(s, 'san', { placeholder: 'e.g. junction.example.org; 10.20.0.5' }),
+					'Names or addresses browsers use to reach the server, besides the computer\'s own. For the key the server makes (delete etc/tls/server.p12 to make it again).', { opt: true }),
+				ca.field('Own key store file', ca.input(s, 'keystore', { placeholder: 'etc/tls/server.p12 (made by the server)' }),
+					'A PKCS12 (or JKS) file with your own certificate, relative to the site folder.', { opt: true }),
+				ca.field('Key store password', ca.input(s, 'pwd', { placeholder: 'password' }),
+					'Empty: the built-in default "password".', { opt: true }),
+				ca.field('Web folder', ca.input(s, 'root', { placeholder: 'webroot' }), 'Where the Web UI files are, in the program folder.', { opt: true })
 			]));
 		}
 		var sec = panel('R3', 'Server settings', [el('span', { text: s.on ? 'included' : 'not included' })], body);
@@ -445,7 +452,7 @@
 			p.kv('datasource.standard', d.standard);
 			p.blank();
 			if (isDis(d.standard)) {
-				p.comment('the RPR FOM that the PDUs are mapped to (in etc/fom/ieee1516-2010)');
+				p.comment('the RPR FOM that the PDUs are mapped to (delivered in fom/ieee1516-2010)');
 				p.kv('datasource.hla.foms', 'RPR_FOM_v2.0_Link16_1516-2010.xml');
 				p.blank();
 				p.comment('DIS: receive interface (0.0.0.0 = all; an address or name; a multicast group, e.g. 239.1.2.3@eth0)');
@@ -465,7 +472,7 @@
 				if (d.disIf === 'address' && !d.disAddr.trim()) { issues.push({ level: 'err', text: label + ': give the interface to receive on.' }); }
 			} else {
 				var foms = ca.splitList(d.foms);
-				p.comment('FOM module files, relative to ' + (d.fomRoot ? d.fomRoot : './etc/fom') + '/' + ca.fomFolder(d.standard));
+				p.comment('FOM module files, in ' + (d.fomRoot ? d.fomRoot + '/' + ca.fomFolder(d.standard) : 'etc/fom/' + ca.fomFolder(d.standard) + ' or the delivered fom/' + ca.fomFolder(d.standard)));
 				p.kv('datasource.hla.foms', foms.join(';'));
 				p.blank();
 				p.comment(d.standard === 'ieee1516-2025' ? 'the RTI configuration name (empty: the RTI\'s default)' : 'local settings designator, passed to the RTI\'s connect()');
@@ -485,7 +492,7 @@
 					issues.push({ level: 'warn', text: label + ': `' + foms.filter(function (f) { return /_1516-2010\.xml$/.test(f); })[0] + '` is an HLA Evolved FOM; HLA 4 needs modules in the 1516-2025 format.' });
 				}
 				if (d.standard === 'ieee1516-2010' && foms.some(function (f) { return /^RPR-.*_v2\.0\.xml$/.test(f); })) {
-					issues.push({ level: 'warn', text: label + ': the `RPR-*_v2.0.xml` modules delivered with Rift are in the HLA 4 format (etc/fom/ieee1516-2025).' });
+					issues.push({ level: 'warn', text: label + ': the `RPR-*_v2.0.xml` modules delivered with Rift are in the HLA 4 format (fom/ieee1516-2025).' });
 				}
 				if (!d.federation.trim()) { issues.push({ level: 'info', text: label + ': no federation set; it is typed or picked when the datasource is created.' }); }
 				if (d.lsdMode === 'crc' && portCheck(d.crcPort)) { issues.push({ level: 'err', text: label + ': the CRC port is not a port number.' }); }
@@ -507,10 +514,18 @@
 			sp.blank();
 			sp.kv('webserver.port', String(s.port).trim() || '8843', 'HTTPS port of the Web UI and the REST API');
 			if (s.root.trim() && s.root.trim() !== 'webroot') { sp.kv('webserver.root', s.root.trim(), 'web folder'); }
-			sp.kv('webserver.keystore.path', s.keystore.trim() || 'keystore.jks', 'key store with the server certificate');
-			sp.kv('webserver.keystore.pwd', s.pwd || 'password');
-			sp.blank();
-			sp.kv('logdir', s.logdir.trim() || 'logs', 'log folder');
+			if (String(s.san || '').trim()) {
+				sp.kv('webserver.tls.san', String(s.san).split(/[;,]/).map(function (x) { return x.trim(); }).filter(function (x) { return x; }).join(';'),
+					'more names and addresses for the certificate the server makes');
+			}
+			if (String(s.keystore || '').trim()) {
+				sp.kv('webserver.keystore.path', s.keystore.trim().replace(/\\/g, '/'), 'key store with your own certificate (relative to the site folder)');
+			}
+			if (s.pwd) { sp.kv('webserver.keystore.pwd', s.pwd); }
+			if (String(s.logdir || '').trim()) {
+				sp.blank();
+				sp.kv('logdir', s.logdir.trim().replace(/\\/g, '/'), 'log folder (default: logs in the site folder)');
+			}
 			if (s.syslogOn) {
 				sp.kv('syslog.enabled', 'true', 'also send the log to a syslog server');
 				sp.kv('syslog.host', String(s.syslogHost || '').trim());
@@ -532,8 +547,8 @@
 			sp.kv('map.enabled', s.mapEnabled === false ? 'false' : 'true', 'the map view of the datasource page');
 			if (s.mapEnabled !== false) {
 				if (String(s.mapFile || '').trim()) { sp.kv('map.file', String(s.mapFile).trim().replace(/\\/g, '/'), 'the default background map'); }
-				sp.kv('map.dir', String(s.mapDir || '').trim() || 'maps/raster', 'one sub folder per background map (a .tif in it)');
-				sp.kv('map.cache.dir', String(s.mapCache || '').trim() || 'maps/cache', 'tiles made from the maps');
+				if (String(s.mapDir || '').trim()) { sp.kv('map.dir', String(s.mapDir).trim(), 'one sub folder per background map (a .tif in it); only this folder'); }
+				if (String(s.mapCache || '').trim()) { sp.kv('map.cache.dir', String(s.mapCache).trim(), 'tiles made from the maps'); }
 				if (String(s.mapMaxZoom || '').trim()) { sp.kv('map.maxzoom', String(s.mapMaxZoom).trim()); }
 			}
 			files.push({ path: 'etc/server.root.settings', kind: 'replace',
@@ -560,7 +575,7 @@
 			if (!st.lp.rows.some(function (r) { return String(r.cls || '').trim(); })) { issues.push({ level: 'warn', text: 'Object list attributes: no class given.' }); }
 		}
 
-		steps.push('Put each file on the server at the path shown, relative to Rift\'s installation folder (where `run.sh` / `run.bat` are).');
+		steps.push('Put each file on the server at the path shown, relative to the server\'s site folder: the unzipped folder (where `run.sh` / `run.bat` are) when it runs the simple way, else the folder given with `--root=` or `JUNCTION_SITE` (e.g. /var/lib/simweaver-junction).');
 		if (st.dsList.length) {
 			steps.push('Open **Rift datasources** and press **Reload**: the new configuration appears as a card. Press **Create datasource** on it to join.');
 		}
@@ -568,10 +583,11 @@
 			steps.push('HLA needs the RTI library on Rift\'s class path: the `RTI_JAR` line of the start script (several jars: `:` on Linux, `;` on Windows).');
 		}
 		if (s.on) {
-			steps.push('If you want a new certificate, run in the installation folder: `keytool -genkeypair -keyalg RSA -keysize 2048 -alias ' + (s.alias || 'simweaver')
-				+ ' -keystore ' + (s.keystore.trim() || 'keystore.jks') + ' -storepass ' + (s.pwd || 'password') + ' -validity ' + (String(s.validity).trim() || '730')
-				+ ' -dname "CN=' + (s.cn.trim() || 'localhost') + '"`');
-			steps.push('Restart the server, then browse to `https://' + (s.cn.trim() || '<server>') + ':' + (String(s.port).trim() || '8843') + '/`.');
+			if (String(s.san || '').trim() && !String(s.keystore || '').trim()) {
+				steps.push('The certificate gets the new names when the server makes its key again: delete `etc/tls/server.p12` in the site folder before the restart (browsers then see a new fingerprint).');
+			}
+			var host = String(s.san || '').split(/[;,]/).map(function (x) { return x.trim(); }).filter(function (x) { return x; })[0];
+			steps.push('Restart the server, then browse to `https://' + (host || '<server>') + ':' + (String(s.port).trim() || '8843') + '/`.');
 		} else if (st.lp.on) {
 			steps.push('Restart the server for the object list attributes to apply.');
 		}

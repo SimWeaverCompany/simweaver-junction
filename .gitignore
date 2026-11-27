@@ -24,3 +24,12 @@ prompts/
 dist-rift.bat
 CHANGES.md
 simwrift/returning-web-results-from-ops.txt
+
+/simwrift/rtdir/.lock
+/simwrift/rtdir/log/
+/simwrift/rtdir/logs/
+/simwrift/rtdir/cache/
+/simwrift/rtdir/maps/cache/
+/simwrift/rtdir/keystore.jks
+/simwrift/rtdir/etc/*
+/simwrift/rtdir/etc/server.root.settings

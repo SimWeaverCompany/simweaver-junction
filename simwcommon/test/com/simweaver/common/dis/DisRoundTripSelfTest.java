@@ -32,7 +32,7 @@ public final class DisRoundTripSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom");
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom");
         iem = InformationExchangeModel.fromHlaEvolved(Collections.singletonList(
                 new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath()));
         codec = new HlaCodec(iem);

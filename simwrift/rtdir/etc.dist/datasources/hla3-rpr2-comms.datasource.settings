@@ -1,0 +1,21 @@
+# Datasource HLA3-RPR2-Comms: an HLA Evolved federation running the RPR FOM v2.0 (Link 16 included)
+# and the HLA Comms FOM. No HLA Comms FOM is delivered with SimWeaver: the datasource takes the FOM
+# from the running federation (dynamic), so the federation must be running. To use your own copy of
+# the HLA Comms FOM files instead, put them in etc/fom/ieee1516-2010 and list them:
+# datasource.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml;<your HLA Comms FOM module>.xml;<another module>.xml
+datasource.name=HLA3-RPR2-Comms
+datasource.standard=ieee1516-2010
+# HLA related - effective when using HLA
+# semicolon separated list of files or directories.
+# relative to the comdir of the standard specified.
+datasource.hla.foms=dynamic
+#
+datasource.hla.lsd=default
+datasource.hla.federation=Comms
+# datasource.hla.customfederatetype=SimwRift
+# datasource.hla.reconnectondisconnect=true
+# datasource.hla.reconnectintervalseconds=5
+# datasource.hla.customfomrootdir=etc/fom
+# HLA Comms audio for the Comms page (0.12.0): HLA Comms PCM16 has no sample rate of its own
+# datasource.comms.samplerate=16000
+# datasource.comms.pcmbyteorder=little

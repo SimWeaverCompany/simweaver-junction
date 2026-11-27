@@ -44,7 +44,7 @@ public final class IffBridgeSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom").getAbsoluteFile();
         File rtiDir = new File(args.length > 1 ? args[1] : "fakerti/build").getAbsoluteFile();
         String rpr2 = new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath();
         List<String> rpr3 = new ArrayList<String>();
@@ -59,7 +59,7 @@ public final class IffBridgeSelfTest {
         junctions.mkdirs();
         File mappings = new File(junctions, "mappings");
         mappings.mkdirs();
-        Files.copy(new File("simwrift/rtdir/etc/junctions/mappings/rpr2-rpr3.mapping").toPath(), new File(mappings, "rpr2-rpr3.mapping").toPath());
+        Files.copy(new File("simwrift/rtdir/mappings/rpr2-rpr3.mapping").toPath(), new File(mappings, "rpr2-rpr3.mapping").toPath());
         SimwProperties p = new SimwProperties();
         p.set("junction.name", "RPR v2 - v3 IFF");
         p.set("junction.endpoints", "two;three");

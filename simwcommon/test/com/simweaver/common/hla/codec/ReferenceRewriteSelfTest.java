@@ -36,7 +36,7 @@ public final class ReferenceRewriteSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File root = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
+        File root = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom").getAbsoluteFile();
         File e = new File(root, "ieee1516-2010");
         model("RPR v2 (1516-2010)", InformationExchangeModel.fromHlaEvolved(Collections.singletonList(new File(e, "RPR_FOM_v2.0_Link16_1516-2010.xml").getPath())),
                 56, Collections.<String>emptyList());

@@ -1,0 +1,195 @@
+# SimWeaver Junction - server settings (etc/server.root.settings)
+# Read at start-up: restart the server after a change. Full list: doc/simweaver-rift-install-and-config.md, 2.1.
+#
+# Folders (0.14.5): this file is in the site folder's etc. The site folder is root= on the command line
+# (run.sh --root=/var/lib/simweaver-junction), else the environment variable JUNCTION_SITE, else the
+# program folder (the unpacked zip). Relative paths in this file are relative to the site folder.
+# On Windows write / or \\ in paths: a single \ is an escape character in this file.
+
+# ---------------------------------------------------------------- folders
+# The log files (default: logs in the site folder), e.g. /var/log/simweaver or D:/SimWeaver/logs
+#logdir=logs
+# The configuration folder (default: etc in the site folder): datasources, junctions, fom, j2j,
+# auth, enumerations, listprofiles.properties. Set here, the server takes all of them from that
+# folder, and reads its server.root.settings too (on top of this file). Usually root= is all you
+# need instead.
+#etcdir=/srv/simweaver/etc
+#etcdir=D:/SimWeaver/etc
+
+# ---------------------------------------------------------------- web server
+webserver.port=8843
+# the web pages (relative to the program folder)
+webserver.root=webroot
+# The HTTPS key store (default etc/tls/server.p12). When the file does not exist, the server makes a
+# new key and a self-signed certificate there at start-up (0.14.5); the start-up lines show its
+# fingerprint. Name your own key store (PKCS12 or JKS) here to use a certificate of your own.
+#webserver.keystore.path=etc/tls/server.p12
+#webserver.keystore.pwd=password
+# extra names and addresses the made certificate carries (besides localhost, this computer's name and
+# addresses), for the names users type in their browsers; ; between them
+#webserver.tls.san=junction.example.org; 10.0.0.5
+
+# ---------------------------------------------------------------- syslog (0.9.22)
+# Also send the log to a syslog server. Full list: doc/simweaver-rift-install-and-config.md, 2.7.
+syslog.enabled=false
+#syslog.host=logs.example.org
+# udp (default, port 514), tcp (514) or tls (6514)
+#syslog.protocol=udp
+#syslog.port=514
+# rfc5424 (default) or rfc3164 (the older BSD format)
+#syslog.format=rfc5424
+#syslog.facility=local0
+# lowest level sent: SEVERE WARNING NOTICE (events and problems only) INFO CONFIG FINE
+#syslog.level=INFO
+# tls: the CA of the syslog server's certificate, if Java's own CAs do not have it
+#syslog.tls.truststore=etc/syslog-ca.p12   (relative to the site folder)
+#syslog.tls.truststorepassword=changeit
+
+# ---------------------------------------------------------------- J2J network (0.10.0)
+# Off until etc/j2j/network.settings lists members. Full list: install guide, 2.8.
+# this server's id in etc/j2j/network.settings
+#j2j.node.id=sto-1
+# TCP and UDP port of the links
+#j2j.port=8844
+# the TLS last resort; 0 = none (a port below 1024 needs the right to bind it on Linux)
+#j2j.fallback.port=443
+#j2j.fallback.proxy=proxy.example.org:8080
+#j2j.session.lostseconds=10
+
+# ---------------------------------------------------------------- entity type names (0.11.1)
+# SISO-REF-010 (SISO's enumerations): names entity types in the object view; empty = numbers only
+#enumerations.siso.file=etc/enumerations/SISO-REF-010.xml
+
+# ---------------------------------------------------------------- API authentication (0.11.0)
+# Off by default. On: every /api call needs a token (Authorization: Bearer swt_...), and the
+# Web UI signs in once with it. Make tokens with  run.sh --new-token=<name>  (install guide, 2.9).
+#api.auth.enabled=true
+#api.auth.tokens=etc/auth/api-tokens.settings
+# how long a browser stays signed in
+#api.auth.sessionhours=12
+# behind a reverse proxy with another address: its origin, so the pages may change things
+#api.auth.origins=https://rift.example.org
+
+# ---------------------------------------------------------------- MCP for AI assistants (0.14.0)
+# Off by default. On: POST /api/mcp answers AI assistants (Model Context Protocol) with read-only
+# tools over the datasources, gateways, J2J and Infra (install guide, 2.11). With API
+# authentication on they need a token; without it only clients on this computer are answered.
+#mcp.enabled=true
+# the tools offered, ; between them (empty = all)
+#mcp.tools=server_overview;health_check;find_objects;get_object;relation
+#mcp.ratelimit.perminute=120
+#mcp.maxresultkb=64
+# without API authentication, also answer other computers (only on a network you control)
+#mcp.allowremotewithoutauth=false
+
+# ---------------------------------------------------------------- Junction gateways
+junction.enabled=true
+# the gateway configurations (default: junctions in the configuration folder, see etcdir)
+#junction.dir=etc/junctions
+# list each gateway endpoint as a datasource configuration too
+junction.datasourceconfigs=true
+
+# ---------------------------------------------------------------- map view
+# false removes the map from the Web UI and the API
+map.enabled=true
+# background maps: one sub folder per map, maps/raster/<map>/<map>.tif (default: maps/raster in the
+# site folder, then in the program folder)
+#map.dir=maps/raster
+# the default map; without it, map.default, else the first map found
+#map.file=maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif
+#map.default=HYP_HR_SR_W_DR
+# map tiles made by the server (default: cache/maps in the site folder)
+#map.cache.dir=cache/maps
+map.cache.memorymb=48
+map.threads=2
+map.jpegquality=0.85
+# colour where the raster has no data (and the background without a map)
+map.background=#9db7c9
+
+# ---------------------------------------------------------------- overlays
+# Every .zip package and .shp under maps/overlays (in the site folder, then in the program folder)
+# is an overlay; nothing needs listing. An overlay's id is the .shp name inside the zip
+# (ne_10m_airports.zip -> ne_10m_airports). Settings for a layer you don't have are simply unused.
+#map.overlays.dir=maps/overlays
+
+# Optional: draw order. Listed layers come first (underneath), the rest follow by file name.
+# A listed file that is missing is reported as a problem, so list only files you have.
+#map.overlays=maps/overlays/ne_10m_lakes.zip; maps/overlays/ne_10m_rivers_lake_centerlines.zip; maps/overlays/ne_10m_coastline.zip
+
+# Coastline
+map.overlay.ne_10m_coastline.name=Coastline
+map.overlay.ne_10m_coastline.color=#1f4e79
+map.overlay.ne_10m_coastline.width=0.9
+
+# Country borders
+map.overlay.ne_10m_admin_0_boundary_lines_land.name=Borders
+map.overlay.ne_10m_admin_0_boundary_lines_land.color=#7d3c98cc
+map.overlay.ne_10m_admin_0_boundary_lines_land.width=1.4
+
+# State / county borders
+map.overlay.ne_10m_admin_1_states_provinces_lines.name=Regions
+map.overlay.ne_10m_admin_1_states_provinces_lines.color=#a569bd99
+map.overlay.ne_10m_admin_1_states_provinces_lines.width=0.8
+map.overlay.ne_10m_admin_1_states_provinces_lines.minzoom=4
+
+# Towns (simple version); biggest population wins where labels would overlap
+map.overlay.ne_10m_populated_places_simple.name=Towns
+map.overlay.ne_10m_populated_places_simple.color=#4a2c2a
+map.overlay.ne_10m_populated_places_simple.pointfill=#ffffff
+map.overlay.ne_10m_populated_places_simple.point=2.5
+map.overlay.ne_10m_populated_places_simple.label=name
+map.overlay.ne_10m_populated_places_simple.labelrank=pop_max
+map.overlay.ne_10m_populated_places_simple.labelminzoom=4
+
+# Towns (full version); has Swedish names as well: label=name_sv
+map.overlay.ne_10m_populated_places.name=Towns
+map.overlay.ne_10m_populated_places.color=#4a2c2a
+map.overlay.ne_10m_populated_places.pointfill=#ffffff
+map.overlay.ne_10m_populated_places.point=2.5
+map.overlay.ne_10m_populated_places.label=name
+map.overlay.ne_10m_populated_places.labelrank=pop_max
+map.overlay.ne_10m_populated_places.labelminzoom=4
+
+# Airports; scalerank 1 is the most important (asc), Swedish names: label=name_sv
+map.overlay.ne_10m_airports.name=Airports
+map.overlay.ne_10m_airports.color=#b03a2e
+map.overlay.ne_10m_airports.point=3.5
+map.overlay.ne_10m_airports.minzoom=5
+map.overlay.ne_10m_airports.label=name
+map.overlay.ne_10m_airports.labelrank=scalerank
+map.overlay.ne_10m_airports.labelorder=asc
+map.overlay.ne_10m_airports.labelminzoom=7
+map.overlay.ne_10m_airports.labelcolor=#7b241c
+
+# Ports
+map.overlay.ne_10m_ports.name=Ports
+map.overlay.ne_10m_ports.color=#1a5276
+map.overlay.ne_10m_ports.point=3
+map.overlay.ne_10m_ports.minzoom=5
+map.overlay.ne_10m_ports.label=name
+map.overlay.ne_10m_ports.labelrank=scalerank
+map.overlay.ne_10m_ports.labelorder=asc
+map.overlay.ne_10m_ports.labelminzoom=8
+map.overlay.ne_10m_ports.labelcolor=#1a5276
+
+# Roads (off until the user turns them on)
+map.overlay.ne_10m_roads.name=Roads
+map.overlay.ne_10m_roads.color=#d35400cc
+map.overlay.ne_10m_roads.width=1.0
+map.overlay.ne_10m_roads.minzoom=5
+map.overlay.ne_10m_roads.visible=false
+
+# Rivers and lakes
+map.overlay.ne_10m_rivers_lake_centerlines.name=Rivers
+map.overlay.ne_10m_rivers_lake_centerlines.color=#2e86c1
+map.overlay.ne_10m_rivers_lake_centerlines.width=0.8
+map.overlay.ne_10m_rivers_lake_centerlines.minzoom=4
+map.overlay.ne_10m_lakes.name=Lakes
+map.overlay.ne_10m_lakes.color=#2e86c1
+map.overlay.ne_10m_lakes.width=0.6
+map.overlay.ne_10m_lakes.fill=#5dade266
+map.overlay.ne_10m_lakes.label=name
+map.overlay.ne_10m_lakes.labelrank=scalerank
+map.overlay.ne_10m_lakes.labelorder=asc
+map.overlay.ne_10m_lakes.labelminzoom=7
+map.overlay.ne_10m_lakes.labelcolor=#1b4f72

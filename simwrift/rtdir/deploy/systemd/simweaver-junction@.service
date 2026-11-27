@@ -1,0 +1,63 @@
+# SimWeaver Junction - several servers on one machine (systemd template). Installation guide, 1b.
+#
+# One server per site folder /var/lib/simweaver-junction/<name>, all from the program in
+# /opt/simweaver/junction. Give each site its own webserver.port (and j2j.port) in its
+# etc/server.root.settings. As root:
+#   cp /opt/simweaver/junction/deploy/systemd/simweaver-junction@.service /etc/systemd/system/
+#   cp /opt/simweaver/junction/deploy/systemd/simweaver-junction.default /etc/default/simweaver-junction-lab2
+#   systemctl daemon-reload && systemctl enable --now simweaver-junction@lab2
+# Before the first start of a second site, make it and set its port:
+#   sudo -u simweaver /opt/simweaver/junction/run.sh --root=/var/lib/simweaver-junction/lab2 --init
+#   (then edit webserver.port in /var/lib/simweaver-junction/lab2/etc/server.root.settings)
+#
+# Then: systemctl status simweaver-junction@lab2 / journalctl -u simweaver-junction@lab2 -f
+# After editing this file in /etc/systemd/system: systemctl daemon-reload && systemctl restart simweaver-junction@lab2
+
+[Unit]
+Description=SimWeaver Junction %i - HLA and DIS gateway, monitor and site link
+Documentation=file:///opt/simweaver/junction/doc/simweaver-rift-install-and-config.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=simweaver
+Group=simweaver
+# the site folder: /var/lib/simweaver-junction/%i, made by systemd and owned by the user
+StateDirectory=simweaver-junction/%i
+StateDirectoryMode=0750
+WorkingDirectory=/var/lib/simweaver-junction/%i
+# RTI_JAR, JAVA_OPTS, JAVA_HOME and JUNCTION_ARGS (more arguments); the RTI library is set there, so a
+# new version of this file never loses it
+EnvironmentFile=-/etc/default/simweaver-junction-%i
+EnvironmentFile=-/etc/sysconfig/simweaver-junction-%i
+ExecStart=/bin/sh /opt/simweaver/junction/run.sh --root=/var/lib/simweaver-junction/%i $JUNCTION_ARGS
+Restart=on-failure
+RestartSec=5
+# Java ends with 143 on SIGTERM, after the server has resigned and logged
+SuccessExitStatus=143
+TimeoutStopSec=30
+LimitNOFILE=65536
+UMask=0027
+
+# Hardening: the whole system read-only except the site, no home folders, own /tmp. An RTI that
+# writes files of its own outside the site needs that folder added to ReadWritePaths. No
+# MemoryDenyWriteExecute (Java's JIT) and no SystemCallFilter (RTIs with native code).
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/simweaver-junction/%i
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictRealtime=true
+LockPersonality=true
+
+# J2J's last resort on port 443 (installation guide, 2.8): remove the # of both lines
+#AmbientCapabilities=CAP_NET_BIND_SERVICE
+#CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

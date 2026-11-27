@@ -51,7 +51,7 @@ public final class J2jObjectSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom").getAbsoluteFile();
         File rtiDir = new File(args.length > 1 ? args[1] : "fakerti/build").getAbsoluteFile();
         String rpr2 = new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath();
         File jar3 = new File(rtiDir, "fakerti-1516e.jar");

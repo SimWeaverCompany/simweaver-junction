@@ -6,7 +6,7 @@ has its own page (`junction.html`, linked from Rift's top bar) and REST API (`/a
 [junction-rest-api.md](junction-rest-api.md)). Every endpoint of every gateway also appears in
 Rift's datasource list, so you can **Inspect** what a federation sees.
 
-Version 0.14.1. Java 11, no libraries apart from the HLA RTIs (Kafka included: Junction has its own Kafka client).
+Version 0.14.5. Java 11, no libraries apart from the HLA RTIs (Kafka included: Junction has its own Kafka client).
 
 **Junction** is the product (the page, the API, Rift's `junction.*` server settings); a **junction
 configuration** is one gateway (a `*.junction.settings` file in `etc/junctions`, with its `junction.*`
@@ -64,20 +64,22 @@ No time management and no ownership transfer: the gateway is a time-unaware, upd
 
 ## 2. The configuration folder
 
-Default `etc/junctions` under Rift's runtime folder (setting `junction.dir` in Rift's server settings; `junction.enabled=false` turns Junction off).
+Default `etc/junctions` in the server's site folder (setting `junction.dir` in Rift's server settings; `junction.enabled=false` turns Junction off). 0.14.5: the site folder and the program folder are explained in the install guide, section 1.
 
 ```
-etc/junctions/
+<site>/etc/junctions/
   *.junction.settings              gateways
   endpoints/*.endpoint.settings    endpoint kits
   routers/*.router.settings        router kits
-  mappings/rpr2-rpr3.mapping       RPR v2.0 <-> v3.0 conversion rules
-etc/junctions.dist/                every sample, as delivered: never read by the server
+  mappings/rpr2-rpr3.mapping       optional: your own RPR v2.0 <-> v3.0 conversion rules
+<program>/junctions.dist/          every sample, as delivered: never read by the server
+<program>/mappings/rpr2-rpr3.mapping   the delivered conversion rules
+<program>/etc.dist/junctions/      what a new site's etc/junctions starts with
 ```
 
-`etc/junctions.dist` holds every sample configuration, untouched; `etc/junctions` is delivered with a selection of them. To use another sample, copy it (and any kit it needs) from `junctions.dist` to the same place under `etc/junctions`. `diff -r etc/junctions.dist etc/junctions` shows what you changed, and which samples are not in use. When upgrading, replace `junctions.dist` with the new version's and keep your `etc/junctions`: the difference between the old and the new `junctions.dist` is what changed in the samples.
+`junctions.dist` in the program folder holds every sample configuration, untouched; a new site's `etc/junctions` is made with a selection of them (from `etc.dist/junctions`). To use another sample, copy it (and any kit it needs) from `junctions.dist` to the same place under `etc/junctions`. `diff -r <program>/junctions.dist <site>/etc/junctions` shows what you changed, and which samples are not in use. An update replaces the program folder and keeps your `etc/junctions`: the difference between the old and the new `junctions.dist` is what changed in the samples.
 
-The folder is read again whenever the page or the API lists it; edits need no restart. The **Config assistant** page (`config-assistant.html`, Rift's top bar) writes gateway files, kits and groups for you, ready to copy to this folder. The samples delivered in `etc/junctions`. They use the kits as far as possible:
+The folder is read again whenever the page or the API lists it; edits need no restart. The **Config assistant** page (`config-assistant.html`, Rift's top bar) writes gateway files, kits and groups for you, ready to copy to this folder. The samples a new site's `etc/junctions` gets. They use the kits as far as possible:
 
 | Gateway | File | Endpoints · router |
 |---|---|---|
@@ -91,7 +93,7 @@ The folder is read again whenever the page or the API lists it; edits need no re
 | DIS7<->CDIS | `dis7-cdis.junction.settings` | DIS7 + CDIS · PDU-relay: PDU by PDU, all 22 C-DIS PDU types |
 | ASIM, ASIM-COMMS | `asim.junction.settings`, `asim-comms.junction.settings` | A group (`ASIM-Trainer`): an HLA Evolved ⇄ HLA Evolved bridge and its HLA Comms traffic, with group variables |
 
-Only in `etc/junctions.dist`. Copy one (and any kit it needs) to `etc/junctions` to use it:
+Only in `junctions.dist`. Copy one (and any kit it needs) to `etc/junctions` to use it:
 
 | Gateway | File | Endpoints · router |
 |---|---|---|
@@ -117,7 +119,7 @@ The kits, in both folders (the last three in `junctions.dist` only):
 | `hla3-rpr2-own-rti` | HLA Evolved on its own RTI jar | `comms-full` | HLA Comms full mode: clients mirrored |
 | `hla4-fedpro-rpr2` | HLA 4 over the Federate Protocol | | |
 
-**`RPR_FOM_v2.0_Link16_1516-2025.xml`** (in `etc/fom/ieee1516-2025`) is the 1516-2010 RPR FOM v2.0 with Link 16, converted to the 1516-2025 format: the namespace, `copyright` in the identification, `valueRequired` on every attribute, `noteReferences` for `notes`, and without the `conveyProducingFederate` switch and the empty `dimensions`, `transportations` and `updateRates` sections. Compared with the HLA 4 RPR v2 modules, every attribute, parameter, datatype, class and note they have in common is the same; the Link 16 classes and datatypes come on top.
+**`RPR_FOM_v2.0_Link16_1516-2025.xml`** (in the program folder's `fom/ieee1516-2025`) is the 1516-2010 RPR FOM v2.0 with Link 16, converted to the 1516-2025 format: the namespace, `copyright` in the identification, `valueRequired` on every attribute, `noteReferences` for `notes`, and without the `conveyProducingFederate` switch and the empty `dimensions`, `transportations` and `updateRates` sections. Compared with the HLA 4 RPR v2 modules, every attribute, parameter, datatype, class and note they have in common is the same; the Link 16 classes and datatypes come on top.
 
 A gateway file in `etc/junctions` whose name ends in something else than `.junction.settings` (e.g. `.junction.settings.off`) is not loaded: a way to keep one there without using it.
 
@@ -156,11 +158,11 @@ Endpoint ids may contain letters, digits, `-` and `_`. A gateway needs two endpo
 | `endpoint.name` | the id | Shown on the page |
 | `endpoint.standard` | — | `ieee1516-2010`, `ieee1516-2025`, `ieee1516-2025-fedpro`, `dis6`, `dis7`, `cdis`, `comms`, `j2j`, `kafka` |
 | **HLA** | | |
-| `endpoint.hla.foms` | DIS: RPR v2; HLA Comms: `dynamic` | `;`-separated files or folders; relative names are looked up in `endpoint.hla.fomrootdir`. `dynamic`: the FOM is taken from the federation (see below) |
+| `endpoint.hla.foms` | DIS: RPR v2; HLA Comms: `dynamic` | `;`-separated files or folders; relative names are looked up in the site's `etc/fom/<standard>`, then in the program folder's `fom/<standard>` (0.14.5), or in `endpoint.hla.fomrootdir` alone when it is set. `dynamic`: the FOM is taken from the federation (see below) |
 | `endpoint.hla.createfoms` | | `dynamic` only: FOM files to create the federation with when it is not running (see below). Empty: the federation must be running |
 | `endpoint.hla.fddtimeoutseconds` | `15` | `dynamic`: how long to wait for the federation's FDD after the join |
 | `endpoint.hla.fddclass` / `fddattribute` | `HLAobjectRoot.HLAmanager.HLAfederation` / `HLAcurrentFDD` | `dynamic`: where the FDD is read, for an RTI that names them differently |
-| `endpoint.hla.fomrootdir` | `etc/fom/<standard>` | `fom` in the configuration folder (0.11.4: `etcdir`, install guide 2.1) |
+| `endpoint.hla.fomrootdir` | the site's `etc/fom`, then the program's `fom` | One folder of your own instead, relative to the site; its `<standard>` sub folder holds the files (0.14.5) |
 | `endpoint.hla.federation` | — | Default target |
 | `endpoint.hla.createfederation` | `true` | Create it when missing |
 | `endpoint.hla.destroyfederation` | `false` | Try to destroy it when the gateway stops |
@@ -234,7 +236,7 @@ Samples: the kits `endpoints/hla3-dynamic-fom.endpoint.settings` (federation `Bl
 | `router.names.select.classes` / `.except.classes` `[.<endpoint>]` | all | 0.14.0: which classes get the template: class patterns (below) |
 | `router.names.select.names` / `.except.names` `[.<endpoint>]` | all | 0.14.0: which instance names get the template: globs or `re:` regular expressions (below) |
 | `router.queue.capacity` | `50000` | Events waiting for the router; updates are dropped (and counted) when full, the rest waits |
-| `router.rpr.mapping` | `mappings/rpr2-rpr3.mapping` | RPR conversion table |
+| `router.rpr.mapping` | `mappings/rpr2-rpr3.mapping` in the junctions folder, else the program folder's (0.14.5) | RPR conversion table |
 | `router.deleteobjectsonstop` | `true` | Delete the copies when the gateway stops |
 | `router.provide.forward` | `true` | A provide request for attributes the gateway has no value of yet is passed on to the object's origin as an attribute update request (below) |
 | `router.provide.forwardintervalms` | `1000` | The same attribute of an object is asked of the origin at most this often (0 – 3600000 ms) |
@@ -343,7 +345,7 @@ router.names.except.names=*-keep;re:(?i)^test.*
 A NETN federation expects every object to have a `UniqueId` (NETN-BASE, a UUID on `HLAobjectRoot`) and entities to have a `Callsign` (NETN-ENTITY, on `BaseEntity`). RPR federates and DIS do not send them. With the NETN properties on, the gateway adds them to the copies it makes in a NETN endpoint:
 
 ```properties
-# routers/hla3-netn.router.settings (in etc/junctions.dist)
+# routers/hla3-netn.router.settings (in junctions.dist)
 router.kind=iem
 router.objects.allow=*
 router.interactions.allow=*
@@ -360,7 +362,7 @@ router.netn.classes=*
 - The values go with the copy's first update, again after the copy is registered anew (a reconnect), and on provide requests. The gateway publishes the two attributes for the classes it publishes in the NETN endpoint.
 - The objects the NETN federation sends back to the RPR side pass as usual (the RPR side has no such attributes).
 - The gateway card shows **NETN n** next to the object counts (the tooltip has the details), and the gateway's `objects` JSON a `netn` object (REST guide).
-- The sample `hla3-hla3-rpr2-netn.junction.settings` (with the kits `endpoints/hla3-netn` and `routers/hla3-netn`, in `etc/junctions.dist`) bridges an RPR v2 federation into a NETN one. The Config Assistant has the setting under the IEM router, *NETN properties*.
+- The sample `hla3-hla3-rpr2-netn.junction.settings` (with the kits `endpoints/hla3-netn` and `routers/hla3-netn`, in `junctions.dist`) bridges an RPR v2 federation into a NETN one. The Config Assistant has the setting under the IEM router, *NETN properties*.
 
 ### Provide requests
 
@@ -380,7 +382,7 @@ A federate that asks for attribute values of a copy (`requestAttributeValueUpdat
 **The HLA Comms FOM is not delivered with SimWeaver** (0.9.21). An HLA Comms endpoint (`endpoint.standard=comms`) without FOM files takes the HLA Comms FOM from the running HLA Comms federation, exactly like a `dynamic` HLA endpoint (section 4): it joins without modules and reads the federation's FDD. Nothing needs to be installed when the HLA Comms federation is already running when the gateway starts. When Junction itself has to create the HLA Comms federation (it is not running yet), give it your own copy of the HLA Comms FOM modules from your HLA Comms installation:
 
 ```properties
-# the files in etc/fom/ieee1516-2010; used only when the federation is not running
+# your files in the site's etc/fom/ieee1516-2010; used only when the federation is not running
 endpoint.hla.createfoms=<your HLA Comms FOM module>.xml;<another module>.xml
 # or: always use your files instead of the federation's FDD (then the endpoint creates as before)
 endpoint.hla.foms=<your HLA Comms FOM module>.xml;<another module>.xml
@@ -490,13 +492,13 @@ Gateways with the same `junction.group=<name>` (or a router kit with `router.gro
 **Variables.** The tokens `GROUPVAR1`, `GROUPVAR2`, … can stand in *any* setting value of a gateway file, its endpoint kits and its router kit:
 
 ```properties
-# exercise-hla3-dis7.junction.settings (in etc/junctions.dist)
+# exercise-hla3-dis7.junction.settings (in junctions.dist)
 junction.group=Exercise
 junction.endpoint.hla.hla.federation=GROUPVAR1
 junction.endpoint.dis.dis.exid=GROUPVAR2
 junction.groupvar.GROUPVAR2=1                 # a default
 
-# exercise-comms-comms.junction.settings (in etc/junctions.dist)
+# exercise-comms-comms.junction.settings (in junctions.dist)
 junction.group=Exercise
 junction.endpoint.exercise.hla.federation=GROUPVAR1-Comms
 junction.comms.channelmap.exercise=Net1>GROUPVAR3
@@ -550,7 +552,7 @@ junction.groupvar.GROUPVAR2.desc=DIS exercise id
 
 ## 8. RPR FOM v2.0 ⇄ v3.0
 
-Endpoints are recognised as RPR v2 or v3 by their FOM. DIS endpoints are RPR v2. Between a v2 and a v3 endpoint the router converts with `mappings/rpr2-rpr3.mapping`. The file has v2 names on the left and v3 names on the right, and one file serves both directions:
+Endpoints are recognised as RPR v2 or v3 by their FOM. DIS endpoints are RPR v2. Between a v2 and a v3 endpoint the router converts with `mappings/rpr2-rpr3.mapping`: the site's `etc/junctions/mappings/` when it has one (your own rules), else the program folder's `mappings/` (0.14.5; `router.rpr.mapping` names another file). The file has v2 names on the left and v3 names on the right, and one file serves both directions:
 
 ```properties
 class.HLAinteractionRoot.WeaponFire = HLAinteractionRoot.Fire.WeaponFire
@@ -600,7 +602,7 @@ The delivered table covers:
 Check a table with the lint tool. It lists every class, member, record field, enumerator and variant alternative without a counterpart:
 
 ```
-java -cp out/classes:out/test com.simweaver.junction.router.RprMappingLint <fom root> etc/junctions/mappings
+java -cp out/classes:out/test com.simweaver.junction.router.RprMappingLint <fom root> mappings
 ```
 
 The page's **Compatibility** button shows the same per gateway, from the FOMs (no connection needed).
@@ -745,7 +747,7 @@ A **J2J endpoint** (`endpoint.standard=j2j`) joins a *session* of the J2J networ
 | IEM (`router.kind=iem`) | object session | The objects and interactions of an object model (RPR v2, RPR v3, NETN …): to the router the J2J endpoint is like a federation, so filters, names, value rules and RPR v2 ⇄ v3 conversion work as between federations. Sample `HLA3<->J2J` (`hla3-j2j`), kit `j2j-rpr2` |
 | HLA Comms (`router.kind=comms`) | object session (HLA Comms model) | HLA Comms: the J2J endpoint is an HLA Comms side like an HLA Comms federation, so channels are matched by name and clients mirrored as between two HLA Comms federations |
 
-The samples are in `etc/junctions.dist`.
+The samples are in `junctions.dist`.
 
 **PDU sessions**
 
@@ -784,7 +786,7 @@ endpoint.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml
 | Key | Default | Meaning |
 |---|---|---|
 | `endpoint.j2j.session` | — | The session, as above |
-| `endpoint.hla.foms` | RPR FOM v2.0 | The session's model: FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`). Not `dynamic`. In an HLA Comms gateway the HLA Comms FOM files are required (they are not delivered) |
+| `endpoint.hla.foms` | RPR FOM v2.0 | The session's model: FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`, then the program's `fom/ieee1516-2010`). Not `dynamic`. In an HLA Comms gateway the HLA Comms FOM files are required (they are not delivered) |
 | `endpoint.j2j.transport` | `auto` | `auto`: each attribute and interaction as its FOM transportation says (`HLAbestEffort`: best effort, the newest value wins on a busy link; else reliable and in order). `reliable`: everything reliable |
 
 - **The members must have the same model**: its fingerprint (the qualified names of every class, attribute, interaction and parameter, with the datatypes) is the session's *model*, e.g. `HLA objects 3f9a01c2 (RPR_FOM_V2)`. A member with another one shows *other model* and shares nothing. Convert inside the gateway (an RPR v3 federation with a J2J RPR v2 endpoint uses the RPR conversion) rather than in the session.
@@ -804,7 +806,7 @@ A **Kafka endpoint** (`endpoint.standard=kafka`) writes a gateway's traffic to a
 | PDU relay (`router.kind=pdu`) | **DIS PDUs**, one per record, as they are: key `site:application:entity` of the PDU's first entity id (octets 12-17: the entity of an Entity State PDU, the shooter of a Fire PDU, the emitter of an Emission PDU …), so an entity's PDUs stay in one partition and in order. Header `content-type: application/x-dis` | `DIS7<->Kafka` (`dis7-kafka`) |
 | IEM (`router.kind=iem`) | **JSON**: one record per object update or removal (key: the object's name) and one per interaction, with the FOM's class, attribute and parameter names. To the router the Kafka endpoint is like a federation, so filters, names, value rules and RPR v2 ⇄ v3 conversion work as between federations | `HLA3<->Kafka` (`hla3-kafka`) |
 
-A Kafka endpoint cannot be in an HLA Comms gateway. The samples and the kits `kafka` and `kafka-sasl-ssl` are in `etc/junctions.dist`.
+A Kafka endpoint cannot be in an HLA Comms gateway. The samples and the kits `kafka` and `kafka-sasl-ssl` are in `junctions.dist`.
 
 ```
 # endpoints/kafka.endpoint.settings
@@ -827,7 +829,7 @@ endpoint.kafka.topic=
 | `endpoint.kafka.key` | `entity` | PDU records: `none` writes no key (the brokers spread the records over the partitions) |
 | `endpoint.kafka.values` | `full` | JSON records: `full`: every update has all attributes the object has had, so each record stands on its own; `changed`: only the attributes of the update |
 | `endpoint.kafka.objecttimeoutseconds` | `0` | JSON records: objects read from the topic and not updated for this long are removed (0: kept until a remove record) |
-| `endpoint.hla.foms` | RPR FOM v2.0 | JSON records: the object model, FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`). Not `dynamic` |
+| `endpoint.hla.foms` | RPR FOM v2.0 | JSON records: the object model, FOM files as for an HLA endpoint (relative names in `etc/fom/ieee1516-2010`, then the program's `fom/ieee1516-2010`). Not `dynamic` |
 | `endpoint.kafka.autocreatetopics` | `true` | Ask the brokers to create a missing topic (when they allow it: `auto.create.topics.enable`) |
 | `endpoint.kafka.clientid` | `simweaver-junction` | The client id the brokers log and use for quotas |
 | `endpoint.kafka.security` | `plaintext` | `plaintext`, `ssl` (TLS), `sasl_plaintext` or `sasl_ssl`, as the brokers' listener expects |
@@ -939,6 +941,7 @@ Built with `build.sh`; each prints `N checks, 0 failures`. The test RTIs (`faker
 | `com.simweaver.junction.DisBridgeSelfTest` | HLA ⇄ DIS 7 over UDP: entities, ids, heartbeat, radio and audio, fire both ways, timeout, own-echo suppression; emitter systems, radar and jammer beams both ways (names, references, values, beams switched off, systems removed, heartbeats); IFF transponders and designators both ways; Link 16 (`JTIDSMessageRadioSignal`) both ways; a DIS entity whose name is taken in HLA (`1-2-3@dis`), with fire references following it both ways; an emitter heard before the gateway's router declared is bridged after it (0.12.2) |
 | `com.simweaver.junction.CommsBridgeSelfTest` | Two HLA Comms federations + DIS radio: channel remapping and renaming, client mirroring, lobby, radio bridge both ways with resampling; messages-only mode (no objects, UUID map, radio by UUID); the lobby only (`comms.channels=none`: lobby audio, text and images pass, a known and an unseen channel do not) |
 | `com.simweaver.junction.CommsSettingsSelfTest` | The HLA Comms settings (0.14.1): endpoint standard, router kind, `comms.*` and `junction.comms.*` keys, which setting wins, the JSON names, every delivered HLA Comms sample (no RTI needed) |
+| `com.simweaver.rift.SiteFoldersSelfTest` | The program folder and the site folder (0.14.5): finding the program, `root` / `JUNCTION_SITE`, the settings files and `etcdir`, making a new site, paths relative to the site, delivered files found in the site first (FOMs, SISO-REF-010, the RPR table, overlays) and the notice for copies, the HTTPS key store; real servers from a program folder laid out as the release: the simple way twice (the second start changes nothing), a site with `--init`, the lock, `--health`, a tree from before 0.14.5. Replaces `SettingsFoldersSelfTest` |
 | `com.simweaver.junction.GroupSelfTest` | Groups and group variables; instances of a group and of a single gateway: names, refusals, listings, stop per instance, completing an instance; variable descriptions (labels only, merged per group, warnings); the log events of starts, refusals and stops with who asked |
 | `com.simweaver.common.logging.LoggingSelfTest` | Logging and syslog: the settings and their mistakes; RFC 5424 and RFC 3164 messages (PRI, header, time zones, BOM, line breaks, cutting at a character); events and `by=`; INFO to the `.log`, problems to the `.err.log`; the client address of a REST call; UDP, TCP (octet counting and line feeds) and TLS (host name checked, not checked, untrusted) against local receivers; a syslog server that comes up later, a full queue and the dropped-messages notice |
 | `com.simweaver.junction.router.RprConversionSelfTest` | RPR v2 → v3 → v2 with the delivered table, emitter systems and beams, designators and IFF systems included |

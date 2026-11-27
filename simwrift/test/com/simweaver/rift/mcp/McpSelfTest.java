@@ -66,7 +66,7 @@ public final class McpSelfTest {
 
     public static void main(String[] args) throws Exception {
         File rtdir = new File(args.length > 0 ? args[0] : "simwrift/rtdir").getAbsoluteFile();
-        SisoEnumerations.setGlobal(SisoEnumerations.load(rtdir.toPath().resolve("etc/enumerations/SISO-REF-010.xml")), null);
+        SisoEnumerations.setGlobal(SisoEnumerations.load(rtdir.toPath().resolve("enumerations/SISO-REF-010.xml")), null);
 
         // a DIS 6 datasource on a free port, fed with a small scenario
         int port;
@@ -77,7 +77,7 @@ public final class McpSelfTest {
         SimwProperties p = new SimwProperties();
         p.set("datasource.name", "MCP test");
         p.set("datasource.standard", "dis6");
-        p.set("datasource.hla.foms", new File(rtdir, "etc/fom/ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath());
+        p.set("datasource.hla.foms", new File(rtdir, "fom/ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath());
         p.set("datasource.dis.interface", "127.0.0.1");
         p.set("datasource.dis.port", String.valueOf(port));
         DatasourceManager.SetupResult sr = dsm.setupDatasource(new DatasourceConfig(1, new File("mcp-test.datasource.settings"), p), null);

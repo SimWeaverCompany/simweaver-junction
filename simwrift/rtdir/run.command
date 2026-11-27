@@ -7,13 +7,24 @@
 # default (a placeholder path) to where your RTI is installed.
 # Java 11 or later: JAVA_HOME when set, else the newest one macOS knows (/usr/libexec/java_home),
 # else java from the PATH.
+# A site folder of its own (0.14.5): ./run.command --root=<folder>, or the environment variable
+# JUNCTION_SITE. Without it, this folder is also the site (etc/, logs/).
 
-cd "$(dirname "$0")" || exit 1
+# this script's folder, also when started through a link
+self="$0"
+while [ -h "$self" ]; do
+    link=$(ls -ld "$self" | sed 's/.* -> //')
+    case "$link" in
+        /*) self="$link" ;;
+        *) self="$(dirname "$self")/$link" ;;
+    esac
+done
+HERE="$(cd "$(dirname "$self")" && pwd)" || exit 1
 
 # the Terminal window's title
 printf '\033]0;SimWeaver Junction\007'
 
-APP_JAR=lib/simweaverrift.jar
+APP_JAR="$HERE/lib/simweaverrift.jar"
 RTI_JAR="${RTI_JAR-/opt/anrti/lib/hlaimpl.jar}"
 
 if [ -z "$JAVA_HOME" ] && [ -x /usr/libexec/java_home ]; then
@@ -32,7 +43,7 @@ else
 fi
 
 if [ ! -f "$APP_JAR" ]; then
-    echo "$APP_JAR is missing: start this script from the SimWeaver installation folder."
+    echo "$APP_JAR is missing: this script must stay in the SimWeaver program folder (a link to it is fine)."
     printf 'Press Enter to close. '
     read -r _
     exit 1

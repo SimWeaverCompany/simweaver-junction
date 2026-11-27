@@ -70,7 +70,8 @@ public final class JunctionManager {
         this.loader = new ConfigLoader(junctionsDir, runtimeDir);
         this.hub = hub;
         this.inspector = inspector == null ? Inspector.NONE : inspector;
-        this.conversions = new RprConversions(new File(junctionsDir, "mappings"));
+        // 0.14.5: the site's junctions/mappings when it has the table, else the program's mappings folder
+        this.conversions = new RprConversions(mappingsDir(junctionsDir));
         this.configs = loader.load();
         this.ticker = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "junction-ticker");
@@ -84,6 +85,14 @@ public final class JunctionManager {
     /** @return the configuration folder */
     public File getJunctionsDir() {
         return loader.getDirectory();
+    }
+
+    /** 0.14.5: where the RPR table is: {@code <junctions>/mappings} when it has the file, else {@code <program>/mappings}. */
+    static File mappingsDir(File junctionsDir) {
+        java.nio.file.Path own = new File(junctionsDir, "mappings").toPath();
+        java.nio.file.Path delivered = com.simweaver.common.config.SimwPaths.delivered("mappings");
+        return com.simweaver.common.config.SimwPaths.findDelivered(own.resolve(RprConversions.FILE),
+                delivered.resolve(RprConversions.FILE)).getParent().toFile();
     }
 
     /** @return the runtime folder */

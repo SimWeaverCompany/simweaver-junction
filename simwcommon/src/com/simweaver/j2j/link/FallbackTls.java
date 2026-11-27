@@ -36,10 +36,7 @@ final class FallbackTls {
 
     /** A TLS listener with the given key store (JKS or PKCS12). */
     static ServerSocket listen(String bind, int port, String keystore, String password) throws IOException, GeneralSecurityException {
-        KeyStore ks = KeyStore.getInstance(keystore.toLowerCase().endsWith(".p12") || keystore.toLowerCase().endsWith(".pfx") ? "PKCS12" : "JKS");
-        try (InputStream in = new FileInputStream(keystore)) {
-            ks.load(in, password.toCharArray());
-        }
+        KeyStore ks = com.simweaver.common.tls.ServerKeyStore.load(java.nio.file.Paths.get(keystore), password.toCharArray());
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(ks, password.toCharArray());
         SSLContext ctx = SSLContext.getInstance("TLS");

@@ -155,11 +155,8 @@ public class XrServer {
 
     private static SSLContext createSslContext(String keystorePath, String password) throws Exception {
         char[] passChars = password.toCharArray();
-        KeyStore ks = KeyStore.getInstance("JKS");
-
-        try (FileInputStream fis = new FileInputStream(keystorePath)) {
-            ks.load(fis, passChars);
-        }
+        // 0.14.5: PKCS12 (the per-site store the server makes) or JKS, whatever the file is
+        KeyStore ks = com.simweaver.common.tls.ServerKeyStore.load(java.nio.file.Paths.get(keystorePath), passChars);
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(ks, passChars);

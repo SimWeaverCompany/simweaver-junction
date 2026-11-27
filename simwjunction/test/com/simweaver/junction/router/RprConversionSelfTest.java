@@ -53,8 +53,8 @@ public final class RprConversionSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom");
-        File mappings = new File(args.length > 1 ? args[1] : "simwrift/rtdir/etc/junctions/mappings");
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom");
+        File mappings = new File(args.length > 1 ? args[1] : "simwrift/rtdir/mappings");
         v2 = InformationExchangeModel.fromHlaEvolved(Collections.singletonList(
                 new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath()));
         List<String> files = new ArrayList<String>();

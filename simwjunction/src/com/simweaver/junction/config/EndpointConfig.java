@@ -33,6 +33,7 @@ public final class EndpointConfig implements Json.Writable {
     private final List<String> fomNames;
     private final List<String> fomPaths;
     private final String fomRootDir;
+    private final List<java.nio.file.Path> fomRoots;     // 0.14.5: the site's etc/fom/<std>, then the program's fom/<std>
     private final String federation;
     private final String federateType;
     private final String federateName;
@@ -105,7 +106,14 @@ public final class EndpointConfig implements Json.Writable {
         this.lsdOptions = com.simweaver.common.hla.session.LsdOptions.parse(p.getString("endpoint.hla.lsd", ""));
         this.lsd = lsdOptions.get(0);
         String std = isHla4() ? "ieee1516-2025" : "ieee1516-2010";
-        this.fomRootDir = p.getString("endpoint.hla.fomrootdir", com.simweaver.common.config.SimwPaths.etcString("fom")) + File.separator + std;   // 0.11.4: etcdir
+        // 0.14.5: endpoint.hla.fomrootdir alone when set (relative to the site); else the site's etc/fom/<std>, then
+        // the program's fom/<std> (the delivered FOMs)
+        String explicitRoot = p.getString("endpoint.hla.fomrootdir", "").trim();
+        if (!explicitRoot.isEmpty() && baseDir != null && !new File(explicitRoot).isAbsolute()) {
+            explicitRoot = new File(baseDir, explicitRoot).getPath();
+        }
+        this.fomRoots = com.simweaver.common.config.SimwPaths.fomRoots(std, explicitRoot);
+        this.fomRootDir = fomRoots.get(0).toString();
         String[] foms = p.getStringArray("endpoint.hla.foms");
         boolean dyn = com.simweaver.common.hla.session.DynamicFom.isDynamic(foms);
         if (foms.length == 0 && t == EndpointType.COMMS) {
@@ -250,15 +258,7 @@ public final class EndpointConfig implements Json.Writable {
             if (s.isEmpty()) {
                 continue;
             }
-            File f = new File(s);
-            if (!f.isAbsolute()) {
-                File inRoot = new File(fomRootDir, s);
-                File rel = baseDir == null ? f : new File(baseDir, s);
-                if (!inRoot.isAbsolute() && baseDir != null) {
-                    inRoot = new File(baseDir, inRoot.getPath());
-                }
-                f = inRoot.exists() || !rel.exists() ? inRoot : rel;
-            }
+            File f = com.simweaver.common.config.SimwPaths.findFom(fomRoots, s, baseDir);
             if (f.isDirectory()) {
                 File[] xml = f.listFiles((d, x) -> x.toLowerCase(Locale.ROOT).endsWith(".xml"));
                 if (xml != null) {
@@ -317,6 +317,11 @@ public final class EndpointConfig implements Json.Writable {
     /** @return the folder relative FOM names are found in (endpoint.hla.fomrootdir plus the standard) */
     public String getFomRootDir() {
         return fomRootDir;
+    }
+
+    /** @return where FOM modules named by file name are looked for, in order (0.14.5) */
+    public List<java.nio.file.Path> getFomRoots() {
+        return fomRoots;
     }
 
     /** @return the FOM names as configured */

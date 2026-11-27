@@ -1,0 +1,40 @@
+# SimWeaver Junction with Docker Compose. The installation guide, 1c, has the details.
+# From the program folder (the unpacked zip):
+#   docker compose -f deploy/docker/compose.yaml up -d --build
+#   docker compose -f deploy/docker/compose.yaml logs -f
+# The site (settings, logs, key store) is the volume junction-site; edit its settings with e.g.
+#   docker compose -f deploy/docker/compose.yaml exec junction vi /var/lib/simweaver-junction/etc/server.root.settings
+# (or mount a host folder instead, below) and restart.
+
+name: simweaver-junction
+
+services:
+  junction:
+    image: simweaver-junction:0.14.5
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    container_name: simweaver-junction
+    # HLA RTIs and DIS use multicast and broadcast and many ports: the host's network, no port mapping
+    network_mode: host
+    restart: unless-stopped
+    # time to resign from the federations and log before the container is ended
+    stop_grace_period: 30s
+    environment:
+      # the RTI's library inside the mount below (a placeholder path); empty for DIS only
+      RTI_JAR: /opt/rti/lib/hlaimpl.jar
+      # JAVA_OPTS: -Xmx2g
+    volumes:
+      - junction-site:/var/lib/simweaver-junction
+      # a host folder as the site instead (first: chown -R 10001:10001 /srv/simweaver-junction)
+      # - /srv/simweaver-junction:/var/lib/simweaver-junction
+      # the HLA RTI, read-only (a placeholder path)
+      # - /opt/anrti:/opt/rti:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  junction-site:

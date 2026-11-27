@@ -151,14 +151,10 @@ public final class RiftJunktionHost implements Inspector {
             p.set("datasource.hla.customfederatetype", "SimwRift-Junction");
         }
         p.set("datasource.standard", standard);
-        // Rift prefixes relative names with its FOM folder (etc/fom/<standard>): keep the files
-        // that are there short, give the others as absolute paths
-        String stdDir = t.isDis() || !e.isHla4() ? "ieee1516-2010" : "ieee1516-2025";
-        String root = com.simweaver.common.config.SimwPaths.etc("fom", stdDir).toFile().getAbsolutePath() + File.separator;
+        // 0.14.5: the endpoint's FOM files as absolute paths (they may be the site's or the program's)
         List<String> foms = new ArrayList<String>();
         for (String f : e.getFomPaths()) {
-            String abs = new File(f).getAbsolutePath();
-            foms.add(abs.startsWith(root) ? abs.substring(root.length()) : abs);
+            foms.add(new File(f).getAbsolutePath());
         }
         p.set("datasource.hla.foms", e.isDynamicFom() ? "dynamic" : String.join(";", foms));   // the endpoint's FOM source
         p.set("datasource.origin", "junction");

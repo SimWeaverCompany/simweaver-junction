@@ -85,7 +85,7 @@ public final class MapSelfTest {
         check("a JPEG tile", j != null && (j[0] & 0xFF) == 0xFF && (j[1] & 0xFF) == 0xD8);
         BufferedImage img = ImageIO.read(new ByteArrayInputStream(j));
         check("256 x 256", img.getWidth() == 256 && img.getHeight() == 256);
-        File[] cache = new File(runtime, "maps/cache/GLOBE").listFiles();
+        File[] cache = new File(runtime, "cache/maps/GLOBE").listFiles();
         check("written to the disk cache", cache != null && cache.length == 1 && new File(cache[0], "1/1/0.jpg").isFile());
         check("same bytes from memory", s.tile("GLOBE", 1, 1, 0) == j || java.util.Arrays.equals(s.tile("GLOBE", 1, 1, 0), j));
         check("no tile beyond the max zoom", s.tile("GLOBE", 2, 0, 0) == null);

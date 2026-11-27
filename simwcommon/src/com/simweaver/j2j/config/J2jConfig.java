@@ -118,7 +118,9 @@ public final class J2jConfig {
         b.deadSeconds = Math.max(2, Math.min(120, server.getInt("j2j.deadseconds", 5)));
         b.udp = server.getBoolean("j2j.udp", true);
         b.primaryRetryMillis = Math.max(1, Math.min(3600, server.getInt("j2j.fallback.retryseconds", 60))) * 1000L;
-        b.keystore = server.getString("j2j.fallback.keystore", server.getString("webserver.keystore.path", "keystore.jks")).trim();
+        // 0.14.5: the web server's key store (made per site), relative paths against the site root
+        b.keystore = com.simweaver.common.config.SimwPaths.site(server.getString("j2j.fallback.keystore",
+                server.getString("webserver.keystore.path", com.simweaver.common.tls.ServerKeyStore.defaultPath().toString())).trim()).toString();
         b.keystorePassword = server.getString("j2j.fallback.keystorepwd", server.getString("webserver.keystore.pwd", "password"));
         b.rekeyMillis = (long) (Math.max(0.05, Math.min(60.0, server.getDouble("j2j.rekeyminutes", 60))) * 60_000);
 

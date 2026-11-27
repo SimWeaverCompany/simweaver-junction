@@ -21,7 +21,7 @@ public final class SisoEnumerationsSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        Path file = Paths.get(args.length > 0 ? args[0] : "simwrift/rtdir/etc/enumerations/SISO-REF-010.xml");
+        Path file = Paths.get(args.length > 0 ? args[0] : "simwrift/rtdir/enumerations/SISO-REF-010.xml");
         long t0 = System.nanoTime();
         SisoEnumerations e = SisoEnumerations.load(file);
         long ms = (System.nanoTime() - t0) / 1_000_000;

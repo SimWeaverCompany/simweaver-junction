@@ -9,7 +9,7 @@ SimWeaver Junction is a server for distributed simulation with HLA and DIS. It c
 It is written in Java 11 with no third-party libraries. The only external piece is the HLA RTI
 of your choice, and only for the HLA parts.
 
-Version 0.14.1 · BSD 3-Clause License · © 2026 Simweaver AB
+Version 0.14.5 · BSD 3-Clause License · © 2026 Simweaver AB
 
 ![The Rift map: a DIS exercise around Gotland, with aircraft, ships and ground units of two forces and their radar and jammer beams](simwrift/rtdir/doc/img/rift-map.png)
 
@@ -132,7 +132,7 @@ DIS session shared by three of them (one of them reached through another).*
 | **Java** | 11 or later (the code is compiled for Java 11) |
 | **HLA RTI** | Only for HLA datasources and endpoints: any RTI with the IEEE 1516-2010 or 1516-2025 Java API. DIS works without one. |
 | **Browser** | A current Microsoft Edge or Google Chrome |
-| **OS** | Windows, Linux or macOS. Examples for Docker or Podman, a systemd service and a Windows service (WinSW) are in `simwrift/rtdir/etc`. |
+| **OS** | Windows, Linux or macOS. Files for Docker or Podman, a systemd service and a Windows service (WinSW) are in `simwrift/rtdir/deploy`. |
 
 ---
 
@@ -143,12 +143,13 @@ simwcommon/        shared library: HLA codec and RTI sessions, DIS <-> RPR, FOM 
                    settings, REST/SSE server, JSON, logging, geo, the J2J network, a Kafka client
 simwjunction/      the Junction gateways: endpoints, routers, RPR conversion, HLA Comms bridge, REST API
 simwrift/          the Rift server, datasources, decoders, map, and the main class
-  rtdir/           the runtime folder: what gets installed
-    etc/           server settings, datasource and gateway configurations, FOMs, mappings;
-                   etc/junctions.dist holds every sample gateway configuration, untouched
+  rtdir/           the program folder: what a release delivers (0.14.5)
+    etc.dist/      the settings a new site starts with: server settings, datasource and gateway configurations
+    junctions.dist/  every sample gateway configuration, untouched
+    fom/, enumerations/, mappings/   the delivered FOM modules, SISO-REF-010 and the RPR v2 <-> v3 table
+    deploy/        systemd, Windows service (WinSW) and Docker files
     webroot/       the web UI (plain HTML, CSS and JavaScript)
     doc/           user documentation
-    maps/          background rasters, shapefile overlays, tile cache
     lib/           the application jar goes here
 build.sh           command-line build
 ```
@@ -180,30 +181,36 @@ The RTI is loaded by reflection at run time, so the jar itself contains no RTI.
 
 ## Install and run a release build
 
-1. Download the release build zip-file and unzip to a writable installation folder of own choice.
-2. Set `RTI_JAR` in `run.bat` (Windows), `run.sh` (Linux) or `run.command` (macOS) to your RTI's Java library. Leave it
-   empty for DIS only.
-3. Configure your data sources and gateways as described by documents in `doc` folder of the installation.
+Quick start: unzip and run.
+
+1. Download the release zip and unzip it into a folder you can write.
+2. Set `RTI_JAR` in `run.bat` (Windows), `run.sh` (Linux) or `run.command` (macOS) to your RTI's
+   Java library, or as an environment variable. Leave it empty for DIS only.
 3. Start it with `run.bat`, `run.sh` or `run.command`, and open `https://<server>:8843` in a browser.
 
-The installation guide (`doc/simweaver-rift-install-and-config.md`) covers more: services,
-Docker, maps and every setting.
+The first start makes the server's own files in that folder: `etc/` (the settings, from
+`etc.dist/`), its HTTPS key and `logs/`. For a service, give the server a site folder of its own
+instead (`--root=/var/lib/simweaver-junction`, or `JUNCTION_SITE`), so an update replaces the
+program folder and never touches the settings. The installation guide
+(`doc/simweaver-rift-install-and-config.md`) covers it: services, Docker, updating, maps and every
+setting.
 
 ---
 
 ## Install and run the checked out project
 
-1. Copy `simwrift/rtdir` to the installation folder.
-2. Put `simweaverrift.jar` in its `lib/`.
-3. Create a key store for HTTPS. The command is in `keystore-gen-line.txt`; use your own
-   password, and set it in `etc/server.root.settings`.
-4. Set `RTI_JAR` in `run.bat` (Windows), `run.sh` (Linux) or `run.command` (macOS) to your RTI's Java library. Leave it
-   empty for DIS only.
-5. Download a release build and fetch the raster map directories for it, and place under `maps/raster`
-6. Start it with `run.bat`, `run.sh` or `run.command`, and open `https://<server>:8843` in a browser.
+`./build.sh --release` makes the program folder `out/release/simweaver-junction-<version>` and its
+zip, as released. Or by hand:
 
-The installation guide (`doc/simweaver-rift-install-and-config.md`) covers more: services,
-Docker, maps and every setting.
+1. Copy `simwrift/rtdir` to a program folder (without its `etc/`, which holds a developer's own
+   settings).
+2. Put `simweaverrift.jar` in its `lib/`.
+3. Set `RTI_JAR` in `run.bat` (Windows), `run.sh` (Linux) or `run.command` (macOS) to your RTI's
+   Java library. Leave it empty for DIS only.
+4. Optional: background maps from a release build, under `maps/raster` (in the program or the site
+   folder).
+5. Start it with `run.bat`, `run.sh` or `run.command`, and open `https://<server>:8843` in a browser.
+   The first start makes `etc/` from `etc.dist/` and the HTTPS key.
 
 ---
 
@@ -236,7 +243,7 @@ the [Contributor License Agreement](CLA.md) before a contribution can be merged.
 The HLA RTI is not part of SimWeaver Junction. It is licensed by its vendor and installed
 separately.
 
-`simwrift/rtdir/etc/enumerations/SISO-REF-010.xml` is SISO's *Enumerations for Simulation
+`simwrift/rtdir/enumerations/SISO-REF-010.xml` is SISO's *Enumerations for Simulation
 Interoperability*, © SISO Inc., distributed unchanged under the licence in the file. Reprinted with
 permission from SISO Inc. It is not covered by the BSD 3-Clause License; see
-`etc/enumerations/NOTICE.txt`.
+`enumerations/NOTICE.txt`.

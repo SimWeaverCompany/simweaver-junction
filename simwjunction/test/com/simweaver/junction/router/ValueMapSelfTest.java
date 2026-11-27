@@ -63,9 +63,9 @@ public final class ValueMapSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom").getAbsoluteFile();
         File rtiDir = new File(args.length > 1 ? args[1] : "fakerti/build").getAbsoluteFile();
-        File mappings = new File(args.length > 2 ? args[2] : "simwrift/rtdir/etc/junctions/mappings").getAbsoluteFile();
+        File mappings = new File(args.length > 2 ? args[2] : "simwrift/rtdir/mappings").getAbsoluteFile();
         String rpr2 = new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath();
         List<String> rpr3 = new ArrayList<String>();
         for (File f : new File(fomRoot, "ieee1516-2010/rpr3").listFiles()) {

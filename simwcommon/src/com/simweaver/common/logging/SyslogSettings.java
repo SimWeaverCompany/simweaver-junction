@@ -107,7 +107,8 @@ public final class SyslogSettings {
         this.maxLength = Math.max(480, Math.min(65000, max));
         this.queueSize = Math.max(100, Math.min(1_000_000, p.getInt("syslog.queuesize", 10000)));
         this.bom = p.getBoolean("syslog.bom", true);
-        this.trustStore = p.getString("syslog.tls.truststore", "").trim();
+        String ts = p.getString("syslog.tls.truststore", "").trim();
+        this.trustStore = ts.isEmpty() ? "" : com.simweaver.common.config.SimwPaths.site(ts).toString();   // 0.14.5: against the site
         this.trustStorePassword = p.getString("syslog.tls.truststorepassword", "");
         this.verifyHostname = p.getBoolean("syslog.tls.verifyhostname", true);
         if (on && host.isEmpty()) {

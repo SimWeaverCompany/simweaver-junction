@@ -46,7 +46,7 @@ public final class NetnEnrichSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom").getAbsoluteFile();
         File rtiDir = new File(args.length > 1 ? args[1] : "fakerti/build").getAbsoluteFile();
         String rpr2 = new File(fomRoot, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath();
         List<String> netn = new ArrayList<String>();
@@ -255,10 +255,11 @@ public final class NetnEnrichSelfTest {
         c = new RouterConfig("x", p, "x", null);
         check("settings: both off = not enabled", c.getErrors().isEmpty() && !c.getNetn().isEnabled());
         // the delivered sample: valid, and its NETN endpoint's FOM has both attributes
-        java.nio.file.Path etc = com.simweaver.common.config.SimwPaths.etc();
-        com.simweaver.common.config.SimwPaths.setEtc(null);
+        // 0.14.5: as a new site sees it, the program folder simwrift/rtdir with the delivered FOMs
+        java.nio.file.Path rtdir = java.nio.file.Paths.get("simwrift/rtdir").toAbsolutePath();
+        com.simweaver.common.config.SimwPaths.setFolders(rtdir, rtdir, null, false);
         try {
-            File dist = new File("simwrift/rtdir/etc/junctions.dist");
+            File dist = new File("simwrift/rtdir/junctions.dist");
             File f = new File(dist, "hla3-hla3-rpr2-netn.junction.settings");
             SimwProperties raw = new SimwProperties();
             raw.load(f);
@@ -274,7 +275,7 @@ public final class NetnEnrichSelfTest {
         } catch (Exception e) {
             check("sample hla3-hla3-rpr2-netn loads: " + e, false);
         } finally {
-            com.simweaver.common.config.SimwPaths.setEtc(etc);
+            com.simweaver.common.config.SimwPaths.reset();
         }
     }
 

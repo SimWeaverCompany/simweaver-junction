@@ -44,7 +44,7 @@ public final class J2jPduSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom");
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom");
         String rpr2 = new File(fomRoot.getAbsoluteFile(), "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath();
         File dir = Files.createTempDirectory("junction-j2j").toFile();
         File junctions = new File(dir, "etc/junctions");

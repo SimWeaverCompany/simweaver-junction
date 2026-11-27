@@ -10,7 +10,7 @@ over HTTPS:
 The SimWeaver Rift Web UI is built only on this API, so anything the Web UI shows, another
 tool can get the same way.
 
-API state: SimWeaver Rift 0.14.1, November 2026.
+API state: SimWeaver Rift 0.14.5, November 2026 (no changes since 0.14.1).
 
 ---
 
@@ -1398,7 +1398,7 @@ curl -k https://localhost:8843/api/mcp -H "Authorization: Bearer $TOKEN" -H "Con
     "closing_mps":400.0,"closing_kt":777.5,
     "cpa":{"in_s":74.8,"at":"2026-11-23T04:35:11.036Z","range_m":0.0,"range_nm":0.0,"assumes":"both keep their present course and speed"}},
   "isError":false,
-  "_meta":{"io.modelcontextprotocol/serverInfo":{"name":"SimWeaver Junction & Rift Server","version":"0.14.1"}}}}
+  "_meta":{"io.modelcontextprotocol/serverInfo":{"name":"SimWeaver Junction & Rift Server","version":"0.14.5"}}}}
 ```
 
 ---

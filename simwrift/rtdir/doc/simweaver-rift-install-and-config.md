@@ -2,6 +2,8 @@
 
 SimWeaver Rift is an HLA/DIS datasource gateway with a REST API and a browser-based Web UI.
 This guide covers installing the server, starting it, and the configuration files it reads.
+Paths in it are relative to the server's **site folder** (in the quick start, the unzipped
+folder), unless they say otherwise (1, *The program folder and the site folder*).
 
 - **Using the Web UI:** see [web-ui.md](web-ui.md).
 - **Integrating over the REST API:** see [rest-api.md](rest-api.md) and, for Junction, [junction-rest-api.md](junction-rest-api.md).
@@ -22,148 +24,250 @@ This guide covers installing the server, starting it, and the configuration file
 
 ## 1. Install
 
-Download the SimWeaver Rift zip file and extract it to a folder of your choice. That folder is
-the **installation folder**: the server reads `etc/`, the web folder and its key store relative
-to it. All paths below are relative to it.
+### Quick start: unzip and run
+
+For a quick look at a federation or an exercise, or to bridge HLA and DIS from a console:
 
 ```
-<installation folder>/
-├── run.sh                      start script, Linux
-├── run.bat                     start script, Windows
-├── run.command                 start script, macOS (0.11.4)
+unzip simweaver-junction-0.14.5.zip
+cd simweaver-junction-0.14.5
+./run.sh            (Windows: run.bat; macOS: run.command)
+```
+
+Open `https://localhost:8843/` in a browser. That is all.
+
+- The first start makes the server's own files in that folder: `etc/` (the settings, copied from
+  `etc.dist/`), its HTTPS key `etc/tls/server.p12` and `logs/`. Later starts use them and change
+  nothing.
+- The key's certificate is self-signed, so the browser warns on the first visit. The start-up line
+  `HTTPS: etc/tls/server.p12, SHA-256 3F:A2:…` shows its fingerprint: compare it with the one the
+  browser shows, then accept it.
+- HLA needs your RTI's library: `RTI_JAR=/path/to/your/rti.jar ./run.sh` (see *The RTI library*
+  below). DIS needs nothing more.
+- **Ctrl+C** stops the server. To start again from scratch, delete `etc/` and `logs/`.
+- The folder must be writable. If it is not (unpacked as another user, or into a system folder),
+  the server says so and stops: unpack it where you can write, or give it a site folder with
+  `--root=` (below).
+
+### The program folder and the site folder (0.14.5)
+
+The unpacked zip is the **program folder**: what a release delivers and an update replaces. The
+server never writes into it, except in the quick start, where the program folder is also the site.
+
+```
+simweaver-junction-0.14.5/        the program folder
+├── run.sh, run.bat, run.command  start scripts: Linux, Windows, macOS
 ├── lib/simweaverrift.jar
-└── etc/
-    ├── server.root.settings
-    ├── datasources/
-    ├── junctions/              Junction gateway configurations
-    ├── junctions.dist/         every sample configuration, as delivered (never read by the server)
-    ├── fom/
-    ├── Docker/Dockerfile
-    ├── systemd/simweaver-junction.service
-    └── windows/simweaver-junction.xml   Windows service (0.11.4)
+├── webroot/                      the web pages
+├── doc/                          this guide and the others
+├── fom/                          the delivered FOM modules: ieee1516-2010/, ieee1516-2025/
+├── enumerations/                 SISO-REF-010 (2.10)
+├── mappings/                     the table between RPR 2 and RPR 3 (Junction)
+├── etc.dist/                     the templates a new site's etc/ is made from
+├── junctions.dist/               every sample gateway configuration, as delivered (never read by the server)
+└── deploy/                       systemd/, windows/, docker/: running it as a service (1b to 1d)
 ```
 
-**Upgrading:** replace `lib/simweaverrift.jar`, `webroot/` and `doc/`, and `etc/junctions.dist/`
-with the new version's. Keep your `etc/server.root.settings`, `etc/datasources/` and
-`etc/junctions/`. Comparing the old and the new `etc/junctions.dist/` shows what changed in the
-sample gateway configurations; copy what you want from there.
+The **site folder** holds one running server's own files: its settings, its logs, its key.
+
+```
+<site>/
+├── etc/
+│   ├── server.root.settings      the server's settings (2.1)
+│   ├── datasources/              datasource configurations (2.2)
+│   ├── junctions/                Junction gateway configurations
+│   ├── listprofiles.properties   (2.3)
+│   ├── j2j/, auth/               J2J (2.8) and API tokens (2.9), when used
+│   ├── tls/server.p12            the HTTPS key, made on the first start
+│   ├── fom/                      optional: your own FOM modules, found before the delivered ones
+│   └── enumerations/             optional: another SISO-REF-010
+├── logs/                         the log files (2.7)
+├── cache/maps/                   map tiles, made when needed
+├── maps/raster/, maps/overlays/  optional: your maps (2.4, 2.5)
+└── .lock                         held while a server runs on this site
+```
+
+**Which folder is the site:** `--root=<folder>` on the command line (`root=<folder>` works too), else
+the environment variable **`JUNCTION_SITE`**, else the program folder (the quick start). The
+start-up lines say which: `Site: /var/lib/simweaver-junction (root)`.
+
+- **A new site** gets its `etc/` from the program's `etc.dist/` on its first start. An `etc/` that
+  exists is never changed: not by a start, not by an update, not even for a missing file, so a
+  sample you deleted stays deleted.
+- **Delivered files** (FOM modules, SISO-REF-010, the RPR table, maps) are looked for in the site
+  first, then in the program folder. A site needs no copies of them, and gets a new release's
+  without doing anything. A file in the site with the same name hides the delivered one: the
+  start-up lines say how many do, and the log file lists them (*… is the same as the delivered …:
+  delete it to get updates*).
+- **One server per site:** a second server started on the same site stops at once with *the site …
+  is in use by another server (pid 4711)*. Several servers on one machine each need a site (and a
+  port) of their own; they can share one program folder.
+
+Three commands do their job and stop, without starting the server:
+
+| Command | What |
+|---|---|
+| `./run.sh --root=<site> --init` | Makes the site: `etc/`, the HTTPS key and `logs/`, and says what it made (or found). For a service, before its first start, to edit the settings first |
+| `./run.sh --root=<site> --health` | Asks the running server whether it answers (HTTPS, on the port in the site's settings). Exit status 0 when it does, 1 when not: for monitoring and container health checks |
+| `./run.sh --root=<site> --new-token=<name>` | Makes an API token (2.9) |
 
 ### The RTI library
 
 **HLA datasources** need the HLA RTI's Java library on the class path, for example
-`/opt/anrti/lib/hlaimpl.jar` (in this guide a placeholder for your RTI's jar). It is not part of SimWeaver Rift. **DIS datasources need no
-RTI.**
+`/opt/anrti/lib/hlaimpl.jar` (in this guide a placeholder for your RTI's jar). It is not part of
+SimWeaver. **DIS datasources need no RTI.**
 
 All ways of starting the server below take the library from the variable **`RTI_JAR`**:
-- The start scripts and the service file have a placeholder default
-  (`/opt/anrti/lib/hlaimpl.jar`, `C:\Program Files\anrti\lib\hlaimpl.jar`): change it to
-  your RTI's library, or set an environment variable `RTI_JAR`, which overrides it.
+- The start scripts have a placeholder default (`/opt/anrti/lib/hlaimpl.jar`,
+  `C:\Program Files\anrti\lib\hlaimpl.jar`): change it to your RTI's library, or set an environment
+  variable `RTI_JAR`, which overrides it. The services set it in their own settings (1b to 1d).
 - Several libraries (e.g. one for HLA 1516-2010 and one for HLA 4) are separated with `:` on
-  Linux and `;` on Windows.
-- Set `RTI_JAR` empty for a DIS-only installation. A path that does not exist is ignored by
-  Java, so the default does no harm where no RTI is installed.
-- An optional `JAVA_OPTS` (e.g. `-Xmx2g`) is passed on to Java.
+  Linux and macOS and `;` on Windows.
+- Set `RTI_JAR` empty for DIS only. A path that does not exist is ignored by Java, so the default
+  does no harm where no RTI is installed.
+- An optional `JAVA_OPTS` (e.g. `-Xmx2g`) is passed on to Java, and `JAVA_HOME` chooses another
+  Java than the one on the `PATH`.
 
 If the RTI also needs native libraries, they must be on `LD_LIBRARY_PATH` (Linux) or `PATH`
 (Windows); see the RTI's own documentation.
 
-Then start the server in one of these ways.
-
 ### 1a. In a console
 
 ```
-./run.sh          (Linux)
-run.bat           (Windows)
+./run.sh                                  (Linux; Windows: run.bat)
+./run.sh --root=/srv/junction/lab         a site folder of its own
 ```
 
-- The scripts change to the installation folder themselves, so they can be started from
-  anywhere.
-- They run `java` from the `PATH` with `lib/simweaverrift.jar` and `RTI_JAR` on the class
-  path, and main class `com.simweaver.rift.Server`.
-- Arguments given to the script are passed on to the server.
+- The scripts find the program folder themselves, also through a link, so they can be started
+  from anywhere; the working folder does not matter.
+- They run Java with `lib/simweaverrift.jar` and `RTI_JAR` on the class path, main class
+  `com.simweaver.rift.Server`. Arguments are passed on to the server: `--root=`, the commands
+  above, and any setting, e.g. `webserver.port=9443`.
 - **Ctrl+C** stops the server.
-- To use another RTI location, edit the `RTI_JAR` line in the script, or set `RTI_JAR` as an
-  environment variable.
 
 ### 1b. As a systemd service (Linux)
 
-The service file `etc/systemd/simweaver-junction.service` runs `run.sh` as the user `simweaver`,
-from `/opt/simweaver-junction`. It restarts the server if it fails, gives it 30 s to resign from
-its federations when it is stopped, and keeps it to its installation folder (the rest of the
-system read-only, home folders hidden).
+`deploy/systemd/simweaver-junction.service` runs the server as the user `simweaver`, with the
+program in `/opt/simweaver/junction` and the site in `/var/lib/simweaver-junction`. It restarts
+the server if it fails, gives it 30 s to resign from its federations when it stops, and keeps it to
+its site: the rest of the system is read-only to it (the program folder too), home folders are
+hidden.
 
-1. Install SimWeaver Junction in `/opt/simweaver-junction`, or change the paths in the service file.
-2. Create the service user and give it the installation folder:
+1. Unpack the zip into `/opt/simweaver` and point the link `junction` at it, so an update only
+   moves the link:
 
     ```sh
-    sudo useradd --system --home-dir /opt/simweaver-junction --shell /usr/sbin/nologin simweaver
-    sudo chown -R simweaver:simweaver /opt/simweaver-junction
+    sudo mkdir -p /opt/simweaver
+    sudo unzip simweaver-junction-0.14.5.zip -d /opt/simweaver
+    sudo ln -sfn /opt/simweaver/simweaver-junction-0.14.5 /opt/simweaver/junction
     ```
 
-3. Check the settings in the service file:
-   - `RTI_JAR`: your RTI's library (the default is a placeholder), or empty for DIS only.
-   - `JAVA_OPTS` (e.g. `-Xmx2g`) and `LD_LIBRARY_PATH` (an RTI's native libraries), commented out.
-   - J2J's last resort on port 443 (2.8) needs the two `CAP_NET_BIND_SERVICE` lines; remove their `#`.
-   - The RTI must not be installed in a home folder (`ProtectHome=true` hides them from the service).
+2. Create the service user:
+
+    ```sh
+    sudo useradd --system --home-dir /var/lib/simweaver-junction --shell /usr/sbin/nologin simweaver
+    ```
+
+3. The service's settings: the RTI library and Java options, kept apart from the service file so a
+   new version of it never loses them. Set `RTI_JAR` in the copy (empty for DIS only):
+
+    ```sh
+    sudo cp /opt/simweaver/junction/deploy/systemd/simweaver-junction.default /etc/default/simweaver-junction
+    ```
+
+   (Red Hat and its kin: `/etc/sysconfig/simweaver-junction`; both are read.) It also has
+   `JAVA_OPTS`, `JAVA_HOME` and `JUNCTION_ARGS` (more arguments for the server). The RTI must not be
+   in a home folder (`ProtectHome=true` hides them from the service).
 
 4. Install, enable and start the service:
 
     ```sh
-    sudo cp /opt/simweaver-junction/etc/systemd/simweaver-junction.service /etc/systemd/system/
+    sudo cp /opt/simweaver/junction/deploy/systemd/simweaver-junction.service /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo systemctl enable --now simweaver-junction
     ```
 
-- `systemctl status simweaver-junction` shows its state.
-- `journalctl -u simweaver-junction -f` follows its console output.
-- `sudo systemctl stop simweaver-junction` stops it.
-- Commands that make API tokens (2.9) run as the service's user: `sudo -u simweaver ./run.sh --new-token=<name>`.
+   systemd makes `/var/lib/simweaver-junction` for the user, and the first start makes the site in
+   it. To edit the settings before the first start, make the site first:
+   `sudo -u simweaver /opt/simweaver/junction/run.sh --root=/var/lib/simweaver-junction --init`.
 
-**Upgrading from the `simweaver-rift` service** (before 0.11.3): stop and disable it
-(`sudo systemctl disable --now simweaver-rift`), delete `/etc/systemd/system/simweaver-rift.service`,
-then install the new one as above. To keep your installation where it is, change the
-`/opt/simweaver-junction` paths in the new file to `/opt/simweaver-rift`.
+- `systemctl status simweaver-junction` shows its state; `journalctl -u simweaver-junction -f`
+  follows its console output; `sudo systemctl restart simweaver-junction` after a change of the
+  settings.
+- The settings: `sudo -u simweaver nano /var/lib/simweaver-junction/etc/server.root.settings`
+  (as the user, so the server can still read and write its files).
+- API tokens (2.9), as the user:
+  `sudo -u simweaver /opt/simweaver/junction/run.sh --root=/var/lib/simweaver-junction --new-token=<name>`.
+- An RTI that writes files of its own outside the site needs that folder added to
+  `ReadWritePaths=` in the service file.
+- J2J's last resort on port 443 (2.8) needs the two `CAP_NET_BIND_SERVICE` lines of the service
+  file; remove their `#`.
+
+**Several servers on one machine:** `simweaver-junction@.service` runs one per site,
+`/var/lib/simweaver-junction/<name>`, each with its settings in
+`/etc/default/simweaver-junction-<name>`. Give each its own `webserver.port` (and `j2j.port`):
+
+```sh
+sudo cp /opt/simweaver/junction/deploy/systemd/simweaver-junction@.service /etc/systemd/system/
+sudo cp /opt/simweaver/junction/deploy/systemd/simweaver-junction.default /etc/default/simweaver-junction-lab2
+sudo install -d -o simweaver -g simweaver /var/lib/simweaver-junction/lab2
+sudo -u simweaver /opt/simweaver/junction/run.sh --root=/var/lib/simweaver-junction/lab2 --init
+sudo -u simweaver nano /var/lib/simweaver-junction/lab2/etc/server.root.settings     # webserver.port
+sudo systemctl daemon-reload && sudo systemctl enable --now simweaver-junction@lab2
+```
 
 ### 1c. In Docker
 
-The Dockerfile `etc/Docker/Dockerfile` builds an image on Java 11 (`eclipse-temurin:11-jre`)
-with the whole installation folder in `/opt/simweaver-rift`. The server runs as the user
-`simweaver`, not as root.
+`deploy/docker/Dockerfile` builds an image on Java 11 (`eclipse-temurin:11-jre`; another with
+`--build-arg BASE=…`) with the program in `/opt/simweaver/junction`, read-only to the server, and
+the site on the volume `/var/lib/simweaver-junction`. The server runs as the user 10001
+(`simweaver`), not as root. A new image replaces the program; the site stays on its volume.
 
-Build it from the installation folder; the build context is that folder, not `etc/Docker`:
+Build it from the program folder (the build context is that folder, not `deploy/docker`):
 
 ```sh
-docker build -f etc/Docker/Dockerfile -t simweaver-rift .
+docker build -f deploy/docker/Dockerfile -t simweaver-junction:0.14.5 .
 ```
 
 The RTI is not in the image. Mount its installation at `/opt/rti`:
 
 ```sh
-docker run -d --name simweaver-rift --network host \
+docker run -d --name simweaver-junction --network host \
+    -v junction-site:/var/lib/simweaver-junction \
     -v /opt/anrti:/opt/rti:ro \
-    simweaver-rift
+    simweaver-junction:0.14.5
+```
+
+Or with Docker Compose, which does the same from `deploy/docker/compose.yaml` (uncomment the RTI
+mount there first):
+
+```sh
+docker compose -f deploy/docker/compose.yaml up -d --build
 ```
 
 - The image expects the RTI library at `/opt/rti/lib/hlaimpl.jar` (a placeholder). For your RTI's
   layout, add `-e RTI_JAR=/opt/rti/<path to its jar>`. For DIS only, leave out the RTI mount.
-- **Network:** `--network host` is the simplest for HLA, because RTIs often open connections
-  in both directions between the federate and the CRC/LSD. With Docker's default network,
-  publish the server port instead (`-p 8843:8843`, with the port from
-  `etc/server.root.settings`) and make sure the RTI can reach the container. With J2J (2.8), publish its port too, TCP and UDP (`-p 8844:8844 -p 8844:8844/udp`).
-  **DIS needs `--network host`**, because broadcast and multicast PDUs do not cross Docker's
-  default network.
-- **Configuration and logs:** to keep them outside the container, mount a folder for them and
-  point `etcdir` and `logdir` at it (2.1), e.g. `-v /srv/simweaver:/srv/simweaver` and, after the
-  image name, `etcdir=/srv/simweaver/etc logdir=/srv/simweaver/log` (copy the delivered `etc/`
-  there first). Single folders can be mounted too, e.g.
-  `-v /srv/rift/datasources:/opt/simweaver-rift/etc/datasources`.
-- **Podman** builds and runs the same image with the same commands: `podman build -f
-  etc/Docker/Dockerfile -t simweaver-rift .` and `podman run …`. Rootless Podman cannot use ports
-  below 1024 unless the system allows it, which only matters for J2J's last resort on 443.
-- `docker logs -f simweaver-rift` follows its console output.
-- `docker stop simweaver-rift` stops it.
-- `etc/Docker/Dockerfile.dockerignore` keeps logs, the Windows script and the service files
-  out of the image.
+- **The site:** the first start makes it on the volume. Edit its settings in the container
+  (`docker exec -it simweaver-junction vi /var/lib/simweaver-junction/etc/server.root.settings`) and
+  restart, or mount a host folder as the site instead of the volume:
+  `-v /srv/simweaver-junction:/var/lib/simweaver-junction`, after
+  `sudo chown -R 10001:10001 /srv/simweaver-junction`.
+- **Network:** `--network host` is the simplest for HLA, because RTIs often open connections in
+  both directions between the federate and the CRC/LSD. With Docker's default network, publish the
+  server port instead (`-p 8843:8843`, the port from the site's settings) and make sure the RTI can
+  reach the container. With J2J (2.8), publish its port too, TCP and UDP
+  (`-p 8844:8844 -p 8844:8844/udp`). **DIS needs `--network host`**, because broadcast and
+  multicast PDUs do not cross Docker's default network.
+- **Health:** the image's health check runs `--health`; `docker ps` shows *healthy* once the server
+  answers.
+- API tokens (2.9): `docker exec simweaver-junction /bin/sh /opt/simweaver/junction/run.sh --new-token=<name>`
+  (the site is the container's `JUNCTION_SITE`).
+- `docker logs -f simweaver-junction` follows its console output; `docker stop simweaver-junction`
+  stops it (it has 10 s unless you give `--stop-timeout 30`; Compose gives it 30 s).
+- **Podman** builds and runs the same image with the same commands. Rootless Podman cannot use
+  ports below 1024 unless the system allows it, which only matters for J2J's last resort on 443.
+- `deploy/docker/Dockerfile.dockerignore` keeps a site (a quick start's `etc/` and `logs/`), the
+  Windows and systemd files out of the image.
 
 ### 1d. As a Windows service (0.11.4)
 
@@ -172,19 +276,21 @@ Windows cannot run a Java program as a service by itself. There are two ways:
 **With WinSW (recommended).** The [Windows Service Wrapper](https://github.com/winsw/winsw)
 (MIT licence, a single `.exe`, not part of SimWeaver) runs the server as a real service: it starts
 with Windows, is seen in **Services**, restarts the server when it fails, and stops it with Ctrl+C,
-so the server resigns from its federations properly. `etc/windows/simweaver-junction.xml` is its
-configuration. In a command prompt run **as administrator**, in the installation folder:
+so the server resigns from its federations properly. `deploy\windows\simweaver-junction.xml` is its
+configuration: the program in `C:\Program Files\SimWeaver\Junction`, the site in
+`%ProgramData%\SimWeaver\Junction` (normally `C:\ProgramData\SimWeaver\Junction`). In a command
+prompt run **as administrator**, in the program folder:
 
-1. Download `WinSW-x64.exe` (release 2.12) and save it in the installation folder as
+1. Download `WinSW-x64.exe` (release 2.12) and save it in the program folder as
    `simweaver-junction.exe`.
-2. Copy the configuration next to it: `copy etc\windows\simweaver-junction.xml simweaver-junction.xml`
+2. Copy the configuration next to it: `copy deploy\windows\simweaver-junction.xml simweaver-junction.xml`
 3. Check it in a text editor:
    - the RTI's library in `<arguments>`: `C:\Program Files\anrti\lib\hlaimpl.jar` is a placeholder:
      change it to your RTI's; remove `;…` after `simweaverrift.jar` for DIS only;
    - `<executable>`: `java` is looked up in the **system** `PATH`, not your own user `PATH`. Give
      the full path to `java.exe` if it is not there;
-   - Java options such as `-Xmx2g` go before `-cp`; `etcdir=D:/SimWeaver/etc` at the end keeps the
-     configuration elsewhere (2.1).
+   - Java options such as `-Xmx2g` go before `-cp`; settings for the server (e.g.
+     `webserver.port=9443`) after `--root=…`.
 4. Install and start it:
 
     ```bat
@@ -194,11 +300,16 @@ configuration. In a command prompt run **as administrator**, in the installation
 
 - `simweaver-junction.exe status`, `stop`, `restart` and `uninstall`; or **Services**
   (`services.msc`), *SimWeaver Junction*.
-- The server writes its log files to `logdir` (`log\`) as always; WinSW keeps its capture of the
-  console in `log\service`.
+- The first start makes the site. Its settings:
+  `notepad "%ProgramData%\SimWeaver\Junction\etc\server.root.settings"` (as administrator), then
+  `simweaver-junction.exe restart`.
+- The server writes its log files to `<site>\logs`; WinSW keeps its capture of the console in
+  `<site>\logs\service`.
+- API tokens (2.9): `run.bat --root="%ProgramData%\SimWeaver\Junction" --new-token=<name>`, as
+  administrator.
 - It runs as *LocalSystem* unless you choose an account (in the XML, or in **Services**,
-  *Properties*, *Log On*). That account needs to read the installation folder and to write to
-  `log\` and `etc\` (or `etcdir`).
+  *Properties*, *Log On*). That account needs to read the program folder and to write the site
+  folder: make the folder and give the account *Modify* on it.
 - After editing the XML: `simweaver-junction.exe restart` (changes to the account or the start
   mode: `uninstall`, then `install`).
 
@@ -207,7 +318,7 @@ with less comfort: it has no console, it is not listed in **Services**, and *End
 server without a proper resign. In a command prompt run as administrator:
 
 ```bat
-schtasks /Create /TN "SimWeaver Junction" /TR "\"C:\SimWeaver\run.bat\"" /SC ONSTART /RU SYSTEM /RL HIGHEST /F
+schtasks /Create /TN "SimWeaver Junction" /TR "\"C:\Program Files\SimWeaver\Junction\run.bat\" --root=C:\ProgramData\SimWeaver\Junction" /SC ONSTART /RU SYSTEM /RL HIGHEST /F
 schtasks /Run /TN "SimWeaver Junction"
 ```
 
@@ -229,22 +340,23 @@ own rules.)
 ### 1e. In a Terminal on macOS (0.11.4)
 
 `run.command` starts the server in a Terminal window: double-click it in Finder, or run
-`./run.command` in Terminal. **Ctrl+C** stops it.
+`./run.command` in Terminal. **Ctrl+C** stops it. As with `run.sh`, the program folder is also the
+site unless `--root=` or `JUNCTION_SITE` names another, e.g. `./run.command --root=$HOME/SimWeaver/site`.
 
 - It uses Java 11 or later: `JAVA_HOME` when it is set, else the newest Java macOS knows
   (`/usr/libexec/java_home`), else `java` from the `PATH`. Without one it says so.
 - Set the RTI's library in the `RTI_JAR` line (or as an environment variable), e.g.
   `RTI_JAR=/Applications/<your RTI>/lib/<its jar> ./run.command`. Empty for DIS only.
 - The first time: macOS marks files from the internet as quarantined, so Finder refuses to open
-  it. Run once in Terminal, in the installation folder:
+  it. Run once in Terminal, in the program folder:
 
     ```sh
     xattr -dr com.apple.quarantine .
     chmod 755 run.command
     ```
 
-- Arguments are passed on to the server, as with `run.sh` (which works on macOS too, without the
-  Java lookup).
+- Unpack it where you can write (e.g. in your home folder, not in `/Applications`), or give it a
+  site with `--root=`.
 - macOS asks whether Java may accept incoming network connections: allow it, or the browsers and
   the other servers cannot reach it.
 
@@ -253,12 +365,57 @@ own rules.)
 When the server is ready, its output shows:
 
 ```
+Program:       /opt/simweaver/simweaver-junction-0.14.5
+Site:          /var/lib/simweaver-junction (root)
+Config folder: /var/lib/simweaver-junction/etc
+Log directory: /var/lib/simweaver-junction/logs
+HTTPS:         etc/tls/server.p12, SHA-256 3F:A2:…:9C
+…
 HTTPS-server started at <port>
 ```
 
-Open `https://<server>:<port>/` in a browser. If the server uses a self-signed certificate,
-the browser warns on the first visit; accept it, or install the certificate as trusted on
-the client machines.
+Open `https://<server>:<port>/` in a browser. With the server's own self-signed certificate, the
+browser warns on the first visit: compare the fingerprint it shows with the `HTTPS:` line, then
+accept it, or install the certificate as trusted on the client machines. `--health` (above) asks
+the same from a script.
+
+### Updating
+
+**A site of its own** (a service, Docker, `--root=`): unpack the new release next to the old one
+and start the server from it with the same site. On Linux, move the link
+(`sudo ln -sfn /opt/simweaver/simweaver-junction-0.14.6 /opt/simweaver/junction`) and restart the
+service; in Docker, build the new image and start it on the same volume; on Windows, stop the
+service, replace the program folder's contents (keep `simweaver-junction.exe` and its `.xml`) and
+start it. The site is not touched: the new release's FOM modules, SISO-REF-010, RPR table and web
+pages are used at once. New or changed samples are not copied into an existing site: compare the
+old and the new `junctions.dist/` and copy what you want from there.
+
+**The quick start** (the program folder is the site): unpack the new release into a new folder and
+copy the old folder's `etc/` into it (and `logs/` if you want to keep them), then start the new one.
+
+**From a release before 0.14.5**, where everything was in one installation folder: the folder's
+`etc/` is the site's `etc/`. Make a site folder (or a new program folder, for the quick start) and
+copy the old `etc/` into it. Then:
+
+- The old `etc/` has copies of the delivered FOM modules (`etc/fom/`), SISO-REF-010
+  (`etc/enumerations/`) and the RPR table (`etc/junctions/mappings/`). They still work, but hide the
+  new release's: the start-up lines say how many, and the log file lists each, with *the same as
+  the delivered … : delete it to get updates*. Delete those; keep the FOM modules of your own in
+  `etc/fom/`.
+- `etc/junctions.dist/` is in the program folder now: delete the old copy.
+- An old `etc/server.root.settings` names `webserver.keystore.path=keystore.jks`: copy that file
+  into the site too, or the server makes a new key there (and the browsers see a new fingerprint).
+  Or delete the `webserver.keystore.*` lines, and the server makes and uses `etc/tls/server.p12`.
+- `logdir=./log` and `map.cache.dir=maps/cache` in the old settings still work; delete the lines
+  to get the new defaults `logs` and `cache/maps`.
+- Service files from before 0.14.5 ran the server in its installation folder: install the new ones
+  (1b to 1d).
+
+### Backups
+
+Back up the **site folder**; the program folder can be unpacked again. Within the site, `etc/` is
+what matters; `logs/` and `cache/` can be left out. `etc/tls/server.p12`, `etc/j2j/network.key`
+and `etc/auth/` are secrets: keep the backups as safe as the server.
 
 ---
 
@@ -277,7 +434,8 @@ All configuration files are plain text in Java properties format: `key = value`,
 | `maps/raster/<map>/<map>.tif` | Optional: background maps of the map view | At startup |
 | `etc/j2j/network.settings`, `etc/j2j/network.key` | Optional: the J2J network of Junction servers (2.8) | At startup, and on *Reload member list* |
 | `etc/auth/api-tokens.settings` | Optional: the API tokens, when API authentication is on (2.9) | At startup, and again within a second of each change |
-| `etc/enumerations/SISO-REF-010.xml` | Optional: SISO's enumerations, to name entity types in the object view (2.10) | At startup |
+| `etc/enumerations/SISO-REF-010.xml` | Optional: another release of SISO's enumerations than the delivered one, to name entity types in the object view (2.10) | At startup |
+| `etc/tls/server.p12` | The HTTPS key, made on the first start (*HTTPS* below) | At startup |
 
 ### 2.1 Server settings: `etc/server.root.settings`
 
@@ -286,11 +444,12 @@ Server-wide settings. Restart the server after changing this file.
 | Key | Default | Meaning |
 |---|---|---|
 | `webserver.port` | `8843` | HTTPS port of the Web UI and the REST API |
-| `webserver.root` | `webroot` | The web folder |
-| `webserver.keystore.path` | `keystore.jks` | Key store with the server certificate |
+| `webserver.root` | `webroot` | The web folder, in the program folder |
+| `webserver.keystore.path` | `etc/tls/server.p12` | 0.14.5: the key store with the server's certificate, made on the first start when it does not exist (*HTTPS* below). PKCS12, or JKS from before |
 | `webserver.keystore.pwd` | `password` | Its password |
-| `logdir` | `logs` (the delivered settings: `./log`) | Log folder (2.7); relative to the installation folder, or absolute |
-| `etcdir` | `etc` | 0.11.4: the configuration folder, see *Configuration and logs elsewhere* below |
+| `webserver.tls.san` | | 0.14.5: more names and addresses for the certificate the server makes, `;`-separated, e.g. `junction.example.org;10.20.0.5` |
+| `logdir` | `logs` | Log folder (2.7) |
+| `etcdir` | `etc` | 0.11.4: another configuration folder than the site's `etc`, see *Paths* below |
 | `syslog.enabled` | `false` | Also send the log to a syslog server (2.7) |
 | `syslog.host` / `syslog.port` | / `514` (`6514` for TLS) | The syslog server |
 | `syslog.protocol` | `udp` | `udp`, `tcp` or `tls` |
@@ -298,55 +457,57 @@ Server-wide settings. Restart the server after changing this file.
 | `syslog.facility` / `syslog.level` | `local0` / `INFO` | Facility; lowest level sent: `SEVERE`, `WARNING`, `NOTICE`, `INFO`, `CONFIG`, `FINE` |
 | `syslog.*` (more) | | Names, framing, lengths, queue and TLS trust: see 2.7 |
 | `junction.enabled` | `true` | Run SimWeaver Junction gateways (see [junction.md](junction.md)). The 0.9.0 name `junktion.enabled` is still read |
-| `junction.dir` | `etc/junctions` | Junction's configuration folder (0.9.0 name `junktion.dir` still read). `etc/junctions.dist` next to it holds every delivered sample, untouched |
+| `junction.dir` | `etc/junctions` | Junction's configuration folder (0.9.0 name `junktion.dir` still read). The program folder's `junctions.dist/` holds every delivered sample, untouched |
 | `junction.datasourceconfigs` | `true` | List each gateway endpoint as a datasource configuration; `false`: only the files in `etc/datasources` (Inspect on the Junction page still works) |
 | `infra.enabled` | `true` | The Infra page (2.6): the DIS / C-DIS exercises and HLA federations the datasources and gateways have contact with; `false` collects nothing |
 | `infra.hla.mom` | `true` | Ask each joined federation's MOM about its federates (2.6); `false`: the federates are known only by their traffic |
 | `infra.hla.pollseconds` / `infra.hla.slowpollseconds` | `5` / `60` | Seconds between MOM requests while someone watches a federation / otherwise |
 | `infra.dis.forgetseconds` | `600` | A DIS sender not heard for this long is forgotten (`0` = never) |
 | `map.enabled` | `true` | The map view of the datasource page (2.4); `false` removes it everywhere |
-| `map.file` | | The default background map: an image file, in `map.dir` or anywhere on the server (relative to the installation folder), e.g. `maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif` |
+| `map.file` | | The default background map: an image file, in `map.dir` or anywhere on the server, e.g. `maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif` |
 | `map.files` | | More maps outside `map.dir`, `;`-separated files |
-| `map.dir` | `maps/raster` | The background maps: one sub folder per map |
-| `map.cache.dir` | `maps/cache` | Map tiles made from them |
+| `map.dir` | `maps/raster` in the site, then in the program folder | The background maps: one sub folder per map. Set: that folder alone |
+| `map.cache.dir` | `cache/maps` | 0.14.5 (was `maps/cache`): map tiles made from them |
 | `map.maxzoom` | from the raster | Deepest tile zoom (Natural Earth 10 m: 6); closer zooms scale those tiles |
 | `map.default` | the first | Id (file name without extension) of the default map, when `map.file` is not set |
 | `map.cache.memorymb` / `map.threads` / `map.jpegquality` / `map.background` | `48` / `2` / `0.85` / `#9db7c9` | Tiles in memory; tile makers; JPEG quality; colour where the raster has no data |
 | `map.overlays` | | Shapefiles drawn over the map (2.5), `;`-separated `.shp` files or `.zip` packages |
-| `map.overlays.dir` | `maps/overlays` | Every `.shp` and `.zip` package in this folder (and its sub folders) is an overlay too |
+| `map.overlays.dir` | `maps/overlays` in the site, then in the program folder | Every `.shp` and `.zip` package in this folder (and its sub folders) is an overlay too; a layer in both, the site's. Set: that folder alone |
 | `map.overlay.<id>.*` | | The style and labels of an overlay (2.5) |
 | `j2j.node.id` | | This server's id in the J2J member list (2.8). J2J itself is switched on by the member list, not here |
 | `j2j.*` (more) | | J2J ports, the last resort on 443, timers: see 2.8 |
-| `enumerations.siso.file` | `etc/enumerations/SISO-REF-010.xml` | SISO-REF-010, to name entity types (2.10); empty: none |
+| `enumerations.siso.file` | `etc/enumerations/SISO-REF-010.xml` when the site has it, else the program's `enumerations/SISO-REF-010.xml` | SISO-REF-010, to name entity types (2.10); empty: none |
 | `api.auth.enabled` | `false` | Require an API token for `/api` and a sign-in for the Web UI (2.9) |
 | `api.auth.tokens` | `etc/auth/api-tokens.settings` | The token file (2.9) |
 | `api.auth.sessionhours` | `12` | How long a browser stays signed in (2.9) |
 | `api.auth.origins` | | More origins whose pages may change things with a signed-in browser, `;`-separated, e.g. a reverse proxy's `https://rift.example.org` (2.9) |
 
-**Configuration and logs elsewhere** (0.11.4). By default the configuration is the `etc`
-folder of the installation, and the logs go to `logdir`. To keep them apart from the program (on
-a data disk, under `/srv` or `/var`, in `C:\ProgramData`, on a container volume), set:
+**Paths** (0.14.5). A relative path in a setting is relative to the site folder: `logdir=logs`
+is `<site>/logs`, `webserver.keystore.path=etc/tls/server.p12` is `<site>/etc/tls/server.p12`. The
+one exception is `webserver.root`, the web pages, relative to the program folder. Absolute paths
+are used as they are. On Windows, write `/` or `\\` in the settings file (`map.file=D:/maps/x.tif`):
+a single `\` is an escape character there.
 
-- `logdir`: the log folder, e.g. `logdir=/var/log/simweaver`.
-- `etcdir`: the configuration folder, e.g. `etcdir=/srv/simweaver/etc`. Everything the server
-  reads as configuration is then taken from there: `datasources/`, `junctions/`, `fom/`, `j2j/`,
-  `auth/`, `enumerations/` and `listprofiles.properties`. Copy the delivered `etc/` there first.
+The site folder itself is not a setting in this file (the file is in it): it is `--root=` on the
+command line or the environment variable `JUNCTION_SITE` (1). The start-up lines show what the
+server uses: `Program:`, `Site:`, `Config folder:`, `Log directory:` and `HTTPS:`.
 
-`etcdir` can be set in two places:
+**`etcdir`** (0.11.4) still names another configuration folder than the site's `etc`, in the site's
+`etc/server.root.settings` or on the command line (e.g. `etcdir=/srv/simweaver/etc`). Everything the
+server reads as configuration is then taken from there, and that folder's own `server.root.settings`
+is read on top of the site's; a new one is made from `etc.dist/` like a site's `etc`. With a site
+folder of its own, `etcdir` is seldom needed. An old `junction.dir=etc/junctions` line means the
+default, `junctions` in the configuration folder.
 
-- in the installation's `etc/server.root.settings`. The server then also reads the
-  `server.root.settings` in that folder (when there is one), on top of the installation's, so
-  the installation's file can hold just the one line;
-- on the command line, e.g. `./run.sh etcdir=/srv/simweaver/etc` (also in a service file or the
-  Windows service's XML).
-
-The start-up lines show both: `Log directory: …` and `Config folder: … (etcdir)`. Relative paths
-are relative to the installation folder. Paths written out in the settings (such as
-`map.dir` or `webserver.keystore.path`) stay what they say; an old `junction.dir=etc/junctions`
-line means the default, `junctions` in the configuration folder. On Windows, write `/` or `\\` in
-the settings file (`etcdir=D:/SimWeaver/etc`): a single `\` is an escape character there.
-
-The server uses **HTTPS only**, so it needs a key store with its certificate. `keystore-gen-line.txt` has a `keytool` command that makes a self-signed one.
+**HTTPS** (0.14.5). The server uses HTTPS only. On its first start it makes its own key,
+`etc/tls/server.p12`: an EC P-256 key with a self-signed certificate valid for 5 years, for
+`localhost`, the computer's name, `127.0.0.1`, `::1`, the addresses of its network interfaces, and
+the names in `webserver.tls.san`. The file is readable by the server's account only. The start-up
+line `HTTPS:` shows the certificate's SHA-256 fingerprint: compare it with what a browser shows
+before trusting it. The key is never replaced: delete the file and restart to make a new one (after
+adding a name to `webserver.tls.san`, say). To use a certificate from your own CA, put it in a
+PKCS12 file and name it in `webserver.keystore.path` and `webserver.keystore.pwd`;
+`keystore-gen-line.txt` in the program folder has the commands.
 
 ### 2.2 Datasource configurations: `etc/datasources/`
 
@@ -375,6 +536,10 @@ datasource.standard = IEEE1516-2010
 - Files without these two settings are skipped, with no message.
 - The other settings, such as the RTI connection, federation and FOM files, are shown in the
   samples.
+- FOM files named in `datasource.hla.foms` are looked for in the site's `etc/fom/<standard>/`
+  first, then in the program folder's `fom/<standard>/` (0.14.5; `<standard>` is `ieee1516-2010` or
+  `ieee1516-2025`). `datasource.hla.customfomrootdir` names one folder of your own instead, relative
+  to the site; its `<standard>` sub folder holds the files.
 - **DIS configurations** keep the HLA 1516-2010 FOM settings, pointing at the RPR FOM: it is
   the reference that DIS PDUs are mapped to and decoded with. They add:
   - `datasource.dis.exid`: the default exercise, 0–255, where 0 means every exercise. The
@@ -461,10 +626,11 @@ for example the Natural Earth *Cross Blended Hypso with Shaded Relief, Water, an
 (10 m, `HYP_HR_SR_W_DR.tif`, 21600 × 10800 pixels):
 
 ```
-<installation folder>/maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif
+<site>/maps/raster/HYP_HR_SR_W_DR/HYP_HR_SR_W_DR.tif
 ```
 
-- One sub folder per map. A map's id is its file name without the extension.
+- One sub folder per map. Maps in the program folder's `maps/raster/` are offered too (0.14.5), so
+  maps can come with a release or be added per site. A map's id is its file name without the extension.
 - **The default map** is `map.file` when set, else `map.default`, else the first one found.
   `map.file` can name a file outside `maps/raster`, and `map.files` adds more such files:
 
@@ -484,7 +650,7 @@ for example the Natural Earth *Cross Blended Hypso with Shaded Relief, Water, an
   the whole globe (180° W to 180° E, 90° N to 90° S, as the Natural Earth rasters). Only
   latitude/longitude rasters are placed correctly; projected ones are reported in the log.
 - **Tiles** (256 px, Web Mercator) are made from the raster when first needed and kept in
-  `maps/cache` (rebuilt when the raster file changes). The world view is made in the background
+  `cache/maps` (rebuilt when the raster file changes). The world view is made in the background
   at start-up. The console shows one line (`Map: 2 background maps (default …), 8 overlays
   loading; the layers are listed in the log file`) and any problems; the log file
   (`simwjunction.log`, 2.7) shows each map it found (0.11.5):
@@ -557,7 +723,7 @@ map.overlay.towns.labelminzoom=6
   the middle of a line, or the centre of a polygon. Where two would overlap, the one that ranks
   higher is shown.
 - **Tiles** (transparent PNG) are drawn from the shapes when first asked for and kept in memory
-  and under `maps/cache/overlays/<id>/` (made again when a file or the style changes). The files
+  and under `cache/maps/overlays/<id>/` (made again when a file or the style changes). The files
   are read in the background at start-up; the log file shows each one (0.11.5: not the
   console, which only shows an overlay that cannot be read or has a problem):
 
@@ -809,16 +975,16 @@ There is one access level: a valid token may do everything the API offers. The w
 
 **Switching it on:**
 
-1. Make a token on the server, in the installation folder (the server need not be stopped):
+1. Make a token on the server, for its site (the server need not be stopped):
 
    ```
-   ./run.sh --new-token=ops-wall          (Linux)
-   run.bat --new-token=ops-wall           (Windows)
+   ./run.sh --root=<site> --new-token=ops-wall          (Linux; the quick start: without --root)
+   run.bat --root=<site> --new-token=ops-wall           (Windows)
    ```
 
    It prints the new token, e.g. `swt_VHuYdfV1XddBP5F2VOzsBSGNGTKyOoKLX3FGXwwC_-g`, and adds its *hash* to `etc/auth/api-tokens.settings`. **Copy it at once**: it is stored nowhere and cannot be shown again. The command makes the token and stops; it does not start the server.
 
-   Run it as the account the server runs as, so the server can read the file: as a systemd service (1b) `sudo -u simweaver ./run.sh --new-token=ops-wall`; in Docker (1c) `docker exec simweaver-rift ./run.sh --new-token=ops-wall` (with `etc` on a volume, so the file outlives the container).
+   Run it as the account the server runs as, so the server can read the file: as a systemd service (1b) `sudo -u simweaver /opt/simweaver/junction/run.sh --root=/var/lib/simweaver-junction --new-token=ops-wall`; in Docker (1c) `docker exec simweaver-junction /bin/sh /opt/simweaver/junction/run.sh --new-token=ops-wall`.
 2. Set `api.auth.enabled=true` in `etc/server.root.settings` and restart. The start-up lines say `API auth: on, 1 token in …`.
 
 Run the command once per token. A token keeps working, across restarts, until its lines are deleted from the file or its expiry date (if it has one) has passed. Give each user or program its own token, so the log tells them apart and one can be revoked without the others.
@@ -875,13 +1041,13 @@ EntityType   1.1.205.2.1.5.0
              SWE  CV9040A · Armored Fighting Vehicle
 ```
 
-The names come from **SISO-REF-010** (*Enumerations for Simulation Interoperability*), delivered as `etc/enumerations/SISO-REF-010.xml` (release v37, 2026-05-25). It is read once at start; the start-up lines say `Enumerations: SISO-REF-010-v37 (2026-05-25), 27370 entity types`. They work for HLA and DIS datasources alike, for every value of the entity type form (`EntityType`, `AlternateEntityType`, a munition type in a `WeaponFire` …), and the object search finds objects by them.
+The names come from **SISO-REF-010** (*Enumerations for Simulation Interoperability*), delivered in the program folder as `enumerations/SISO-REF-010.xml` (release v37, 2026-05-25). It is read once at start; the start-up lines say `Enumerations: SISO-REF-010-v37 (2026-05-25), 27370 entity types`. They work for HLA and DIS datasources alike, for every value of the entity type form (`EntityType`, `AlternateEntityType`, a munition type in a `WeaponFire` …), and the object search finds objects by them.
 
 When the file does not list a type down to its last number, the nearest broader name is shown, marked with ≈: an unknown specific gives the subcategory (*≈ Combat Vehicle 90 (CV90)*), an unknown category the domain and kind (*≈ Air platform*). Hover over the name for the whole chain. Kind 0 (*Other*) is not named.
 
-**A newer release:** SISO publishes new releases a few times a year. Put SISO's `SISO-REF-010.xml` in place of the delivered one (or set `enumerations.siso.file` to another file) and restart. The schema (`.xsd`) is not needed. Without the file, or with `enumerations.siso.file=` empty, entity types are shown as numbers only.
+**A newer release:** SISO publishes new releases a few times a year. Put SISO's `SISO-REF-010.xml` in the site's `etc/enumerations/` (it is used instead of the delivered one), or set `enumerations.siso.file` to another file, and restart. The schema (`.xsd`) is not needed. Without the file, or with `enumerations.siso.file=` empty, entity types are shown as numbers only.
 
-**Licence:** SISO-REF-010 is © SISO Inc. and distributed unchanged under the licence in its own `<copyright>` element, with the attribution *Reprinted with permission from SISO Inc.* (`etc/enumerations/NOTICE.txt`). The BSD 3-Clause License of SimWeaver does not cover it.
+**Licence:** SISO-REF-010 is © SISO Inc. and distributed unchanged under the licence in its own `<copyright>` element, with the attribution *Reprinted with permission from SISO Inc.* (`enumerations/NOTICE.txt` in the program folder). The BSD 3-Clause License of SimWeaver does not cover it.
 
 ### 2.11 MCP: tools for AI assistants (0.14.0)
 

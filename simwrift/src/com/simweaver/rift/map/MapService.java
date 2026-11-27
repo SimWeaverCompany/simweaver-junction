@@ -33,8 +33,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * map.enabled=true                 false: no map anywhere (API, datasource page)
  * map.file=                        the default map: an image file anywhere (relative: to the runtime folder)
  * map.files=                       more maps outside map.dir, ';'-separated files
- * map.dir=maps/raster              one sub folder (or file) per map: *.tif, *.tiff (also *.png, *.jpg)
- * map.cache.dir=maps/cache         tiles on disk (rebuilt when the raster file changes)
+ * map.dir=maps/raster              one sub folder (or file) per map: *.tif, *.tiff (also *.png, *.jpg); 0.14.5: unset =
+ *                                  maps/raster in the site, then in the program folder
+ * map.cache.dir=cache/maps         tiles on disk (rebuilt when the raster file changes; maps/cache before 0.14.5)
  * map.cache.memorymb=48            tiles kept in memory
  * map.maxzoom=0                    0 = from the raster (Natural Earth 10 m: 6); deeper zooms scale the tiles
  * map.default=                     id of the default map, when map.file is not set (default: the first)
@@ -42,7 +43,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * map.background=#9db7c9           where the raster has no data
  * map.threads=2                    tile makers (low priority)
  * map.overlays=                    shapefiles drawn over the map, ';'-separated .shp files or .zip packages
- * map.overlays.dir=maps/overlays   every .shp and .zip package in it (and its sub folders) is an overlay too
+ * map.overlays.dir=maps/overlays   every .shp and .zip package in it (and its sub folders) is an overlay too; 0.14.5: unset =
+ *                                  the site's, then the program's
  * map.overlay.&lt;id&gt;.*              the style of an overlay (see {@link VectorOverlay})
  * </pre>
  */
@@ -51,7 +53,7 @@ public final class MapService {
     private static final String CACHE_VERSION = "1";
 
     private final boolean enabled;
-    private final File dir;
+    private final List<File> dirs = new ArrayList<>();      // 0.14.5: the site's, then the program's
     private final File defaultFile;
     private final List<File> extraFiles = new ArrayList<>();
     private final File cacheDir;
@@ -106,7 +108,13 @@ public final class MapService {
      */
     public MapService(SimwProperties cfg, File runtimeDir) {
         this.enabled = cfg.getBoolean("map.enabled", true);
-        this.dir = resolve(runtimeDir, cfg.getString("map.dir", "maps/raster"));
+        // 0.14.5: map.dir alone when set; else maps/raster in the site, then in the program folder
+        String mapDir = cfg.getString("map.dir", "").trim();
+        if (!mapDir.isEmpty()) {
+            dirs.add(resolve(runtimeDir, mapDir));
+        } else {
+            addDistinct(dirs, new File(runtimeDir, "maps/raster"), com.simweaver.common.config.SimwPaths.delivered("maps", "raster").toFile());
+        }
         String file = cfg.getString("map.file", "").trim();
         this.defaultFile = file.isEmpty() ? null : resolve(runtimeDir, file);
         for (String f : cfg.getString("map.files", "").split(";")) {
@@ -114,7 +122,7 @@ public final class MapService {
                 extraFiles.add(resolve(runtimeDir, f.trim()));
             }
         }
-        this.cacheDir = resolve(runtimeDir, cfg.getString("map.cache.dir", "maps/cache"));
+        this.cacheDir = resolve(runtimeDir, cfg.getString("map.cache.dir", "cache/maps"));     // 0.14.5: was maps/cache
         this.quality = (float) Math.max(0.3, Math.min(1.0, parseDouble(cfg.getString("map.jpegquality", "0.85"), 0.85)));
         this.background = parseColour(cfg.getString("map.background", "#9db7c9"), 0x9db7c9);
         this.maxZoomSetting = cfg.getInt("map.maxzoom", 0);
@@ -155,9 +163,26 @@ public final class MapService {
                 problems.add("map.overlays: " + file.getPath() + (file.isFile() ? " is not a .shp or .zip file" : " not found"));
             }
         }
-        File odir = resolve(runtimeDir, cfg.getString("map.overlays.dir", "maps/overlays"));
+        // 0.14.5: map.overlays.dir alone when set; else maps/overlays in the site, then in the program folder
+        // (a layer in both: the site's, as for a layer both unpacked and packed)
+        String ovDir = cfg.getString("map.overlays.dir", "").trim();
+        List<File> odirs = new ArrayList<>();
+        if (!ovDir.isEmpty()) {
+            odirs.add(resolve(runtimeDir, ovDir));
+        } else {
+            addDistinct(odirs, new File(runtimeDir, "maps/overlays"), com.simweaver.common.config.SimwPaths.delivered("maps", "overlays").toFile());
+        }
         List<File> found = new ArrayList<>();
-        collectShp(odir, found, 0);
+        java.util.Set<String> foundNames = new java.util.HashSet<>();
+        for (File odir : odirs) {
+            List<File> here = new ArrayList<>();
+            collectShp(odir, here, 0);
+            for (File f : here) {
+                if (foundNames.add(f.getName().toLowerCase(Locale.ROOT))) {
+                    found.add(f);
+                }
+            }
+        }
         for (File f : found) {                                // unpacked layers before packed ones
             if (!f.getName().toLowerCase(Locale.ROOT).endsWith(".zip")) {
                 sources.add(ShapeSource.file(f));
@@ -227,6 +252,16 @@ public final class MapService {
     }
 
     /** The .shp and .zip files of a folder and its sub folders (3 levels). */
+    /** Adds the folders that are not already in the list (the same folder named twice is read once). */
+    private static void addDistinct(List<File> l, File... fs) {
+        for (File f : fs) {
+            File a = f.getAbsoluteFile().toPath().normalize().toFile();
+            if (!l.contains(a)) {
+                l.add(a);
+            }
+        }
+    }
+
     private static void collectShp(File dir, List<File> out, int depth) {
         File[] fs = dir.listFiles();
         if (fs == null || depth > 3) {
@@ -279,7 +314,10 @@ public final class MapService {
                 problems.add("map.files: " + f.getPath() + (f.isFile() ? " is not a .tif, .tiff, .png or .jpg" : " not found"));
             }
         }
+        boolean anyDir = false;
+        for (File dir : dirs) {
         if (dir.isDirectory()) {
+            anyDir = true;
             File[] top = dir.listFiles();
             if (top != null) {
                 Arrays.sort(top, Comparator.comparing(File::getName));
@@ -300,8 +338,11 @@ public final class MapService {
                     }
                 }
             }
-        } else if (files.isEmpty()) {
-            problems.add("map folder " + dir.getPath() + " not found: the map has no background");
+        }
+        }
+        if (!anyDir && files.isEmpty()) {
+            problems.add((dirs.size() == 1 ? "map folder " + dirs.get(0).getPath()
+                    : "map folders " + dirs.stream().map(File::getPath).collect(java.util.stream.Collectors.joining(" and "))) + " not found: the map has no background");
         }
         java.util.Set<File> seen = new java.util.HashSet<>();
         for (File f : files) {
@@ -329,7 +370,7 @@ public final class MapService {
             problems.add("map.default=" + defaultId + " is not one of the maps; the first is used");
         }
         if (maps.isEmpty() && problems.isEmpty()) {
-            problems.add("no map in " + dir.getPath() + " (a folder per map with a .tif), and no map.file");
+            problems.add("no map in " + dirs.get(0).getPath() + " (a folder per map with a .tif), and no map.file");
         }
     }
 

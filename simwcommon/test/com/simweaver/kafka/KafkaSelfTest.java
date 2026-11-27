@@ -50,7 +50,7 @@ public final class KafkaSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom");
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom");
         wire();
         partitions();
         scram();

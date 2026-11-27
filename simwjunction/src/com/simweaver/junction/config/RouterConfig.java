@@ -275,6 +275,11 @@ public final class RouterConfig implements Json.Writable {
         if (!mf.isAbsolute() && baseDir != null) {
             mf = new File(baseDir, mapping);
         }
+        if (!p.isSet("router.rpr.mapping")) {
+            // 0.14.5: the delivered table when the junctions folder has none of its own
+            mf = com.simweaver.common.config.SimwPaths.findDelivered(mf.toPath(),
+                    com.simweaver.common.config.SimwPaths.delivered("mappings", "rpr2-rpr3.mapping")).toFile();
+        }
         this.rprMapping = mf.getPath();
         this.deleteOnStop = p.getBoolean("router.deleteobjectsonstop", true);
         // 0.9.19: a provide request the cache cannot answer is asked of the object's origin

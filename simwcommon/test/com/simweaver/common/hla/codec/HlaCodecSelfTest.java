@@ -52,7 +52,7 @@ public final class HlaCodecSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File root = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom");
+        File root = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom");
         InformationExchangeModel rpr2e = InformationExchangeModel.fromHlaEvolved(Arrays.asList(
                 new File(root, "ieee1516-2010/RPR_FOM_v2.0_Link16_1516-2010.xml").getPath()));
         List<String> talkFoms = com.simweaver.common.TestCommsFom.find(root);

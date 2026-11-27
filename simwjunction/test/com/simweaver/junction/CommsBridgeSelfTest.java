@@ -56,7 +56,7 @@ public final class CommsBridgeSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom").getAbsoluteFile();
         File rtiDir = new File(args.length > 1 ? args[1] : "fakerti/build").getAbsoluteFile();
         // 0.9.21: no HLA Comms FOM is part of the source; the tester gives one (TestCommsFom), else the test skips
         List<String> talkFoms = com.simweaver.common.TestCommsFom.find(fomRoot);

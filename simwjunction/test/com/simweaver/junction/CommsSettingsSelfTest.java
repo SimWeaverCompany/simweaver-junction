@@ -31,12 +31,16 @@ public final class CommsSettingsSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File etc = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc").getAbsoluteFile();
+        // the program folder (0.14.5): the templates of a new site in etc.dist, every sample in junctions.dist
+        File program = new File(args.length > 0 ? args[0] : "simwrift/rtdir").getAbsoluteFile();
         types();
         routers();
         gateways();
-        samples(new File(etc, "junctions"));
-        samples(new File(etc, "junctions.dist"));
+        // the samples as a new site gets them: the delivered FOMs in the program folder
+        com.simweaver.common.config.SimwPaths.setFolders(program.toPath(), program.toPath(), null, false);
+        samples(new File(program, "etc.dist/junctions"), program);
+        samples(new File(program, "junctions.dist"), program);
+        com.simweaver.common.config.SimwPaths.reset();
         System.out.println(checks + " checks, " + failures + " failures");
         System.exit(failures == 0 ? 0 : 1);
     }
@@ -179,8 +183,8 @@ public final class CommsSettingsSelfTest {
     }
 
     /** Every delivered HLA Comms sample loads, the ASIM ones too; 0.14.1: no sample file says the old name any more. */
-    private static void samples(File junctions) {
-        ConfigLoader.Result r = new ConfigLoader(junctions, junctions.getParentFile().getParentFile()).load();
+    private static void samples(File junctions, File program) {
+        ConfigLoader.Result r = new ConfigLoader(junctions, program).load();
         int comms = 0;
         for (GatewayConfig g : r.getGateways()) {
             if (g.getRouter().getKind() != RouterConfig.Kind.COMMS) {

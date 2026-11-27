@@ -81,7 +81,9 @@ public class DatasourceConfig implements Json.Writable{
         // 0.9.15: a ;-separated list of choices, the first is the default
         this.hlaLsdOptions = com.simweaver.common.hla.session.LsdOptions.parse(datasourceProps.getString("datasource.hla.lsd",""));
         this.hlalsd = hlaLsdOptions.get(0);
-        this.hlafomRootdir = datasourceProps.getString("datasource.hla.customfomrootdir", com.simweaver.common.config.SimwPaths.etcString("fom"));   // 0.11.4: etcdir
+        // 0.14.5: datasource.hla.customfomrootdir alone when set; else the site's etc/fom, then the program's fom
+        String customFomRoot = datasourceProps.getString("datasource.hla.customfomrootdir", "").trim();
+        this.hlafomRootdir = com.simweaver.common.config.SimwPaths.etcString("fom");
         switch (datasourceProps.getString("datasource.standard","other").trim().toLowerCase()){
             case "ieee1516-2010":
                 this.standard = Standard.IEEE1516_2010;
@@ -123,11 +125,12 @@ public class DatasourceConfig implements Json.Writable{
         this.hlaDynamicFom = com.simweaver.common.hla.session.DynamicFom.isDynamic(fomSetting)
                 && (standard == Standard.IEEE1516_2010 || standard == Standard.IEEE1516_2025);
         this.hlaFddTimeoutSecs = Math.max(1, datasourceProps.getInt("datasource.hla.fddtimeoutseconds", 15));
+        String stdFolder = standard == Standard.IEEE1516_2025 ? "ieee1516-2025" : "ieee1516-2010";
+        java.util.List<java.nio.file.Path> roots = com.simweaver.common.config.SimwPaths.fomRoots(stdFolder, customFomRoot);
+        this.hlafomRootdir = roots.get(0).toString();
         for (String fomFileName : hlaDynamicFom ? new String[0] : fomSetting) {
-            // NEW (Junction): an absolute path is used as it is
-            String fomPath = new File(fomFileName).isAbsolute() ? fomFileName
-                    : this.hlafomRootdir + File.separator + fomFileName;
-            hlafoms.add(fomPath);
+            // NEW (Junction): an absolute path is used as it is; 0.14.5: the first root that has the file
+            hlafoms.add(com.simweaver.common.config.SimwPaths.findFom(roots, fomFileName.trim(), null).getPath());
         }
         // NEW (Junction): configurations made by another component, e.g. "junction"
         this.origin = datasourceProps.getString("datasource.origin", "");

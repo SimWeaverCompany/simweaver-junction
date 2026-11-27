@@ -1,0 +1,14 @@
+# Files left out of the image (read by BuildKit for "docker build -f deploy/docker/Dockerfile .", from the
+# program folder). A site made by a console run in the program folder never goes into the image.
+etc
+logs
+log
+cache
+.lock
+keystore.jks
+**/*.log
+.git
+deploy/windows
+deploy/systemd
+*.bat
+run.command

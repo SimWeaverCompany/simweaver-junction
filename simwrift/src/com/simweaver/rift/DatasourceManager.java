@@ -63,6 +63,9 @@ public class DatasourceManager implements DataSourceCallbackSink {
     // NEW: version, CPU and memory for GET /api/serverinfo (the web UI's top bar)
     private final ServerInfo serverInfo = new ServerInfo("SimWeaver Rift", Version::getVersion);
 
+    // 0.14.5: the missing datasources folder already warned about (null: none)
+    private volatile Path missingFolderWarned;
+
     // NEW (Junction): configurations supplied by other components, listed after the files
     private final List<java.util.function.Supplier<List<DatasourceConfig>>> externalConfigs = new CopyOnWriteArrayList<>();
 
@@ -82,6 +85,23 @@ public class DatasourceManager implements DataSourceCallbackSink {
     public void reloadConfigs(){
 
         Path dirPath = com.simweaver.common.config.SimwPaths.etc("datasources");               // 0.11.4: etcdir
+
+        // 0.14.5: no folder is no configurations, said once (the list is read again on every listing), with
+        // where the samples are; a site's etc made before 0.14.5 by hand, or a developer's tree, may lack it
+        if (!Files.isDirectory(dirPath)) {
+            if (!dirPath.equals(missingFolderWarned)) {
+                missingFolderWarned = dirPath;
+                java.nio.file.Path samples = com.simweaver.common.config.SimwPaths.delivered(
+                        com.simweaver.common.config.SiteFolders.TEMPLATES, "datasources");
+                LOG.warning("No datasource configurations: the folder " + dirPath + " does not exist"
+                        + (Files.isDirectory(samples) ? ". The delivered samples are in " + samples + ": copy that folder there to use them" : ""));
+            }
+            List<DatasourceConfig> loaded = new ArrayList<>();
+            addExternal(loaded);
+            this.configs = loaded;
+            return;
+        }
+        missingFolderWarned = null;
 
         try (Stream<Path> stream = Files.list(dirPath)) {
 

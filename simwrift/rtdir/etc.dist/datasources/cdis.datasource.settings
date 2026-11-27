@@ -1,0 +1,17 @@
+# Datasource CDIS: a C-DIS network (Compressed DIS, SISO-STD-023-2024), decoded to DIS 7 and
+# shown as RPR FOM v2.0 objects and interactions. Full and partial updates are both taken.
+datasource.name=CDIS
+datasource.standard=cdis
+# the RPR FOM the PDUs are shown as (looked up in etc/fom/ieee1516-2010, then in the delivered fom/ieee1516-2010)
+datasource.hla.foms=RPR_FOM_v2.0_Link16_1516-2010.xml;
+datasource.dis.port=3100
+datasource.dis.interface=0.0.0.0
+datasource.dis.exid=1
+datasource.dis.entitytimeoutsecs=13
+# C-DIS decoder: an object is forgotten after timeoutmultiplier x heartbeat (seconds) of silence
+# datasource.cdis.timeoutmultiplier=2.4
+# datasource.cdis.heartbeat.entitystate=5
+# datasource.cdis.heartbeat.emission=10
+# datasource.cdis.heartbeat.designator=5
+# datasource.cdis.heartbeat.transmitter=2
+# datasource.cdis.heartbeat.iff=10

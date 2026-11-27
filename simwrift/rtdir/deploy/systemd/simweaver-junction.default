@@ -1,0 +1,16 @@
+# SimWeaver Junction - settings for the systemd service, read from /etc/default/simweaver-junction
+# (Red Hat and its kin: /etc/sysconfig/simweaver-junction). For simweaver-junction@<name>:
+# /etc/default/simweaver-junction-<name>. Restart the service after a change.
+
+# The HLA RTI's Java library (several: separate with ':'); a placeholder path: change it to your
+# RTI's. Empty for DIS only. The RTI must not be in a home folder (the service cannot see /home).
+RTI_JAR=/opt/anrti/lib/hlaimpl.jar
+
+# Options for Java, e.g. the heap
+#JAVA_OPTS=-Xmx2g
+
+# Another Java than the one on the PATH
+#JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+
+# More arguments for the server, e.g. a setting: webserver.port=9443
+#JUNCTION_ARGS=

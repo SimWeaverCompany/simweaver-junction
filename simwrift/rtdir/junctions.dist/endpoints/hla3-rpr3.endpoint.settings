@@ -1,0 +1,8 @@
+# Endpoint kit HLA3-RPR3: an HLA Evolved federation with the RPR FOM v3.0 (the modules in the
+# 1516-2010 format), all modules of the delivered folder fom/ieee1516-2010/rpr3.
+# Bridged with RPR v2 (or DIS) endpoints, the router converts with mappings/rpr2-rpr3.mapping.
+endpoint.name=HLA3-RPR3
+endpoint.standard=ieee1516-2010
+endpoint.hla.foms=rpr3
+endpoint.hla.lsd=default
+endpoint.hla.federation=Rpr3

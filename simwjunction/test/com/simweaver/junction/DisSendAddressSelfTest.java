@@ -42,7 +42,7 @@ public final class DisSendAddressSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/etc/fom").getAbsoluteFile();
+        File fomRoot = new File(args.length > 0 ? args[0] : "simwrift/rtdir/fom").getAbsoluteFile();
         parsing();
         settings(fomRoot);
         relay(fomRoot, "dis7");
