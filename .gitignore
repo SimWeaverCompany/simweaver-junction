@@ -33,3 +33,5 @@ simwrift/returning-web-results-from-ops.txt
 /simwrift/rtdir/keystore.jks
 /simwrift/rtdir/etc/*
 /simwrift/rtdir/etc/server.root.settings
+
+/simwrift/rtdir/maps/raster/
